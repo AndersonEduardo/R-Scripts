@@ -13,25 +13,34 @@ Sys.setenv(JAVA_HOME='/usr/lib/jvm/default-java') # for 64-bit version
 #Windows#Sys.setenv(JAVA_HOME='C:\\Program Files\\Java\\jre1.8.0_91') # for 64-bit version
 library(rJava)
 
+##DEFININDO PASTAS DE TRABALHO##
+envVarFolder = "/home/anderson/R/PosDoc/dados_ambientais/"
+spOccFolder = "/home/anderson/R/PosDoc/dados_ocorrencia/PO_unique/"
+projectFolder = "/home/anderson/R/PosDoc/teste/"
+
 ####ABRINDO AS VARIAVEIS CLIMATICAS#####
+#abrindo shape da America do Sul
 AmSulShape = readShapePoly("/home/anderson/R/PosDoc/Am_Sul/borders.shp")
 
+#abrindo e cortando camads de variaveis ambientais para o presente
 filesRaw <- stack(list.files(path="/home/anderson/R/PosDoc/dados_ambientais/dados_projeto/000", pattern='asc', full.names=T)) ### stack all rasters in Bioclim folder
 #files <- stack(list.files(path = "/home/anderson/R/PosDoc/dados_ambientais/bcmidbi_2-5m _asc/dados_ambientais_para_projeto", pattern='asc', full.names=T))
 files = mask(filesRaw,AmSulShape) #cortando para Am. do Sul
 
+#abrindo e cortando camads de variaveis ambientais para o passado
 filesProjectionRaw <- stack(list.files(path = "/home/anderson/R/PosDoc/dados_ambientais/dados_projeto/011", pattern='asc', full.names=T)) ###abrindo camandas para projecao (passado, futuro, outro local, etc)
 filesProjection = mask(filesProjectionRaw,AmSulShape) #cortando para Am. do Sul
 
+#testando correcaloes
 #test<-getValues(files)
 #cor.matrix <- as.data.frame(cor(test, use="complete.obs"))
 #write.csv(cor.matrix,'cor_matrix.csv')
 
-####remove highly correlated variables Bio1,Bio3,Bio9,Bio13,Bio14
+#remove highly correlated variables Bio1,Bio3,Bio9,Bio13,Bio14
 files.crop.sub <- dropLayer(files, c(1,2,5,8)) #### remove selected layers
-files.crop.sub.projection <- dropLayer(filesProjection, c(1,2,5,8)) #
+files.crop.sub.projection <- dropLayer(filesProjection, c(1,2,5,8)) 
 
-### remover as mesmas camadas dos dados para projecao
+#remover as mesmas camadas dos dados para projecao
 #test2<-getValues(files.crop.sub)
 #cor.matrix2<- cor(test2, use="complete.obs")
 #write.csv(cor.matrix2,'cor.matrix2.csv')
@@ -68,8 +77,7 @@ splist <-unlist(lapply(occ.sps, FUN = strsplit, split=("\\.csv")))
 occ.sps.fosseis = read.csv("/home/anderson/R/PosDoc/dados_ocorrencia/PO_unique/fosseis.csv",header=T)
 splist.fosseis = lapply(occ.sps.fosseis[,1],as.character)
 
-
-###inspeção visual
+###inspeção visual exploratoria
 data(wrld_simpl)
 
 especie = splist[1] #escolher qual especie
@@ -82,12 +90,14 @@ box() # restore the box around the map
 points(sp.occ, col= ' orange ' , pch=20, cex=0.75)
 #plot points again to add a border, for better visibility
 points(sp.occ, col= ' red ' , cex=0.75)
-#
+
 sp.occ<-cbind(especie,sp.occ) 
 write.csv(sp.occ, file=paste("/home/anderson/R/PosDoc/dados_ocorrencia/PO_unique/",especie,".csv",sep=""),row.names=F)
 
+
 ######################## MAXENT #############################
-########################        #############################
+##################### exploratorio  #########################
+
 
 options(java.parameters = "-Xmx7g") ###set available memmory to java
 
@@ -133,34 +143,33 @@ for (i in 1:length(names(species.layers))){
     species.layers[[i]] = mask(species.layers[[i]],AmSul)
     writeRaster(species.layers[[i]], filename=paste("/home/anderson/R/PosDoc/teste/",names(species.layers)[i],".asc",sep=""), overwrite=T)
 }
-%##
 
 #ajustando os nomes dos subgraficos
 names(species.layers)
 rasterNames = gsub("Caiman_latirostris_._","",names(species.layers))
 rasterNames = gsub("presente","Presente",rasterNames)
-#
+
 cols <- colorRampPalette(brewer.pal(9,"YlGn")) #escala de cores amarelo-verde
 setwd("/home/anderson/R/PosDoc/teste/Caiman latirostris")
 jpeg(filename=paste(splist[1],'.jpg',sep=''))
 levelplot(species.layers,main=paste(splist[1]),col.regions=cols,names.attr=rasterNames) + layer(sp.polygons(AmSul)) + layer(panel.xyplot(-41.553056, -12.393417,pch=17,col='red',cex=1),columns=1) + layer(panel.xyplot(-37.753611,-9.926944,pch=17,col='red',cex=1),columns=2)
 dev.off()
 
+
 ##################################################################
 #################### RANDOM FOREST ###############################
 ##################################################################
 
-envVarFolder = "/home/anderson/R/PosDoc/dados_ambientais/"
-spOccFolder = "/home/anderson/R/PosDoc/dados_ocorrencia/PO_unique/"
-projectFolder = "/home/anderson/R/PosDoc/teste/"
 
 #abrindo um data.frame para armazenar os resultados de AUC
 resultados.evaluacion.RF<-data.frame(Species=character(), auc=numeric(), stringsAsFactors=FALSE)
 fila=0 #auxiliara na criacao do data.frame durante o loop
-#
+fossilPointsSuitability = NULL #objetvo em que serao gravadas as projcoes de suitability especificamente para cada ponto de registro fossil
+
 for (i in 1:length(splist)){
     #especie = 1 #para fazer na mao bruta
     especie = i
+     print(paste('Rodando Random Forest para a especie',splist[especie]))
 
     #presencas
     sp.file <- read.csv(paste(spOccFolder, splist[especie],".csv",sep=""),h=T) ### read sp occurrence
@@ -321,7 +330,12 @@ for (i in 1:length(splist)){
         #criando um objeto com as coordenadas do registro fossil
         fossilPoints = sp.fossil
         fossilPoints = cbind(fossilPoints$longitude, fossilPoints$latitude)
-            
+
+        #obtendo a projecao de qualidade de habitat especificamente para o ponto do fossil
+        fossilPointsVars = extract(predictors,fossilPoints)
+        fossilPoints.RF = predict(RF, fossilPointsVars)
+        fossilPointsSuitability = rbind(fossilPointsSuitability,data.frame(splist[especie],sp.fossil$K.years.BP,fossilPoints.RF)))
+        
         #salvando um raster com a projecao do modelo para o tempo do fossil
         writeRaster(projecaoSuitabilityPassado,filename=paste(projectFolder,"Random Forest/Passado/",splist[especie],"/",splist[especie],'-',sp.fossil$K.years.BP," K years BP.asc", sep=""),overwrite=T)
             
@@ -356,23 +370,24 @@ for (i in 1:length(splist)){
 #salvando a tabela de dados da avaliacao dos modelos 
 write.table(resultados.evaluacion.RF,file=paste(projectFolder,"Random Forest/","AUCmodelos.csv",sep=""), row.names=FALSE, col.names=TRUE, quote=FALSE, sep=",")
 
+write.table(fossilPointsSuitability,file=paste(projectFolder,"Random Forest/","suitabilityNoPontoFossil.csv",sep=""))
+
 
 ##################################################################
 ########################## GLM ###################################
 ##################################################################
 
-envVarFolder = "/home/anderson/R/PosDoc/dados_ambientais/"
-spOccFolder = "/home/anderson/R/PosDoc/dados_ocorrencia/PO_unique/"
-projectFolder = "/home/anderson/R/PosDoc/teste/"
 
 #abrindo um data.frame para armazenar os resultados de AUC
 resultados.evaluacion.GLM<-data.frame(Species=character(), auc=numeric(), stringsAsFactors=FALSE)
 fila=0 #auxiliara na criacao do data.frame durante o loop
-#
+fossilPointsSuitability = NULL #objetvo em que serao gravadas as projcoes de suitability especificamente para cada ponto de registro fossil
+
 for (i in 1:length(splist)){
     #especie = 1 #para fazer na mao bruta
     especie = i
-
+    print(paste('Rodando GLM para a especie',splist[especie]))
+    
     #presencas
     sp.file <- read.csv(paste(spOccFolder, splist[especie],".csv",sep=""),h=T) ### read sp occurrence
     sp.occ <- sp.file[,2:3]
@@ -445,9 +460,7 @@ for (i in 1:length(splist)){
             presausTrain = presausTrainRaw
 
             ##CRIANDO E RODANDO O MODELO##    
-            model <- pres ~ bioclim_10 + bioclim_10^2
-
-            +  bioclim_11 + bioclim_11^2 + bioclim_15 + bioclim_15^2 + bioclim_16 + bioclim_16^2
+            model <- pres ~ bioclim_10 + I(bioclim_10^2) + bioclim_11 + I(bioclim_11^2) + bioclim_15 + I(bioclim_15^2) + bioclim_16 + I(bioclim_16^2)
             GLM <- glm(model, family=binomial, data=as.data.frame( presausTrain))
 
             #porcentajepres = round(0.25*nrow(presencias)) #seleccionar un porcentajes de filas de un data.frame
@@ -534,7 +547,13 @@ for (i in 1:length(splist)){
         #criando um objeto com as coordenadas do registro fossil
         fossilPoints = sp.fossil
         fossilPoints = cbind(fossilPoints$longitude, fossilPoints$latitude)
-            
+
+        #obtendo a projecao de qualidade de habitat especificamente para o ponto do fossil
+        fossilPointsVars = extract(predictors,fossilPoints)
+        fossilPoints.GLM = predict(GLM, fossilPointsVars)
+        fossilPointsSuitability = rbind(fossilPointsSuitability,data.frame(splist[especie],sp.fossil$K.years.BP,fossilPoints.GLM)))
+
+        
         #salvando um raster com a projecao do modelo para o tempo do fossil
         writeRaster(projecaoSuitabilityPassado,filename=paste(projectFolder,"GLM/Passado/",splist[especie],"/",splist[especie],'-',sp.fossil$K.years.BP," K years BP.asc", sep=""),overwrite=T)
             
@@ -569,23 +588,25 @@ for (i in 1:length(splist)){
 #salvando a tabela de dados da avaliacao dos modelos 
 write.table(resultados.evaluacion.GLM,file=paste(projectFolder,"GLM/","AUCmodelos.csv",sep=""), row.names=FALSE, col.names=TRUE, quote=FALSE, sep=",")
 
+write.table(fossilPointsSuitability,file=paste(projectFolder,"GLM/","suitabilityNoPontoFossil.csv",sep=""))
+
 
 ##################################################################
 ########################## BIOCLIM ###############################
 ##################################################################
 
 
-envVarFolder = "/home/anderson/R/PosDoc/dados_ambientais/"
-spOccFolder = "/home/anderson/R/PosDoc/dados_ocorrencia/PO_unique/"
-projectFolder = "/home/anderson/R/PosDoc/teste/"
-
 #abrindo um data.frame para armazenar os resultados de AUC
 resultados.evaluacion.BIOC<-data.frame(Species=character(), auc=numeric(), stringsAsFactors=FALSE)
 fila=0 #auxiliara na criacao do data.frame durante o loop
+fossilPointsSuitability = NULL #objetvo em que serao gravadas as projcoes de suitability especificamente para cada ponto de registro fossil
+
 
 for (i in 1:length(splist)){
     #especie = 1 #para fazer na mao bruta
     especie = i
+    print(paste('Rodando BIOCLIM para a especie',splist[especie]))
+
 
     #presencas
     sp.file <- read.csv(paste(spOccFolder, splist[especie],".csv",sep=""),h=T) ### read sp occurrence
@@ -708,7 +729,7 @@ for (i in 1:length(splist)){
     dev.off()
 
     #criando um mapa binario
-    threshold <- evaluacion@t[which.max(evaluacion@TPR + evaluacion@TNR)]
+     threshold <- evaluacion@t[which.max(evaluacion@TPR + evaluacion@TNR)]
     bin <- projecaoSuitability > threshold #apply threshold to transform logistic output into binary maps
 
     #salvando um raster com o mapa binario
@@ -745,7 +766,13 @@ for (i in 1:length(splist)){
         #criando um objeto com as coordenadas do registro fossil
         fossilPoints = sp.fossil
         fossilPoints = cbind(fossilPoints$longitude, fossilPoints$latitude)
-            
+
+        #obtendo a projecao de qualidade de habitat especificamente para o ponto do fossil
+        fossilPointsVars = extract(predictors,fossilPoints)
+        fossilPoints.BIOC = predict(BIOC, fossilPointsVars)
+        fossilPointsSuitability = rbind(fossilPointsSuitability,data.frame(splist[especie],sp.fossil$K.years.BP,fossilPoints.BIOC)))
+
+        
         #salvando um raster com a projecao do modelo para o tempo do fossil
         writeRaster(projecaoSuitabilityPassado,filename=paste(projectFolder,"BIOC/Passado/",splist[especie],"/",splist[especie],'-',sp.fossil$K.years.BP," K years BP.asc", sep=""),overwrite=T)
             
@@ -780,23 +807,24 @@ for (i in 1:length(splist)){
 #salvando a tabela de dados da avaliacao dos modelos 
 write.table(resultados.evaluacion.BIOC,file=paste(projectFolder,"BIOC/","AUCmodelos.csv",sep=""), row.names=FALSE, col.names=TRUE, quote=FALSE, sep=",")
 
+write.table(fossilPointsSuitability,file=paste(projectFolder,"BIOC/","suitabilityNoPontoFossil.csv",sep=""))
+
+
 
 ##################################################################
 ########################### MAXENT ###############################
 ##################################################################
 
 
-envVarFolder = "/home/anderson/R/PosDoc/dados_ambientais/"
-spOccFolder = "/home/anderson/R/PosDoc/dados_ocorrencia/PO_unique/"
-projectFolder = "/home/anderson/R/PosDoc/teste/"
-
 #abrindo um data.frame para armazenar os resultados de AUC
 resultados.evaluacion.MX<-data.frame(Species=character(), auc=numeric(), stringsAsFactors=FALSE)
 fila=0 #auxiliara na criacao do data.frame durante o loop
-#
+fossilPointsSuitability = NULL #objetvo em que serao gravadas as projcoes de suitability especificamente para cada ponto de registro fossil
+
 for (i in 1:length(splist)){
     #especie = 1 #para fazer na mao bruta
     especie = i
+    print(paste('Rodando Maxent para a especie',splist[especie]))
 
     #presencas
     sp.file <- read.csv(paste(spOccFolder, splist[especie],".csv",sep=""),h=T) ### read sp occurrence
@@ -807,21 +835,23 @@ for (i in 1:length(splist)){
     presclim <- extract(predictors, sp.occ, method='bilinear', buffer=NULL, fun=NULL, df=TRUE)
 
     #criando um vetor de presenca para usar em uma coluna de presenca/ausencia na tabela final
-    pres = rep(1, nrow(presclim))
+    #pres = rep(1, nrow(presclim))
+    ## pres = rep(1, nrow(sp.occ))
 
     #juntando dados das variaveis climaticas nos pontos de ocorrencia, coordenadas de ocorrencia e o vetor (coluna na tabela) para presenca/ausencia
-    presclim = cbind(presclim,pres,sp.occ)
+    presclim = cbind(presclim,sp.occ)
     presencias<-data.frame(presclim)
     presencias = presencias[complete.cases(presencias),]
 
     #criando ausencias para o background
     #rand = round(0.75*runif(nrow(presencias)))
     #presenciasTrain = presencias[rand==0,]
+
     #ausencias
-    pseudoausencia1 <- randomPoints(mask=predictors[[1]], n=nrow(presencias), p=presencias[ , c("latitude","longitude")], excludep=TRUE) #este sera usado no loop para gerar ausencias de teste, la embaixo
+    pseudoausencia1 <- randomPoints(mask=predictors[[1]], n=nrow(presencias), p=presencias, excludep=TRUE) #este sera usado no loop para gerar ausencias de teste, la embaixo
     pseudoausencia2 <- round(pseudoausencia1[,1:2], digits=4)
-    pseudoausencia3<-pseudoausencia2[!duplicated(pseudoausencia2),]
-    pseudoausencia4<-pseudoausencia3[complete.cases(pseudoausencia3),]
+    pseudoausencia3 <- pseudoausencia2[!duplicated(pseudoausencia2),]
+    pseudoausencia4 <- pseudoausencia3[complete.cases(pseudoausencia3),]
     pseudoausencia<-data.frame(pseudoausencia4)
     colnames(pseudoausencia) <- c("longitude", "latitude")
 
@@ -829,14 +859,12 @@ for (i in 1:length(splist)){
     ausclim <- extract(predictors, pseudoausencia, method='bilinear', buffer=NULL, fun=NULL, df=TRUE)
 
     #criando um vetor de ausencias para usar em uma coluna de presenca/ausencia na tabela final
-    pres = rep(0, nrow(ausclim))
+    ## pres = rep(0, nrow(pseudoausencia)) 
 
     #juntando dados das variaveis climaticas nos pontos de ocorrencia, coordenadas de ocorrencia e o vetor (coluna na tabela) para presenca/ausencia    
-    ausclim = data.frame(ausclim, pres)
+    #ausclim = data.frame(ausclim, pres)
     ausencias <- cbind(ausclim,pseudoausencia)
-
-    #ausenciasTrain = ausencias[rand==0,]
-    
+        
     #juntando presenca e ausencia
     #presausTrainRaw<-rbind(presenciasTrain, ausenciasTrain)
     #presausTrainRaw = data.frame(presausTrainRaw)
@@ -860,17 +888,17 @@ for (i in 1:length(splist)){
             #reparando uma porcao dos dados de presenca e ausencia (background) para calibrar (treinar) o modelo
             rand = round(0.75*runif(nrow(presencias)))
             presenciasTrain = presencias[rand==0,]
-            ausenciasTrain = ausencias[rand==0,]
+            presenciasTrain = cbind(presenciasTrain$longitude, presenciasTrain$latitude)
+            ## ausenciasTrain = ausencias[rand==0,]
 
             #juntando presencas e ausencias da calibracao
-            presausTrainRaw <- rbind(presenciasTrain, ausenciasTrain)
-            presausTrainRaw = data.frame(presausTrainRaw)
-            presausTrainRaw = presausTrainRaw[!duplicated(presausTrainRaw[,7:8]),] #selecionar colunas de longitude e latitude
-            presausTrainRaw<-presausTrainRaw[complete.cases(presausTrainRaw),]
-            presausTrain = presausTrainRaw
+            ## presausTrainRaw <- rbind(presenciasTrain, ausenciasTrain)
+            ## presausTrainRaw = data.frame(presausTrainRaw)
+            ## presausTrainRaw = presausTrainRaw[!duplicated(presausTrainRaw),] #selecionar colunas de longitude e latitude
+            ## presausTrainRaw<-presausTrainRaw[complete.cases(presausTrainRaw),]
+            ## presausTrain = presausTrainRaw
 
             ##CRIANDO E RODANDO O MODELO##    
-            model <- pres ~ bioclim_10+bioclim_11+bioclim_15+bioclim_16
             MX <- maxent(predictors, presenciasTrain)
 
             #porcentajepres = round(0.25*nrow(presencias)) #seleccionar un porcentajes de filas de un data.frame
@@ -897,11 +925,11 @@ for (i in 1:length(splist)){
 
     #registrando o valor de AUC medio em uma tabela
     fila=fila+1
-    resultados.evaluacion.MX[fila, "Species"]<-splist[i]
+    resultados.evaluacion.MX[fila, "Species"]<-splist[especie]
     resultados.evaluacion.MX[fila, "auc"]<-evaluacion@auc
     
     #gravando um PDF com a AUC do modelo
-    pdf(file=paste(projectFolder,"MX/",splist[i],"/",splist[i],'_ROC',".pdf",sep=""))
+    pdf(file=paste(projectFolder,"Maxent/",splist[especie],"/",splist[especie],'_ROC',".pdf",sep=""))
     plot(evaluacion, "ROC", cex=0.3)
     dev.off()
 
@@ -909,11 +937,11 @@ for (i in 1:length(splist)){
     projecaoSuitability <- predict(predictors, MX)
 
     #gravando um raster com o mapa de projecao gerado pelo modelo
-    writeRaster(projecaoSuitability,filename=paste(projectFolder,"Maxent/",splist[i],"/",splist[i],".grd", sep=""),overwrite=T)
+    writeRaster(projecaoSuitability,filename=paste(projectFolder,"Maxent/",splist[especie],"/",splist[especie],".grd", sep=""),overwrite=T)
 
     #gravando um PDF com o mapa gerado pelo modelo
-    pdf(file=paste(projectFolder,"Maxent/",splist[i],"/",splist[i],".pdf",sep=""))
-    plot(projecaoSuitability, main=paste(splist[i]))
+    pdf(file=paste(projectFolder,"Maxent/",splist[especie],"/",splist[especie],".pdf",sep=""))
+    plot(projecaoSuitability, main=paste(splist[especie]))
     plot(AmSulShape,add=T)
     points(presencias$longitude,presencias$latitude,col='orange',pch=20,cex=0.75)
     points(presencias$longitude,presencias$latitude,col='red',cex=0.7)
@@ -924,11 +952,11 @@ for (i in 1:length(splist)){
     bin <- projecaoSuitability > threshold #apply threshold to transform logistic output into binary maps
 
     #salvando um raster com o mapa binario
-    writeRaster(bin,filename=paste(projectFolder,"Maxent/",splist[i],"/",splist[i],".asc",sep=""),overwrite=T)
+    writeRaster(bin,filename=paste(projectFolder,"Maxent/",splist[especie],"/",splist[especie],".asc",sep=""),overwrite=T)
 
     #gravando um PDF com o mapa gerado pelo modelo
-    pdf(file=paste(projectFolder,"Maxent/",splist[i],"/",splist[i],"-BINARIO.pdf",sep=""))
-    plot(bin, main= paste(splist[i]))
+    pdf(file=paste(projectFolder,"Maxent/",splist[especie],"/",splist[especie],"-BINARIO.pdf",sep=""))
+    plot(bin, main= paste(splist[especie]))
     plot(AmSulShape,add=T)
     points(presencias$longitude,presencias$latitude,col='orange',pch=20,cex=0.75)
     points(presencias$longitude,presencias$latitude,col='red',cex=0.7)
@@ -952,12 +980,17 @@ for (i in 1:length(splist)){
         predictorsProjection = files.crop.sub.projection #preditoras para o tempo do fossil
 
         ##PROJETANDO o nicho no espaco atraves do modelo ajustado##
-        projecaoSuitabilityPassado <- predict(predictorsProjection, Maxent) #PASSADO
+        projecaoSuitabilityPassado <- predict(predictorsProjection, MX) #PASSADO
 
         #criando um objeto com as coordenadas do registro fossil
         fossilPoints = sp.fossil
         fossilPoints = cbind(fossilPoints$longitude, fossilPoints$latitude)
-            
+
+        #obtendo a projecao de qualidade de habitat especificamente para o ponto do fossil
+        fossilPointsVars = extract(predictors,fossilPoints)
+        fossilPoints.MX = predict(MX, fossilPointsVars)
+        fossilPointsSuitability = rbind(fossilPointsSuitability,data.frame(splist[especie],sp.fossil$K.years.BP,fossilPoints.MX)))
+
         #salvando um raster com a projecao do modelo para o tempo do fossil
         writeRaster(projecaoSuitabilityPassado,filename=paste(projectFolder,"Maxent/Passado/",splist[especie],"/",splist[especie],'-',sp.fossil$K.years.BP," K years BP.asc", sep=""),overwrite=T)
             
@@ -984,11 +1017,12 @@ for (i in 1:length(splist)){
         #plotando as coordenadas do refistro fossil
         points(fossilPoints,col='orange',pch=20,cex=0.75)
         points(fossilPoints,col='red',cex=0.8)
-        dev.off()
-            
+        dev.off()        
+        
     }
 }
 
 #salvando a tabela de dados da avaliacao dos modelos 
 write.table(resultados.evaluacion.MX,file=paste(projectFolder,"Maxent/","AUCmodelos.csv",sep=""), row.names=FALSE, col.names=TRUE, quote=FALSE, sep=",")
 
+write.table(fossilPointsSuitability,file=paste(projectFolder,"Maxent/","suitabilityNoPontoFossil.csv",sep=""))
