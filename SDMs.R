@@ -227,7 +227,7 @@ for (i in 1:length(splist)){
     #avaliando o modelo
     V <- numeric()#abrir un vector vacío 
     
-    for (j in 1:10){
+    for (j in 1:100){
         tryCatch({# bootstrapping with 10 replications
 
             #reparando uma porcao dos dados de presenca e ausencia (background) para calibrar (treinar) o modelo
@@ -293,7 +293,7 @@ for (i in 1:length(splist)){
     dev.off()
 
     #criando um mapa binario
-    threshold <- evaluacion@t[which.max(evaluacion@TPR + evaluacion@TNR)]
+    threshold <- threshold(evaluacion,'spec_sens')
     bin <- projecaoSuitability > threshold #apply threshold to transform logistic output into binary maps
 
     #salvando um raster com o mapa binario
@@ -332,7 +332,7 @@ for (i in 1:length(splist)){
         fossilPoints = cbind(fossilPoints$longitude, fossilPoints$latitude)
 
         #obtendo a projecao de qualidade de habitat especificamente para o ponto do fossil
-        fossilPointsVars = extract(predictors,fossilPoints)
+        fossilPointsVars = extract(predictorsProjection,fossilPoints)
         fossilPoints.RF = predict(RF, fossilPointsVars)
         fossilPointsSuitability = rbind(fossilPointsSuitability,data.frame(splist[especie],sp.fossil$K.years.BP,fossilPoints.RF))
         
@@ -348,8 +348,7 @@ for (i in 1:length(splist)){
         points(fossilPoints,col='red',cex=0.8)
         dev.off()
 
-        #criando um mapa binario para a projecao do modelo
-        threshold <- evaluacion@t[which.max(evaluacion@TPR + evaluacion@TNR)]
+        #criando um mapa binario para a projecao do modelo (empregando o threshold que ja foi criado apos a avaliacao do modelo)
         bin <- projecaoSuitabilityPassado > threshold#apply threshold to transform logistic output into binary maps
 
         #salvando um raster com a projecao do modelo para o tempo do fossil
@@ -444,7 +443,7 @@ for (i in 1:length(splist)){
     #avaliando o modelo
     V <- numeric()#abrir un vector vacío 
     
-    for (j in 1:10){
+    for (j in 1:100){
         tryCatch({# bootstrapping with 10 replications
 
             #reparando uma porcao dos dados de presenca e ausencia (background) para calibrar (treinar) o modelo
@@ -459,10 +458,11 @@ for (i in 1:length(splist)){
             presausTrainRaw<-presausTrainRaw[complete.cases(presausTrainRaw),]
             presausTrain = presausTrainRaw
 
-            ##CRIANDO E RODANDO O MODELO##    
-            model <- pres==1 ~ bioclim_10 + I(bioclim_10^2) + bioclim_11 + I(bioclim_11^2) + bioclim_15 + I(bioclim_15^2) + bioclim_16 + I(bioclim_16^2)
-            GLM <- glm(model, family=binomial(), data=presausTrain)
+            ##CRIANDO E RODANDO O MODELO##                
+            model <- pres ~ bioclim_10 + I(bioclim_10^2) + bioclim_11 + I(bioclim_11^2) + bioclim_15 + I(bioclim_15^2) + bioclim_16 + I(bioclim_16^2)
+            GLM <- glm(model, family=binomial(link=logit), data=presausTrain)
 
+            
             #porcentajepres = round(0.25*nrow(presencias)) #seleccionar un porcentajes de filas de un data.frame
             #presencias.evaluacion<-presencias[sample(nrow(presencias), porcentajepres), ] #seleccionar ese porcentaje de filas aleatorias.
 
@@ -496,7 +496,7 @@ for (i in 1:length(splist)){
     dev.off()
 
     ##PROJETANDO o nicho no espaco atraves do modelo ajustado##
-    projecaoSuitability <- predict(predictors, GLM)
+    projecaoSuitability <- predict(predictors, GLM, type='response')
 
     #gravando um raster com o mapa de projecao gerado pelo modelo
     writeRaster(projecaoSuitability,filename=paste(projectFolder,"GLM/",splist[i],"/",splist[i],".grd", sep=""),overwrite=T)
@@ -510,7 +510,7 @@ for (i in 1:length(splist)){
     dev.off()
 
     #criando um mapa binario
-    threshold <- evaluacion@t[which.max(evaluacion@TPR + evaluacion@TNR)]
+    threshold = threshold(evaluacion,'spec_sens')
     bin <- projecaoSuitability > threshold #apply threshold to transform logistic output into binary maps
 
     #salvando um raster com o mapa binario
@@ -542,15 +542,15 @@ for (i in 1:length(splist)){
         predictorsProjection = files.crop.sub.projection #preditoras para o tempo do fossil
 
         ##PROJETANDO o nicho no espaco atraves do modelo ajustado##
-        projecaoSuitabilityPassado <- predict(predictorsProjection, GLM) #PASSADO
+        projecaoSuitabilityPassado <- predict(predictorsProjection, GLM,type='response') #PASSADO
 
         #criando um objeto com as coordenadas do registro fossil
         fossilPoints = sp.fossil
         fossilPoints = cbind(fossilPoints$longitude, fossilPoints$latitude)
 
         #obtendo a projecao de qualidade de habitat especificamente para o ponto do fossil
-        fossilPointsVars = extract(predictors,fossilPoints)
-        fossilPoints.GLM = predict(GLM, as.data.frame(fossilPointsVars))
+        fossilPointsVars = extract(predictorsProjection,fossilPoints)
+        fossilPoints.GLM = predict(GLM, as.data.frame(fossilPointsVars),type='response')
         fossilPointsSuitability = rbind(fossilPointsSuitability,data.frame(splist[especie],sp.fossil$K.years.BP,fossilPoints.GLM))
 
         
@@ -566,8 +566,7 @@ for (i in 1:length(splist)){
         points(fossilPoints,col='red',cex=0.8)
         dev.off()
 
-        #criando um mapa binario para a projecao do modelo
-        threshold <- evaluacion@t[which.max(evaluacion@TPR + evaluacion@TNR)]
+        #criando um mapa binario para a projecao do modelo (empregando o threshold que ja foi criado apos a avaliacao do modelo)
         bin <- projecaoSuitabilityPassado > threshold#apply threshold to transform logistic output into binary maps
 
         #salvando um raster com a projecao do modelo para o tempo do fossil
@@ -664,7 +663,7 @@ for (i in 1:length(splist)){
     #avaliando o modelo
     V <- numeric()#abrir un vector vacío 
     
-    for (j in 1:10){
+    for (j in 1:100){
         tryCatch({# bootstrapping with 10 replications
 
             #reparando uma porcao dos dados de presenca e ausencia (background) para calibrar (treinar) o modelo
@@ -729,7 +728,7 @@ for (i in 1:length(splist)){
     dev.off()
 
     #criando um mapa binario
-     threshold <- evaluacion@t[which.max(evaluacion@TPR + evaluacion@TNR)]
+    threshold <- evaluacion@t[which.max(evaluacion@TPR + evaluacion@TNR)]
     bin <- projecaoSuitability > threshold #apply threshold to transform logistic output into binary maps
 
     #salvando um raster com o mapa binario
@@ -768,9 +767,9 @@ for (i in 1:length(splist)){
         fossilPoints = cbind(fossilPoints$longitude, fossilPoints$latitude)
 
         #obtendo a projecao de qualidade de habitat especificamente para o ponto do fossil
-        fossilPointsVars = extract(predictors,fossilPoints)
+        fossilPointsVars = extract(predictorsProjection,fossilPoints)
         fossilPoints.BIOC = predict(BIOC, fossilPointsVars)
-        fossilPointsSuitability = rbind(fossilPointsSuitability,data.frame(splist[especie],sp.fossil$K.years.BP,fossilPoints.BIOC)))
+        fossilPointsSuitability = rbind(fossilPointsSuitability,data.frame(splist[especie],sp.fossil$K.years.BP,fossilPoints.BIOC))
 
         
         #salvando um raster com a projecao do modelo para o tempo do fossil
@@ -785,8 +784,7 @@ for (i in 1:length(splist)){
         points(fossilPoints,col='red',cex=0.8)
         dev.off()
 
-        #criando um mapa binario para a projecao do modelo
-        threshold <- evaluacion@t[which.max(evaluacion@TPR + evaluacion@TNR)]
+        #criando um mapa binario para a projecao do modelo (empregando o threshold que ja foi criado apos a avaliacao do modelo)
         bin <- projecaoSuitabilityPassado > threshold#apply threshold to transform logistic output into binary maps
 
         #salvando um raster com a projecao do modelo para o tempo do fossil
@@ -882,7 +880,7 @@ for (i in 1:length(splist)){
     #avaliando o modelo
     V <- numeric()#abrir un vector vacío 
     
-    for (j in 1:10){
+    for (j in 1:100){
         tryCatch({# bootstrapping with 10 replications
 
             #reparando uma porcao dos dados de presenca e ausencia (background) para calibrar (treinar) o modelo
@@ -948,7 +946,7 @@ for (i in 1:length(splist)){
     dev.off()
 
     #criando um mapa binario
-    threshold <- evaluacion@t[which.max(evaluacion@TPR + evaluacion@TNR)]
+    threshold = threshold(evaluacion,'spec_sens')
     bin <- projecaoSuitability > threshold #apply threshold to transform logistic output into binary maps
 
     #salvando um raster com o mapa binario
@@ -987,7 +985,7 @@ for (i in 1:length(splist)){
         fossilPoints = cbind(fossilPoints$longitude, fossilPoints$latitude)
 
         #obtendo a projecao de qualidade de habitat especificamente para o ponto do fossil
-        fossilPointsVars = extract(predictors,fossilPoints)
+        fossilPointsVars = extract(predictorsProjection,fossilPoints)
         fossilPoints.MX = predict(MX, fossilPointsVars)
         fossilPointsSuitability = rbind(fossilPointsSuitability,data.frame(splist[especie],sp.fossil$K.years.BP,fossilPoints.MX))
 
@@ -1003,8 +1001,7 @@ for (i in 1:length(splist)){
         points(fossilPoints,col='red',cex=0.8)
         dev.off()
 
-        #criando um mapa binario para a projecao do modelo
-        threshold <- evaluacion@t[which.max(evaluacion@TPR + evaluacion@TNR)]
+        #criando um mapa binario para a projecao do modelo (empregando o threshold que ja foi criado apos a avaliacao do modelo)
         bin <- projecaoSuitabilityPassado > threshold#apply threshold to transform logistic output into binary maps
 
         #salvando um raster com a projecao do modelo para o tempo do fossil
