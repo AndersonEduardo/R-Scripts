@@ -334,7 +334,7 @@ for (i in 1:length(splist)){
         #obtendo a projecao de qualidade de habitat especificamente para o ponto do fossil
         fossilPointsVars = extract(predictors,fossilPoints)
         fossilPoints.RF = predict(RF, fossilPointsVars)
-        fossilPointsSuitability = rbind(fossilPointsSuitability,data.frame(splist[especie],sp.fossil$K.years.BP,fossilPoints.RF)))
+        fossilPointsSuitability = rbind(fossilPointsSuitability,data.frame(splist[especie],sp.fossil$K.years.BP,fossilPoints.RF))
         
         #salvando um raster com a projecao do modelo para o tempo do fossil
         writeRaster(projecaoSuitabilityPassado,filename=paste(projectFolder,"Random Forest/Passado/",splist[especie],"/",splist[especie],'-',sp.fossil$K.years.BP," K years BP.asc", sep=""),overwrite=T)
@@ -460,8 +460,8 @@ for (i in 1:length(splist)){
             presausTrain = presausTrainRaw
 
             ##CRIANDO E RODANDO O MODELO##    
-            model <- pres ~ bioclim_10 + I(bioclim_10^2) + bioclim_11 + I(bioclim_11^2) + bioclim_15 + I(bioclim_15^2) + bioclim_16 + I(bioclim_16^2)
-            GLM <- glm(model, family=binomial, data=as.data.frame( presausTrain))
+            model <- pres==1 ~ bioclim_10 + I(bioclim_10^2) + bioclim_11 + I(bioclim_11^2) + bioclim_15 + I(bioclim_15^2) + bioclim_16 + I(bioclim_16^2)
+            GLM <- glm(model, family=binomial(), data=presausTrain)
 
             #porcentajepres = round(0.25*nrow(presencias)) #seleccionar un porcentajes de filas de un data.frame
             #presencias.evaluacion<-presencias[sample(nrow(presencias), porcentajepres), ] #seleccionar ese porcentaje de filas aleatorias.
@@ -550,8 +550,8 @@ for (i in 1:length(splist)){
 
         #obtendo a projecao de qualidade de habitat especificamente para o ponto do fossil
         fossilPointsVars = extract(predictors,fossilPoints)
-        fossilPoints.GLM = predict(GLM, fossilPointsVars)
-        fossilPointsSuitability = rbind(fossilPointsSuitability,data.frame(splist[especie],sp.fossil$K.years.BP,fossilPoints.GLM)))
+        fossilPoints.GLM = predict(GLM, as.data.frame(fossilPointsVars))
+        fossilPointsSuitability = rbind(fossilPointsSuitability,data.frame(splist[especie],sp.fossil$K.years.BP,fossilPoints.GLM))
 
         
         #salvando um raster com a projecao do modelo para o tempo do fossil
@@ -588,7 +588,7 @@ for (i in 1:length(splist)){
 #salvando a tabela de dados da avaliacao dos modelos 
 write.table(resultados.evaluacion.GLM,file=paste(projectFolder,"GLM/","AUCmodelos.csv",sep=""), row.names=FALSE, col.names=TRUE, quote=FALSE, sep=",")
 
-write.table(fossilPointsSuitability,file=paste(projectFolder,"GLM/","suitabilityNoPontoFossil.csv",sep=""))
+write.csv(fossilPointsSuitability,file=paste(projectFolder,"GLM/","suitabilityNoPontoFossil.csv",sep=""),row.names=F)
 
 
 ##################################################################
@@ -807,7 +807,7 @@ for (i in 1:length(splist)){
 #salvando a tabela de dados da avaliacao dos modelos 
 write.table(resultados.evaluacion.BIOC,file=paste(projectFolder,"BIOC/","AUCmodelos.csv",sep=""), row.names=FALSE, col.names=TRUE, quote=FALSE, sep=",")
 
-write.table(fossilPointsSuitability,file=paste(projectFolder,"BIOC/","suitabilityNoPontoFossil.csv",sep=""))
+write.csv(fossilPointsSuitability,file=paste(projectFolder,"BIOC/","suitabilityNoPontoFossil.csv",sep=""),row.names=F)
 
 
 
@@ -989,7 +989,7 @@ for (i in 1:length(splist)){
         #obtendo a projecao de qualidade de habitat especificamente para o ponto do fossil
         fossilPointsVars = extract(predictors,fossilPoints)
         fossilPoints.MX = predict(MX, fossilPointsVars)
-        fossilPointsSuitability = rbind(fossilPointsSuitability,data.frame(splist[especie],sp.fossil$K.years.BP,fossilPoints.MX)))
+        fossilPointsSuitability = rbind(fossilPointsSuitability,data.frame(splist[especie],sp.fossil$K.years.BP,fossilPoints.MX))
 
         #salvando um raster com a projecao do modelo para o tempo do fossil
         writeRaster(projecaoSuitabilityPassado,filename=paste(projectFolder,"Maxent/Passado/",splist[especie],"/",splist[especie],'-',sp.fossil$K.years.BP," K years BP.asc", sep=""),overwrite=T)
@@ -1025,4 +1025,4 @@ for (i in 1:length(splist)){
 #salvando a tabela de dados da avaliacao dos modelos 
 write.table(resultados.evaluacion.MX,file=paste(projectFolder,"Maxent/","AUCmodelos.csv",sep=""), row.names=FALSE, col.names=TRUE, quote=FALSE, sep=",")
 
-write.table(fossilPointsSuitability,file=paste(projectFolder,"Maxent/","suitabilityNoPontoFossil.csv",sep=""))
+write.csv(fossilPointsSuitability,file=paste(projectFolder,"BIOC/","suitabilityNoPontoFossil.csv",sep=""),row.names=F)
