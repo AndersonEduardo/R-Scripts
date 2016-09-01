@@ -32,13 +32,13 @@ filesProjectionRaw <- stack(list.files(path = "/home/anderson/R/PosDoc/dados_amb
 filesProjection = mask(filesProjectionRaw,AmSulShape) #cortando para Am. do Sul
 
 #testando correcaloes
-#test<-getValues(files)
-#cor.matrix <- as.data.frame(cor(test, use="complete.obs"))
+## test<-getValues(files)
+## cor.matrix <- as.data.frame(cor(test, use="complete.obs"))
 #write.csv(cor.matrix,'cor_matrix.csv')
 
 #remove highly correlated variables Bio1,Bio3,Bio9,Bio13,Bio14
-files.crop.sub <- dropLayer(files, c(1,2,5,8)) #### remove selected layers
-files.crop.sub.projection <- dropLayer(filesProjection, c(1,2,5,8)) 
+files.crop.sub <- dropLayer(files, c(1,2,5,6)) #### remove selected layers
+files.crop.sub.projection <- dropLayer(filesProjection, c(1,2,5,6)) 
 
 #remover as mesmas camadas dos dados para projecao
 #test2<-getValues(files.crop.sub)
@@ -160,6 +160,8 @@ dev.off()
 #################### RANDOM FOREST ###############################
 ##################################################################
 
+#registrando o tempo de processamento
+ptm <- proc.time()
 
 #abrindo um data.frame para armazenar os resultados de AUC
 resultados.evaluacion.RF<-data.frame(Species=character(), auc=numeric(), stringsAsFactors=FALSE)
@@ -243,7 +245,7 @@ for (i in 1:length(splist)){
             presausTrain = presausTrainRaw
 
             ##CRIANDO E RODANDO O MODELO##    
-            model <- pres ~ bioclim_10+bioclim_11+bioclim_15+bioclim_16
+            model <- pres ~ bioclim_10+bioclim_11+bioclim_16+bioclim_17
             RF <- randomForest(model, data=presausTrain, ntree=500)
 
             #porcentajepres = round(0.25*nrow(presencias)) #seleccionar un porcentajes de filas de un data.frame
@@ -270,11 +272,11 @@ for (i in 1:length(splist)){
 
     #registrando o valor de AUC medio em uma tabela
     fila=fila+1
-    resultados.evaluacion.RF[fila, "Species"]<-splist[i]
+    resultados.evaluacion.RF[fila, "Species"]<-splist[especie]
     resultados.evaluacion.RF[fila, "auc"]<-evaluacion@auc
     
     #gravando um PDF com a AUC do modelo
-    pdf(file=paste(projectFolder,"Random Forest/",splist[i],"/",splist[i],'_ROC',".pdf",sep=""))
+    pdf(file=paste(projectFolder,"Random Forest/",splist[especie],"/",splist[especie],'_ROC',".pdf",sep=""))
     plot(evaluacion, "ROC", cex=0.3)
     dev.off()
 
@@ -282,7 +284,7 @@ for (i in 1:length(splist)){
     projecaoSuitability <- predict(predictors, RF)
 
     #gravando um raster com o mapa de projecao gerado pelo modelo
-    writeRaster(projecaoSuitability,filename=paste(projectFolder,"Random Forest/",splist[i],"/",splist[i],".grd", sep=""),overwrite=T)
+    writeRaster(projecaoSuitability,filename=paste(projectFolder,"Random Forest/",splist[especie],"/",splist[especie],".grd", sep=""),overwrite=T)
 
     #gravando um PDF com o mapa gerado pelo modelo
     pdf(file=paste(projectFolder,"Random Forest/",splist[i],"/",splist[i],".pdf",sep=""))
@@ -297,11 +299,11 @@ for (i in 1:length(splist)){
     bin <- projecaoSuitability > threshold #apply threshold to transform logistic output into binary maps
 
     #salvando um raster com o mapa binario
-    writeRaster(bin,filename=paste(projectFolder,"Random Forest/",splist[i],"/",splist[i],".asc",sep=""),overwrite=T)
+    writeRaster(bin,filename=paste(projectFolder,"Random Forest/",splist[i],"/",splist[especie],".asc",sep=""),overwrite=T)
 
     #gravando um PDF com o mapa gerado pelo modelo
-    pdf(file=paste(projectFolder,"Random Forest/",splist[i],"/",splist[i],"-BINARIO.pdf",sep=""))
-    plot(bin, main= paste(splist[i]))
+    pdf(file=paste(projectFolder,"Random Forest/",splist[especie],"/",splist[i],"-BINARIO.pdf",sep=""))
+    plot(bin, main= paste(splist[especie]))
     plot(AmSulShape,add=T)
     points(presencias$longitude,presencias$latitude,col='orange',pch=20,cex=0.75)
     points(presencias$longitude,presencias$latitude,col='red',cex=0.7)
@@ -321,7 +323,7 @@ for (i in 1:length(splist)){
         #abrindo as variaveis ambientais do tempo do fossil
         filesProjectionRaw <- stack(list.files(path = paste(envVarFolder,"dados_projeto/0",sp.fossil$K.years.BP,sep=""), pattern='asc', full.names=T)) ###abrindo camandas para projecao (passado, futuro, outro local, etc)
         filesProjection = mask(filesProjectionRaw,AmSulShape) #cortando para Am. do Sul
-        files.crop.sub.projection <- dropLayer(filesProjection, c(1,2,5,8)) #removendo as camadas que mostraram correlacao
+        files.crop.sub.projection <- dropLayer(filesProjection, c(1,2,5,6)) #removendo as camadas que mostraram correlacao
         predictorsProjection = files.crop.sub.projection #preditoras para o tempo do fossil
 
         ##PROJETANDO o nicho no espaco atraves do modelo ajustado##
@@ -371,11 +373,16 @@ write.table(resultados.evaluacion.RF,file=paste(projectFolder,"Random Forest/","
 
 write.table(fossilPointsSuitability,file=paste(projectFolder,"Random Forest/","suitabilityNoPontoFossil.csv",sep=""))
 
+#fechando e informando o tempo de processamento
+msgm= proc.time() - ptm
+print(paste('Tempo gasto para rodar RANDOM FOREST: ', msgm[3]/60,' minutos',sep=''))
 
 ##################################################################
 ########################## GLM ###################################
 ##################################################################
 
+#registrando o tempo de processamento
+ptm = proc.time()
 
 #abrindo um data.frame para armazenar os resultados de AUC
 resultados.evaluacion.GLM<-data.frame(Species=character(), auc=numeric(), stringsAsFactors=FALSE)
@@ -459,7 +466,7 @@ for (i in 1:length(splist)){
             presausTrain = presausTrainRaw
 
             ##CRIANDO E RODANDO O MODELO##                
-            model <- pres ~ bioclim_10 + I(bioclim_10^2) + bioclim_11 + I(bioclim_11^2) + bioclim_15 + I(bioclim_15^2) + bioclim_16 + I(bioclim_16^2)
+            model <- pres ~ bioclim_10 + I(bioclim_10^2) + bioclim_11 + I(bioclim_11^2) + bioclim_16 + I(bioclim_16^2) + bioclim_17 + I(bioclim_17^2)
             GLM <- glm(model, family=binomial(link=logit), data=presausTrain)
 
             
@@ -538,7 +545,7 @@ for (i in 1:length(splist)){
         #abrindo as variaveis ambientais do tempo do fossil
         filesProjectionRaw <- stack(list.files(path = paste(envVarFolder,"dados_projeto/0",sp.fossil$K.years.BP,sep=""), pattern='asc', full.names=T)) ###abrindo camandas para projecao (passado, futuro, outro local, etc)
         filesProjection = mask(filesProjectionRaw,AmSulShape) #cortando para Am. do Sul
-        files.crop.sub.projection <- dropLayer(filesProjection, c(1,2,5,8)) #removendo as camadas que mostraram correlacao
+        files.crop.sub.projection <- dropLayer(filesProjection, c(1,2,5,6)) #removendo as camadas que mostraram correlacao
         predictorsProjection = files.crop.sub.projection #preditoras para o tempo do fossil
 
         ##PROJETANDO o nicho no espaco atraves do modelo ajustado##
@@ -589,11 +596,17 @@ write.table(resultados.evaluacion.GLM,file=paste(projectFolder,"GLM/","AUCmodelo
 
 write.csv(fossilPointsSuitability,file=paste(projectFolder,"GLM/","suitabilityNoPontoFossil.csv",sep=""),row.names=F)
 
+#registrando e informando o tempo de processamento
+msgm= proc.time() - ptm
+print(paste('Tempo gasto para rodar GLM: ', msgm[3]/60,' minutos',sep=''))
+
 
 ##################################################################
 ########################## BIOCLIM ###############################
 ##################################################################
 
+#registrando o tempo de processamento
+ptm = proc.time()
 
 #abrindo um data.frame para armazenar os resultados de AUC
 resultados.evaluacion.BIOC<-data.frame(Species=character(), auc=numeric(), stringsAsFactors=FALSE)
@@ -756,7 +769,7 @@ for (i in 1:length(splist)){
         #abrindo as variaveis ambientais do tempo do fossil
         filesProjectionRaw <- stack(list.files(path = paste(envVarFolder,"dados_projeto/0",sp.fossil$K.years.BP,sep=""), pattern='asc', full.names=T)) ###abrindo camandas para projecao (passado, futuro, outro local, etc)
         filesProjection = mask(filesProjectionRaw,AmSulShape) #cortando para Am. do Sul
-        files.crop.sub.projection <- dropLayer(filesProjection, c(1,2,5,8)) #removendo as camadas que mostraram correlacao
+        files.crop.sub.projection <- dropLayer(filesProjection, c(1,2,5,6)) #removendo as camadas que mostraram correlacao
         predictorsProjection = files.crop.sub.projection #preditoras para o tempo do fossil
 
         ##PROJETANDO o nicho no espaco atraves do modelo ajustado##
@@ -807,12 +820,18 @@ write.table(resultados.evaluacion.BIOC,file=paste(projectFolder,"BIOC/","AUCmode
 
 write.csv(fossilPointsSuitability,file=paste(projectFolder,"BIOC/","suitabilityNoPontoFossil.csv",sep=""),row.names=F)
 
+#registrando e informando o tempo de processamento
+msgm= proc.time() - ptm
+print(paste('Tempo gasto para rodar BIOCLIM: ', msgm[3]/60,' minutos',sep=''))
 
 
 ##################################################################
 ########################### MAXENT ###############################
 ##################################################################
 
+
+#registrando o tempo de processamento
+ptm = proc.time()
 
 #abrindo um data.frame para armazenar os resultados de AUC
 resultados.evaluacion.MX<-data.frame(Species=character(), auc=numeric(), stringsAsFactors=FALSE)
@@ -974,7 +993,7 @@ for (i in 1:length(splist)){
         #abrindo as variaveis ambientais do tempo do fossil
         filesProjectionRaw <- stack(list.files(path = paste(envVarFolder,"dados_projeto/0",sp.fossil$K.years.BP,sep=""), pattern='asc', full.names=T)) ###abrindo camandas para projecao (passado, futuro, outro local, etc)
         filesProjection = mask(filesProjectionRaw,AmSulShape) #cortando para Am. do Sul
-        files.crop.sub.projection <- dropLayer(filesProjection, c(1,2,5,8)) #removendo as camadas que mostraram correlacao
+        files.crop.sub.projection <- dropLayer(filesProjection, c(1,2,5,6)) #removendo as camadas que mostraram correlacao
         predictorsProjection = files.crop.sub.projection #preditoras para o tempo do fossil
 
         ##PROJETANDO o nicho no espaco atraves do modelo ajustado##
@@ -1023,3 +1042,7 @@ for (i in 1:length(splist)){
 write.table(resultados.evaluacion.MX,file=paste(projectFolder,"Maxent/","AUCmodelos.csv",sep=""), row.names=FALSE, col.names=TRUE, quote=FALSE, sep=",")
 
 write.csv(fossilPointsSuitability,file=paste(projectFolder,"BIOC/","suitabilityNoPontoFossil.csv",sep=""),row.names=F)
+
+#registrando e informando o tempo de processamento
+msgm = proc.time() - ptm
+print(paste('Tempo gasto para rodar MAXENT: ', msgm[3]/60,' minutos',sep=''))
