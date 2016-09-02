@@ -132,16 +132,25 @@ dev.off()
 
 #graficos agrupados
 library(rasterVis)
-setwd("/home/anderson/R/PosDoc/teste/Caiman latirostris/raster layers")
-files = list.files(paste(getwd()),full.names=TRUE,pattern='.asc')
-files=c(files[2],files[1],files[3]) #consertando a ordem das camadas
-species.layers = stack(files)
 
-##cortando e gravando varios rasters com o shapefile da america do sul##
-AmSul = readShapePoly("/home/anderson/R/PosDoc/Am_Sul/borders.shp")
+#definindo objeto com os nomes
+teste = 'Maxent'
+especie = 'Caiman crocodilus'
+
+setwd(paste(projectFolder,teste,'/Raster Layers',sep='')) #presente
+files = list.files(paste(getwd()),full.names=TRUE,pattern='.asc')
+files=c(files[1],files[3],files[5]) #selecionando camadas e consertando a ordem das camadas
+
+setwd(paste(projectFolder,teste,'/Passado/Raster Layers',sep='')) #passado
+filesPass = list.files(paste(getwd()),full.names=TRUE,pattern='.asc')
+filesPass=c(filesPass[4],filesPass[14],filesPass[24],filesPass[8],filesPass[18],filesPass[28]) #selecionando camadas e consertando a ordem das camadas
+
+species.layers = stack(c(files,filesPass))
+
+#cortando e gravando varios rasters com o shapefile da america do sul
 for (i in 1:length(names(species.layers))){
-    species.layers[[i]] = mask(species.layers[[i]],AmSul)
-    writeRaster(species.layers[[i]], filename=paste("/home/anderson/R/PosDoc/teste/",names(species.layers)[i],".asc",sep=""), overwrite=T)
+    species.layers[[i]] = mask(species.layers[[i]],AmSulShape)
+    writeRaster(species.layers[[i]], filename=paste("/home/anderson/R/PosDoc/teste/",teste,'/Raster Layers Cortados/',names(species.layers)[i],".asc",sep=""), overwrite=T)
 }
 
 #ajustando os nomes dos subgraficos
@@ -150,9 +159,9 @@ rasterNames = gsub("Caiman_latirostris_._","",names(species.layers))
 rasterNames = gsub("presente","Presente",rasterNames)
 
 cols <- colorRampPalette(brewer.pal(9,"YlGn")) #escala de cores amarelo-verde
-setwd("/home/anderson/R/PosDoc/teste/Caiman latirostris")
-jpeg(filename=paste(splist[1],'.jpg',sep=''))
-levelplot(species.layers,main=paste(splist[1]),col.regions=cols,names.attr=rasterNames) + layer(sp.polygons(AmSul)) + layer(panel.xyplot(-41.553056, -12.393417,pch=17,col='red',cex=1),columns=1) + layer(panel.xyplot(-37.753611,-9.926944,pch=17,col='red',cex=1),columns=2)
+setwd(paste("/home/anderson/R/PosDoc/teste/",teste,sep=''))
+jpeg(filename='Caiman.jpg')
+levelplot(species.layers,main='',col.regions=cols,names.attr=rasterNames) + layer(sp.polygons(AmSul)) + layer(panel.xyplot(-41.553056, -12.393417,pch=17,col='red',cex=1),columns=1) + layer(panel.xyplot(-37.753611,-9.926944,pch=17,col='red',cex=1),columns=2)
 dev.off()
 
 
@@ -161,6 +170,7 @@ dev.off()
 ##################################################################
 
 #registrando o tempo de processamento
+
 ptm <- proc.time()
 
 #abrindo um data.frame para armazenar os resultados de AUC
@@ -299,7 +309,7 @@ for (i in 1:length(splist)){
     bin <- projecaoSuitability > threshold #apply threshold to transform logistic output into binary maps
 
     #salvando um raster com o mapa binario
-    writeRaster(bin,filename=paste(projectFolder,"Random Forest/",splist[i],"/",splist[especie],".asc",sep=""),overwrite=T)
+    writeRaster(bin,filename=paste(projectFolder,"Random Forest/",splist[i],"/",splist[especie],"BINARIO.asc",sep=""),overwrite=T)
 
     #gravando um PDF com o mapa gerado pelo modelo
     pdf(file=paste(projectFolder,"Random Forest/",splist[especie],"/",splist[i],"-BINARIO.pdf",sep=""))
@@ -521,7 +531,7 @@ for (i in 1:length(splist)){
     bin <- projecaoSuitability > threshold #apply threshold to transform logistic output into binary maps
 
     #salvando um raster com o mapa binario
-    writeRaster(bin,filename=paste(projectFolder,"GLM/",splist[i],"/",splist[i],".asc",sep=""),overwrite=T)
+    writeRaster(bin,filename=paste(projectFolder,"GLM/",splist[i],"/",splist[i],"BINARIO.asc",sep=""),overwrite=T)
 
     #gravando um PDF com o mapa gerado pelo modelo
     pdf(file=paste(projectFolder,"GLM/",splist[i],"/",splist[i],"-BINARIO.pdf",sep=""))
@@ -745,7 +755,7 @@ for (i in 1:length(splist)){
     bin <- projecaoSuitability > threshold #apply threshold to transform logistic output into binary maps
 
     #salvando um raster com o mapa binario
-    writeRaster(bin,filename=paste(projectFolder,"BIOC/",splist[i],"/",splist[i],".asc",sep=""),overwrite=T)
+    writeRaster(bin,filename=paste(projectFolder,"BIOC/",splist[i],"/",splist[i],"BINARIO.asc",sep=""),overwrite=T)
 
     #gravando um PDF com o mapa gerado pelo modelo
     pdf(file=paste(projectFolder,"BIOC/",splist[i],"/",splist[i],"-BINARIO.pdf",sep=""))
@@ -969,7 +979,7 @@ for (i in 1:length(splist)){
     bin <- projecaoSuitability > threshold #apply threshold to transform logistic output into binary maps
 
     #salvando um raster com o mapa binario
-    writeRaster(bin,filename=paste(projectFolder,"Maxent/",splist[especie],"/",splist[especie],".asc",sep=""),overwrite=T)
+    writeRaster(bin,filename=paste(projectFolder,"Maxent/",splist[especie],"/",splist[especie],"BINARIO.asc",sep=""),overwrite=T)
 
     #gravando um PDF com o mapa gerado pelo modelo
     pdf(file=paste(projectFolder,"Maxent/",splist[especie],"/",splist[especie],"-BINARIO.pdf",sep=""))
@@ -1041,7 +1051,7 @@ for (i in 1:length(splist)){
 #salvando a tabela de dados da avaliacao dos modelos 
 write.table(resultados.evaluacion.MX,file=paste(projectFolder,"Maxent/","AUCmodelos.csv",sep=""), row.names=FALSE, col.names=TRUE, quote=FALSE, sep=",")
 
-write.csv(fossilPointsSuitability,file=paste(projectFolder,"BIOC/","suitabilityNoPontoFossil.csv",sep=""),row.names=F)
+write.csv(fossilPointsSuitability,file=paste(projectFolder,"Maxent/","suitabilityNoPontoFossil.csv",sep=""),row.names=F)
 
 #registrando e informando o tempo de processamento
 msgm = proc.time() - ptm
