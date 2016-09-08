@@ -1,0 +1,43 @@
+###This is my personal R-cookBook :) ###
+
+##crop - pacote raster
+
+r <- raster(nrow=45, ncol=90)
+r[] <- 1:ncell(r)
+e <- extent(-160, 10, 30, 60)
+rc <- crop(r, e)
+# use row and column numbers:
+rc2 <- crop(r, extent(r, 5, 10, 7, 15))
+# crop Raster* with Spatial* object
+b <- as(extent(6, 6.4, 49.75, 50),'SpatialPolygons')
+crs(b) <- crs(r)
+rb <- crop(r, b)
+# crop a SpatialPolygon* object with another one
+if (require(rgdal) & require(rgeos)) {
+p <- shapefile(system.file("external/lux.shp", package="raster"))
+pb <- crop(p, b)
+}
+
+##maxima verossimilhanca para um modelo linear##
+#gerando os dados
+x = 1:200
+y = 1 + 2*x + rnorm(200,0,40)
+
+#construindo o modelo a ser ajustado
+LL = function(a,b,mu,sigma){ #parametros do modelo e parametros de residuo
+    R = y - (a + b*x) #equacao do modelo
+    R = suppressWarnings(dnorm(R,mu,sigma)) #probabilidade de achar um valor de R para um determinado conjunto de parametros
+    -sum(log(R)) #soma do log das probs.
+}
+
+#algoritmo para estimativa de maxima verossimilhanca
+fit = mle(LL, start=list(a=1,b=1,mu=0,sigma=10),fixed=list(mu=0),nobs=length(y)) #obs: mantendo mu=0 fixo, pois pois e do residuo
+
+#tirando a prova
+
+linTest = lm(y~x)
+glmTest = glm(y~x)
+summary(linTest)
+summary(glmTest)
+summary(fit)
+
