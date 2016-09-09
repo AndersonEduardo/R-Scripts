@@ -9,26 +9,26 @@ library(rgdal)
 library(rgeos)
 library(GISTools)
 library(randomForest)
-Sys.setenv(JAVA_HOME='/usr/lib/jvm/default-java') # for 64-bit version
+Sys.setenv(JAVA_HOME='/usr/lib/jvm/java-7-openjdk-amd64') # for 64-bit version
 #Windows#Sys.setenv(JAVA_HOME='C:\\Program Files\\Java\\jre1.8.0_91') # for 64-bit version
 library(rJava)
 
 ##DEFININDO PASTAS DE TRABALHO##
-envVarFolder = "/home/anderson/R/PosDoc/dados_ambientais/"
-spOccFolder = "/home/anderson/R/PosDoc/dados_ocorrencia/PO_unique/"
-projectFolder = "/home/anderson/R/PosDoc/teste/"
+envVarFolder = "/home/anderson/PosDoc/dados_ambientais/"
+spOccFolder = "/home/anderson/PosDoc/dados_ocorrencia/PO_unique/"
+projectFolder = "/home/anderson/PosDoc/teste/"
 
 ####ABRINDO AS VARIAVEIS CLIMATICAS#####
 #abrindo shape da America do Sul
-AmSulShape = readShapePoly("/home/anderson/R/PosDoc/Am_Sul/borders.shp")
+AmSulShape = readShapePoly("/home/anderson/PosDoc/Am_Sul/borders.shp")
 
 #abrindo e cortando camads de variaveis ambientais para o presente
-filesRaw <- stack(list.files(path="/home/anderson/R/PosDoc/dados_ambientais/dados_projeto/000", pattern='asc', full.names=T)) ### stack all rasters in Bioclim folder
+filesRaw <- stack(list.files(path=paste(envVarFolder,"dados_projeto/000",sep=''), pattern='asc', full.names=T)) ### stack all rasters in Bioclim folder
 #files <- stack(list.files(path = "/home/anderson/R/PosDoc/dados_ambientais/bcmidbi_2-5m _asc/dados_ambientais_para_projeto", pattern='asc', full.names=T))
 files = mask(filesRaw,AmSulShape) #cortando para Am. do Sul
 
 #abrindo e cortando camads de variaveis ambientais para o passado
-filesProjectionRaw <- stack(list.files(path = "/home/anderson/R/PosDoc/dados_ambientais/dados_projeto/011", pattern='asc', full.names=T)) ###abrindo camandas para projecao (passado, futuro, outro local, etc)
+filesProjectionRaw <- stack(list.files(path=paste(envVarFolder,"dados_projeto/011",sep=''), pattern='asc', full.names=T)) ###abrindo camandas para projecao (passado, futuro, outro local, etc)
 filesProjection = mask(filesProjectionRaw,AmSulShape) #cortando para Am. do Sul
 
 #testando correcaloes
@@ -38,7 +38,7 @@ filesProjection = mask(filesProjectionRaw,AmSulShape) #cortando para Am. do Sul
 
 #remove highly correlated variables Bio1,Bio3,Bio9,Bio13,Bio14
 files.crop.sub <- dropLayer(files, c(1,2,5,6)) #### remove selected layers
-files.crop.sub.projection <- dropLayer(filesProjection, c(1,2,5,6)) 
+files.crop.sub.projection <- dropLayer(filesProjection, c(1,2,5,6))
 
 #remover as mesmas camadas dos dados para projecao
 #test2<-getValues(files.crop.sub)
@@ -71,17 +71,17 @@ for (i in 1:length(vetor_de_nomes)) {
 }
 
 ########## Criando objetos com a lista de especies #############
-occ.sps <- list.files("/home/anderson/R/PosDoc/dados_ocorrencia/PO_unique",pattern="csv")
+occ.sps <- list.files(paste(spOccFolder,sep=''),pattern="csv")
 splist <-unlist(lapply(occ.sps, FUN = strsplit, split=("\\.csv")))
 ##fosseis
-occ.sps.fosseis = read.csv("/home/anderson/R/PosDoc/dados_ocorrencia/PO_unique/fosseis.csv",header=T)
+occ.sps.fosseis = read.csv(paste(spOccFolder,"fosseis.csv",sep=''),header=T)
 splist.fosseis = lapply(occ.sps.fosseis[,1],as.character)
 
 ###inspeção visual exploratoria
 data(wrld_simpl)
 
 especie = splist[1] #escolher qual especie
-sp.file <- read.csv(paste("/home/anderson/R/PosDoc/dados_ocorrencia/PO_unique/",especie,".csv",sep=""),h=T) ### read sp occurrence
+sp.file <- read.csv(paste(spOccFolder,especie,".csv",sep=""),h=T) ### read sp occurrence
 sp.occ <- sp.file[,2:3] ## select lat long columns
 sp.occ = sp.occ[sp.occ$lat > -50,] #eliminar pontos 
 plot(wrld_simpl, xlim=c(-80,10), ylim=c(-60,10), axes=TRUE, col= 'light yellow' )
@@ -103,7 +103,7 @@ options(java.parameters = "-Xmx7g") ###set available memmory to java
 
 for (i in 1:length(splist)){
 especie = i #escolher qual especie
-sp.file <- read.csv(paste("/home/anderson/R/PosDoc/dados_ocorrencia/PO_unique/", splist[especie],".csv",sep=""),h=T) ### read sp occurrence
+sp.file <- read.csv(paste(spOccFolder, splist[especie],".csv",sep=""),h=T) ### read sp occurrence
 sp.occ <- sp.file[,2:3] ## select lat long columns
 me <- maxent(predictors,sp.occ, args=c("raw","maximumiterations=1000"),path=paste("/home/anderson/R/PosDoc/teste/",splist[especie],sep="")) ## run maxent model with raw output
 crs <- '+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0'
@@ -139,11 +139,11 @@ especie = 'Caiman crocodilus'
 
 setwd(paste(projectFolder,teste,'/Raster Layers',sep='')) #presente
 files = list.files(paste(getwd()),full.names=TRUE,pattern='.asc')
-files=c(files[1],files[3],files[5]) #selecionando camadas e consertando a ordem das camadas
+files=c(files[2],files[4],files[6],files[8],files[10]) #selecionando camadas e consertando a ordem das camadas
 
 setwd(paste(projectFolder,teste,'/Passado/Raster Layers',sep='')) #passado
 filesPass = list.files(paste(getwd()),full.names=TRUE,pattern='.asc')
-filesPass=c(filesPass[4],filesPass[14],filesPass[24],filesPass[8],filesPass[18],filesPass[28]) #selecionando camadas e consertando a ordem das camadas
+filesPass=c(filesPass[2],filesPass[4],filesPass[6],filesPass[8],filesPass[10],filesPass[12],filesPass[14],filesPass[16],filesPass[18],filesPass[20],filesPass[22],filesPass[24],filesPass[26],filesPass[28],filesPass[30],filesPass[32],filesPass[34],filesPass[36],filesPass[38],filesPass[40]) #selecionando camadas e consertando a ordem das camadas
 
 species.layers = stack(c(files,filesPass))
 
@@ -165,12 +165,11 @@ levelplot(species.layers,main='',col.regions=cols,names.attr=rasterNames) + laye
 dev.off()
 
 
-##################################################################
-#################### RANDOM FOREST ###############################
-##################################################################
+################################################################
+#################### RANDOM FOREST #############################
+################################################################
 
 #registrando o tempo de processamento
-
 ptm <- proc.time()
 
 #abrindo um data.frame para armazenar os resultados de AUC
@@ -347,7 +346,7 @@ for (i in 1:length(splist)){
         fossilPointsVars = extract(predictorsProjection,fossilPoints)
         fossilPoints.RF = predict(RF, fossilPointsVars)
         fossilPointsSuitability = rbind(fossilPointsSuitability,data.frame(splist[especie],sp.fossil$K.years.BP,fossilPoints.RF))
-        
+
         #salvando um raster com a projecao do modelo para o tempo do fossil
         writeRaster(projecaoSuitabilityPassado,filename=paste(projectFolder,"Random Forest/Passado/",splist[especie],"/",splist[especie],'-',sp.fossil$K.years.BP," K years BP.asc", sep=""),overwrite=T)
             

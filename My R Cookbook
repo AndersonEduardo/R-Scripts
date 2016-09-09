@@ -41,3 +41,58 @@ summary(linTest)
 summary(glmTest)
 summary(fit)
 
+##usando o pacote raster para calcular slope do terreno a a partir de uma imagem raster de elevacao do terreno (i.e. um DEM).
+#tres funcoes estao dispsonivel no pacote raster: a de Evans (1980), Zevenbergen and Tore (1987) e a de Moore et al. (1993).
+#respectivamente: evans(), zev.tho(), moore()
+#fonte: https://www.r-bloggers.com/terrain-attributes-with-the-raster-package/
+#Exemplo:
+DTM = raster("caminho do raster")
+slope = DEMderiv(DTM,"slope","evans") #(1)raster; (2)objetivo; (3)metodo
+
+
+##calculando area usando raster e shape
+
+#1)shape file
+#get shapefile of Georgia’s borders
+geo_border=getData(‘GADM’, country=’GEO’, level=0)
+#calculate area [m2] of the polygon
+sqm<-areaPolygon(geo_border)
+#convert sqm to km2
+sqkm<-sqm/1000000
+#print area of Georgia according to shapefile, rounded to one digit
+print(paste(“Area of Georgia (shapefile):”,round(sqkm, digits=1),”km2″))
+
+#2)raster file
+##getting SRTM data of Georgia
+geo_raster = getData(‘alt’, country=’GEO’, mask=TRUE)
+#get sizes of all cells in raster [km2]
+cell_size<-area(geo_raster, na.rm=TRUE, weights=FALSE)
+#delete NAs from vector of all raster cells
+##NAs lie outside of the rastered region, can thus be omitted
+cell_size<-cell_size[!is.na(cell_size)]
+#compute area [km2] of all cells in geo_raster
+raster_area<-length(cell_size)*median(cell_size)
+#print area of Georgia according to raster object
+print(paste(“Area of Georgia (raster):”,round(raster_area, digits=1),”km2″))
+
+#3)calculando area de uma porcao especifica do raster file
+##lowland zone 0-999 m
+geo_raster1000 <- geo_raster
+geo_raster1000[geo_raster1000 <=-1] <- NA
+geo_raster1000[geo_raster1000 >999] <- NA
+#calculate area of regions under 0 m asl
+#get sizes of all cells under 0 m
+cell_size<-area(geo_raster1000, na.rm=TRUE, weights=FALSE)
+#delete NAs from vector of all raster cells
+##NAs lie outside of the rastered region, can thus be omitted
+cell_size<-cell_size[!is.na(cell_size)]
+#compute area [km2] of all cells in geo_raster1000
+lowland_area<-length(cell_size)*median(cell_size)
+#print area of Georgia according to raster object
+print(paste(“Area of lowland regions (0-999 m):”,round(lowland_area, digits=1),”km2″))
+#plot lowland zone
+X11(width=8, height=5)
+plot(geo_raster1000,width=15, height=10,main=”Georgia lowland areas”,sub=paste(“0-999 meters asl, area =”,round(lowland_area, digits=1),”km2″))
+plot(geo_border,add=TRUE)
+
+
