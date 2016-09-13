@@ -98,7 +98,6 @@ write.csv(sp.occ, file=paste("/home/anderson/R/PosDoc/dados_ocorrencia/PO_unique
 ######################## MAXENT #############################
 ##################### exploratorio  #########################
 
-
 options(java.parameters = "-Xmx7g") ###set available memmory to java
 
 for (i in 1:length(splist)){
@@ -115,7 +114,7 @@ writeRaster(r, filename=paste("/home/anderson/R/PosDoc/teste/",splist[especie],"
 
 ######Verificando pontos dos fosseis#########
 setwd("/home/anderson/R/PosDoc/teste/Myocastor coypus/raster layers")
-mapaAsc = raster("Myocastor coypus - 22mil.asc") 
+mapaAsc = raster("Myocastor coypus - 22mil.asc")
 setwd("/home/anderson/R/PosDoc/teste/Myocastor coypus")
 jpeg(filename=paste(splist[1],'.jpg',sep=''))
 #plot(r)
@@ -130,7 +129,9 @@ points(sp.occ, col= ' red ' , cex=0.5)
 points(-41.553056,-12.393417, col='blue', pch=2, cex=1.1)
 dev.off()
 
-#graficos agrupados
+
+##GRAFICOS AGRUPADOS##
+
 library(rasterVis)
 
 #definindo objeto com os nomes
@@ -159,10 +160,29 @@ rasterNames = gsub("Caiman_latirostris_._","",names(species.layers))
 rasterNames = gsub("presente","Presente",rasterNames)
 
 cols <- colorRampPalette(brewer.pal(9,"YlGn")) #escala de cores amarelo-verde
+
 setwd(paste("/home/anderson/R/PosDoc/teste/",teste,sep=''))
 jpeg(filename='Caiman.jpg')
 levelplot(species.layers,main='',col.regions=cols,names.attr=rasterNames) + layer(sp.polygons(AmSul)) + layer(panel.xyplot(-41.553056, -12.393417,pch=17,col='red',cex=1),columns=1) + layer(panel.xyplot(-37.753611,-9.926944,pch=17,col='red',cex=1),columns=2)
 dev.off()
+
+
+##PROPORCAO DA AREA PROJETADA##
+
+#area da America do Sul (em m2)
+areaAS = sum(areaPolygon(AmSulShape))
+#tranformando em km2
+areaAS = areaAS/1000000
+#area de occ da especie
+raster_layer = species.layers[[1]]
+raster_layer[raster_layer<1] = NA
+#tamanho das celulas do raster
+cell_size = area(raster_layer, na.rm=TRUE, weights=FALSE)
+cell_size <- cell_size[!is.na(cell_size)]
+#estimando a area total do raster
+raster_area_total <- length(cell_size)*median(cell_size)
+#porporcao da area
+indice = raster_area_total/areaAS
 
 
 ################################################################
@@ -386,9 +406,9 @@ write.table(fossilPointsSuitability,file=paste(projectFolder,"Random Forest/","s
 msgm= proc.time() - ptm
 print(paste('Tempo gasto para rodar RANDOM FOREST: ', msgm[3]/60,' minutos',sep=''))
 
-##################################################################
-########################## GLM ###################################
-##################################################################
+################################################################
+########################## GLM #################################
+################################################################
 
 #registrando o tempo de processamento
 ptm = proc.time()
@@ -610,9 +630,9 @@ msgm= proc.time() - ptm
 print(paste('Tempo gasto para rodar GLM: ', msgm[3]/60,' minutos',sep=''))
 
 
-##################################################################
-########################## BIOCLIM ###############################
-##################################################################
+################################################################
+########################## BIOCLIM #############################
+################################################################
 
 #registrando o tempo de processamento
 ptm = proc.time()
@@ -834,9 +854,9 @@ msgm= proc.time() - ptm
 print(paste('Tempo gasto para rodar BIOCLIM: ', msgm[3]/60,' minutos',sep=''))
 
 
-##################################################################
-########################### MAXENT ###############################
-##################################################################
+################################################################
+########################### MAXENT #############################
+################################################################
 
 
 #registrando o tempo de processamento
@@ -1055,3 +1075,5 @@ write.csv(fossilPointsSuitability,file=paste(projectFolder,"Maxent/","suitabilit
 #registrando e informando o tempo de processamento
 msgm = proc.time() - ptm
 print(paste('Tempo gasto para rodar MAXENT: ', msgm[3]/60,' minutos',sep=''))
+
+
