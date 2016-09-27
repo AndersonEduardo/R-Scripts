@@ -169,6 +169,8 @@ dev.off()
 
 ##PROPORCAO DA AREA PROJETADA##
 
+for (i in 1:dim(species.layers)[3]){
+
 #area da America do Sul (em m2)
 areaAS = sum(areaPolygon(AmSulShape))
 #tranformando em km2
@@ -258,7 +260,7 @@ for (i in 1:length(splist)){
     #avaliando o modelo
     V <- numeric()#abrir un vector vacío 
     
-    for (j in 1:100){
+    for (j in 1:10){
         tryCatch({# bootstrapping with 10 replications
 
             #reparando uma porcao dos dados de presenca e ausencia (background) para calibrar (treinar) o modelo
@@ -339,18 +341,18 @@ for (i in 1:length(splist)){
     dev.off()
 
     ###PROJECAO PARA O PASSADO###
-        
+
     #abrindo os dados de registros fosseis  para uma especie
     sp.fossil.data = occ.sps.fosseis[occ.sps.fosseis$species==splist[especie],] #ATENCAO: este script nao funciona se houver mais de um registro fossil por camada de tempo usada para projecao
-        
+
     for(l in 1:nrow(sp.fossil.data)){
         #loop para cada registro fossil de uma especie
 
         #definindoo fossil
         sp.fossil = sp.fossil.data[l,]
-    
+
         #abrindo as variaveis ambientais do tempo do fossil
-        filesProjectionRaw <- stack(list.files(path = paste(envVarFolder,"dados_projeto/0",sp.fossil$K.years.BP,sep=""), pattern='asc', full.names=T)) ###abrindo camandas para projecao (passado, futuro, outro local, etc)
+        filesProjectionRaw <- stack(list.files(path = paste(envVarFolder,"dados_projeto/0",sp.fossil$kyr,sep=""), pattern='asc', full.names=T)) ###abrindo camandas para projecao (passado, futuro, outro local, etc)
         filesProjection = mask(filesProjectionRaw,AmSulShape) #cortando para Am. do Sul
         files.crop.sub.projection <- dropLayer(filesProjection, c(1,2,5,6)) #removendo as camadas que mostraram correlacao
         predictorsProjection = files.crop.sub.projection #preditoras para o tempo do fossil
@@ -365,14 +367,14 @@ for (i in 1:length(splist)){
         #obtendo a projecao de qualidade de habitat especificamente para o ponto do fossil
         fossilPointsVars = extract(predictorsProjection,fossilPoints)
         fossilPoints.RF = predict(RF, fossilPointsVars)
-        fossilPointsSuitability = rbind(fossilPointsSuitability,data.frame(splist[especie],sp.fossil$K.years.BP,fossilPoints.RF))
+        fossilPointsSuitability = rbind(fossilPointsSuitability,data.frame(splist[especie],sp.fossil$kyr,fossilPoints.RF))
 
         #salvando um raster com a projecao do modelo para o tempo do fossil
-        writeRaster(projecaoSuitabilityPassado,filename=paste(projectFolder,"Random Forest/Passado/",splist[especie],"/",splist[especie],'-',sp.fossil$K.years.BP," K years BP.asc", sep=""),overwrite=T)
-            
+        writeRaster(projecaoSuitabilityPassado,filename=paste(projectFolder,"Random Forest/Passado/",splist[especie],"/",splist[especie],'-',sp.fossil$kyr," K years BP.asc", sep=""),overwrite=T)
+
         #salvando um PDF com a projecao do modelo para o tempo do fossil
-        pdf(file=paste(projectFolder,"Random Forest/Passado/",splist[especie],"/",splist[especie],'-',sp.fossil$K.years.BP," K years BP.pdf", sep=""))
-        plot(projecaoSuitabilityPassado, main=paste(splist[especie],'-',sp.fossil$K.years.BP,'K years BP',sep=''))
+        pdf(file=paste(projectFolder,"Random Forest/Passado/",splist[especie],"/",splist[especie],'-',sp.fossil$kyr," K years BP.pdf", sep=""))
+        plot(projecaoSuitabilityPassado, main=paste(splist[especie],'-',sp.fossil$kyr,'K years BP',sep=''))
         plot(AmSulShape,add=T)
         #plotando as coordenadas do refistro fossil
         points(fossilPoints,col='orange',pch=20,cex=0.75)
@@ -383,21 +385,21 @@ for (i in 1:length(splist)){
         bin <- projecaoSuitabilityPassado > threshold#apply threshold to transform logistic output into binary maps
 
         #salvando um raster com a projecao do modelo para o tempo do fossil
-        writeRaster(bin,filename=paste(projectFolder,"Random Forest/Passado/",splist[especie],"/",splist[especie],'-',sp.fossil$K.years.BP,"K years BP - BINARIO.asc",sep=""),overwrite=T)
+        writeRaster(bin,filename=paste(projectFolder,"Random Forest/Passado/",splist[especie],"/",splist[especie],'-',sp.fossil$kyr,"K years BP - BINARIO.asc",sep=""),overwrite=T)
 
         #salvando um PDF com a projecao do modelo para o tempo do fossil
-        pdf(file=paste(projectFolder,"Random Forest/Passado/",splist[especie],"/",splist[especie],"-",sp.fossil$K.years.BP," K years BP - BINARIO.pdf",sep="")) 
-        plot(bin, main= paste(splist[especie],"-",sp.fossil$K.years.BP," K years BP.pdf",sep=""))
+        pdf(file=paste(projectFolder,"Random Forest/Passado/",splist[especie],"/",splist[especie],"-",sp.fossil$kyr," K years BP - BINARIO.pdf",sep="")) 
+        plot(bin, main= paste(splist[especie],"-",sp.fossil$kyr," K years BP.pdf",sep=""))
         plot(AmSulShape,add=T)
         #plotando as coordenadas do refistro fossil
         points(fossilPoints,col='orange',pch=20,cex=0.75)
         points(fossilPoints,col='red',cex=0.8)
         dev.off()
-            
+
     }
 }
 
-#salvando a tabela de dados da avaliacao dos modelos 
+#salvando a tabela de dados da avaliacao dos modelos
 write.table(resultados.evaluacion.RF,file=paste(projectFolder,"Random Forest/","AUCmodelos.csv",sep=""), row.names=FALSE, col.names=TRUE, quote=FALSE, sep=",")
 
 write.table(fossilPointsSuitability,file=paste(projectFolder,"Random Forest/","suitabilityNoPontoFossil.csv",sep=""))
@@ -572,7 +574,7 @@ for (i in 1:length(splist)){
         sp.fossil = sp.fossil.data[l,]
     
         #abrindo as variaveis ambientais do tempo do fossil
-        filesProjectionRaw <- stack(list.files(path = paste(envVarFolder,"dados_projeto/0",sp.fossil$K.years.BP,sep=""), pattern='asc', full.names=T)) ###abrindo camandas para projecao (passado, futuro, outro local, etc)
+        filesProjectionRaw <- stack(list.files(path = paste(envVarFolder,"dados_projeto/0",sp.fossil$kyr,sep=""), pattern='asc', full.names=T)) ###abrindo camandas para projecao (passado, futuro, outro local, etc)
         filesProjection = mask(filesProjectionRaw,AmSulShape) #cortando para Am. do Sul
         files.crop.sub.projection <- dropLayer(filesProjection, c(1,2,5,6)) #removendo as camadas que mostraram correlacao
         predictorsProjection = files.crop.sub.projection #preditoras para o tempo do fossil
@@ -587,15 +589,15 @@ for (i in 1:length(splist)){
         #obtendo a projecao de qualidade de habitat especificamente para o ponto do fossil
         fossilPointsVars = extract(predictorsProjection,fossilPoints)
         fossilPoints.GLM = predict(GLM, as.data.frame(fossilPointsVars),type='response')
-        fossilPointsSuitability = rbind(fossilPointsSuitability,data.frame(splist[especie],sp.fossil$K.years.BP,fossilPoints.GLM))
+        fossilPointsSuitability = rbind(fossilPointsSuitability,data.frame(splist[especie],sp.fossil$kyr,fossilPoints.GLM))
 
         
         #salvando um raster com a projecao do modelo para o tempo do fossil
-        writeRaster(projecaoSuitabilityPassado,filename=paste(projectFolder,"GLM/Passado/",splist[especie],"/",splist[especie],'-',sp.fossil$K.years.BP," K years BP.asc", sep=""),overwrite=T)
+        writeRaster(projecaoSuitabilityPassado,filename=paste(projectFolder,"GLM/Passado/",splist[especie],"/",splist[especie],'-',sp.fossil$kyr," K years BP.asc", sep=""),overwrite=T)
             
         #salvando um PDF com a projecao do modelo para o tempo do fossil
-        pdf(file=paste(projectFolder,"GLM/Passado/",splist[especie],"/",splist[especie],'-',sp.fossil$K.years.BP," K years BP.pdf", sep=""))
-        plot(projecaoSuitabilityPassado, main=paste(splist[especie],'-',sp.fossil$K.years.BP,'K years BP',sep=''))
+        pdf(file=paste(projectFolder,"GLM/Passado/",splist[especie],"/",splist[especie],'-',sp.fossil$kyr," K years BP.pdf", sep=""))
+        plot(projecaoSuitabilityPassado, main=paste(splist[especie],'-',sp.fossil$kyr,'K years BP',sep=''))
         plot(AmSulShape,add=T)
         #plotando as coordenadas do refistro fossil
         points(fossilPoints,col='orange',pch=20,cex=0.75)
@@ -606,11 +608,11 @@ for (i in 1:length(splist)){
         bin <- projecaoSuitabilityPassado > threshold#apply threshold to transform logistic output into binary maps
 
         #salvando um raster com a projecao do modelo para o tempo do fossil
-        writeRaster(bin,filename=paste(projectFolder,"GLM/Passado/",splist[especie],"/",splist[especie],'-',sp.fossil$K.years.BP,"K years BP - BINARIO.asc",sep=""),overwrite=T)
+        writeRaster(bin,filename=paste(projectFolder,"GLM/Passado/",splist[especie],"/",splist[especie],'-',sp.fossil$kyr,"K years BP - BINARIO.asc",sep=""),overwrite=T)
 
         #salvando um PDF com a projecao do modelo para o tempo do fossil
-        pdf(file=paste(projectFolder,"GLM/Passado/",splist[especie],"/",splist[especie],"-",sp.fossil$K.years.BP," K years BP - BINARIO.pdf",sep="")) 
-        plot(bin, main= paste(splist[especie],"-",sp.fossil$K.years.BP," K years BP.pdf",sep=""))
+        pdf(file=paste(projectFolder,"GLM/Passado/",splist[especie],"/",splist[especie],"-",sp.fossil$kyr," K years BP - BINARIO.pdf",sep="")) 
+        plot(bin, main= paste(splist[especie],"-",sp.fossil$kyr," K years BP.pdf",sep=""))
         plot(AmSulShape,add=T)
         #plotando as coordenadas do refistro fossil
         points(fossilPoints,col='orange',pch=20,cex=0.75)
@@ -796,7 +798,7 @@ for (i in 1:length(splist)){
         sp.fossil = sp.fossil.data[l,]
     
         #abrindo as variaveis ambientais do tempo do fossil
-        filesProjectionRaw <- stack(list.files(path = paste(envVarFolder,"dados_projeto/0",sp.fossil$K.years.BP,sep=""), pattern='asc', full.names=T)) ###abrindo camandas para projecao (passado, futuro, outro local, etc)
+        filesProjectionRaw <- stack(list.files(path = paste(envVarFolder,"dados_projeto/0",sp.fossil$kyr,sep=""), pattern='asc', full.names=T)) ###abrindo camandas para projecao (passado, futuro, outro local, etc)
         filesProjection = mask(filesProjectionRaw,AmSulShape) #cortando para Am. do Sul
         files.crop.sub.projection <- dropLayer(filesProjection, c(1,2,5,6)) #removendo as camadas que mostraram correlacao
         predictorsProjection = files.crop.sub.projection #preditoras para o tempo do fossil
@@ -811,15 +813,15 @@ for (i in 1:length(splist)){
         #obtendo a projecao de qualidade de habitat especificamente para o ponto do fossil
         fossilPointsVars = extract(predictorsProjection,fossilPoints)
         fossilPoints.BIOC = predict(BIOC, fossilPointsVars)
-        fossilPointsSuitability = rbind(fossilPointsSuitability,data.frame(splist[especie],sp.fossil$K.years.BP,fossilPoints.BIOC))
+        fossilPointsSuitability = rbind(fossilPointsSuitability,data.frame(splist[especie],sp.fossil$kyr,fossilPoints.BIOC))
 
         
         #salvando um raster com a projecao do modelo para o tempo do fossil
-        writeRaster(projecaoSuitabilityPassado,filename=paste(projectFolder,"BIOC/Passado/",splist[especie],"/",splist[especie],'-',sp.fossil$K.years.BP," K years BP.asc", sep=""),overwrite=T)
+        writeRaster(projecaoSuitabilityPassado,filename=paste(projectFolder,"BIOC/Passado/",splist[especie],"/",splist[especie],'-',sp.fossil$kyr," K years BP.asc", sep=""),overwrite=T)
             
         #salvando um PDF com a projecao do modelo para o tempo do fossil
-        pdf(file=paste(projectFolder,"BIOC/Passado/",splist[especie],"/",splist[especie],'-',sp.fossil$K.years.BP," K years BP.pdf", sep=""))
-        plot(projecaoSuitabilityPassado, main=paste(splist[especie],'-',sp.fossil$K.years.BP,'K years BP',sep=''))
+        pdf(file=paste(projectFolder,"BIOC/Passado/",splist[especie],"/",splist[especie],'-',sp.fossil$kyr," K years BP.pdf", sep=""))
+        plot(projecaoSuitabilityPassado, main=paste(splist[especie],'-',sp.fossil$kyr,'K years BP',sep=''))
         plot(AmSulShape,add=T)
         #plotando as coordenadas do refistro fossil
         points(fossilPoints,col='orange',pch=20,cex=0.75)
@@ -830,11 +832,11 @@ for (i in 1:length(splist)){
         bin <- projecaoSuitabilityPassado > threshold#apply threshold to transform logistic output into binary maps
 
         #salvando um raster com a projecao do modelo para o tempo do fossil
-        writeRaster(bin,filename=paste(projectFolder,"BIOC/Passado/",splist[especie],"/",splist[especie],'-',sp.fossil$K.years.BP,"K years BP - BINARIO.asc",sep=""),overwrite=T)
+        writeRaster(bin,filename=paste(projectFolder,"BIOC/Passado/",splist[especie],"/",splist[especie],'-',sp.fossil$kyr,"K years BP - BINARIO.asc",sep=""),overwrite=T)
 
         #salvando um PDF com a projecao do modelo para o tempo do fossil
-        pdf(file=paste(projectFolder,"BIOC/Passado/",splist[especie],"/",splist[especie],"-",sp.fossil$K.years.BP," K years BP - BINARIO.pdf",sep="")) 
-        plot(bin, main= paste(splist[especie],"-",sp.fossil$K.years.BP," K years BP.pdf",sep=""))
+        pdf(file=paste(projectFolder,"BIOC/Passado/",splist[especie],"/",splist[especie],"-",sp.fossil$kyr," K years BP - BINARIO.pdf",sep="")) 
+        plot(bin, main= paste(splist[especie],"-",sp.fossil$kyr," K years BP.pdf",sep=""))
         plot(AmSulShape,add=T)
         #plotando as coordenadas do refistro fossil
         points(fossilPoints,col='orange',pch=20,cex=0.75)
@@ -928,7 +930,7 @@ for (i in 1:length(splist)){
     #avaliando o modelo
     V <- numeric()#abrir un vector vacío 
     
-    for (j in 1:100){
+    for (j in 1:10){
         tryCatch({# bootstrapping with 10 replications
 
             #reparando uma porcao dos dados de presenca e ausencia (background) para calibrar (treinar) o modelo
@@ -1020,7 +1022,7 @@ for (i in 1:length(splist)){
         sp.fossil = sp.fossil.data[l,]
     
         #abrindo as variaveis ambientais do tempo do fossil
-        filesProjectionRaw <- stack(list.files(path = paste(envVarFolder,"dados_projeto/0",sp.fossil$K.years.BP,sep=""), pattern='asc', full.names=T)) ###abrindo camandas para projecao (passado, futuro, outro local, etc)
+        filesProjectionRaw <- stack(list.files(path = paste(envVarFolder,"dados_projeto/0",sp.fossil$kyr,sep=""), pattern='asc', full.names=T)) ###abrindo camandas para projecao (passado, futuro, outro local, etc)
         filesProjection = mask(filesProjectionRaw,AmSulShape) #cortando para Am. do Sul
         files.crop.sub.projection <- dropLayer(filesProjection, c(1,2,5,6)) #removendo as camadas que mostraram correlacao
         predictorsProjection = files.crop.sub.projection #preditoras para o tempo do fossil
@@ -1035,14 +1037,14 @@ for (i in 1:length(splist)){
         #obtendo a projecao de qualidade de habitat especificamente para o ponto do fossil
         fossilPointsVars = extract(predictorsProjection,fossilPoints)
         fossilPoints.MX = predict(MX, fossilPointsVars)
-        fossilPointsSuitability = rbind(fossilPointsSuitability,data.frame(splist[especie],sp.fossil$K.years.BP,fossilPoints.MX))
+        fossilPointsSuitability = rbind(fossilPointsSuitability,data.frame(splist[especie],sp.fossil$kyr,fossilPoints.MX))
 
         #salvando um raster com a projecao do modelo para o tempo do fossil
-        writeRaster(projecaoSuitabilityPassado,filename=paste(projectFolder,"Maxent/Passado/",splist[especie],"/",splist[especie],'-',sp.fossil$K.years.BP," K years BP.asc", sep=""),overwrite=T)
+        writeRaster(projecaoSuitabilityPassado,filename=paste(projectFolder,"Maxent/Passado/",splist[especie],"/",splist[especie],'-',sp.fossil$kyr," K years BP.asc", sep=""),overwrite=T)
             
         #salvando um PDF com a projecao do modelo para o tempo do fossil
-        pdf(file=paste(projectFolder,"Maxent/Passado/",splist[especie],"/",splist[especie],'-',sp.fossil$K.years.BP," K years BP.pdf", sep=""))
-        plot(projecaoSuitabilityPassado, main=paste(splist[especie],'-',sp.fossil$K.years.BP,'K years BP',sep=''))
+        pdf(file=paste(projectFolder,"Maxent/Passado/",splist[especie],"/",splist[especie],'-',sp.fossil$kyr," K years BP.pdf", sep=""))
+        plot(projecaoSuitabilityPassado, main=paste(splist[especie],'-',sp.fossil$kyr,'K years BP',sep=''))
         plot(AmSulShape,add=T)
         #plotando as coordenadas do refistro fossil
         points(fossilPoints,col='orange',pch=20,cex=0.75)
@@ -1053,21 +1055,21 @@ for (i in 1:length(splist)){
         bin <- projecaoSuitabilityPassado > threshold#apply threshold to transform logistic output into binary maps
 
         #salvando um raster com a projecao do modelo para o tempo do fossil
-        writeRaster(bin,filename=paste(projectFolder,"Maxent/Passado/",splist[especie],"/",splist[especie],'-',sp.fossil$K.years.BP,"K years BP - BINARIO.asc",sep=""),overwrite=T)
+        writeRaster(bin,filename=paste(projectFolder,"Maxent/Passado/",splist[especie],"/",splist[especie],'-',sp.fossil$kyr,"K years BP - BINARIO.asc",sep=""),overwrite=T)
 
         #salvando um PDF com a projecao do modelo para o tempo do fossil
-        pdf(file=paste(projectFolder,"Maxent/Passado/",splist[especie],"/",splist[especie],"-",sp.fossil$K.years.BP," K years BP - BINARIO.pdf",sep="")) 
-        plot(bin, main= paste(splist[especie],"-",sp.fossil$K.years.BP," K years BP.pdf",sep=""))
+        pdf(file=paste(projectFolder,"Maxent/Passado/",splist[especie],"/",splist[especie],"-",sp.fossil$kyr," K years BP - BINARIO.pdf",sep="")) 
+        plot(bin, main= paste(splist[especie],"-",sp.fossil$kyr," K years BP.pdf",sep=""))
         plot(AmSulShape,add=T)
         #plotando as coordenadas do refistro fossil
         points(fossilPoints,col='orange',pch=20,cex=0.75)
         points(fossilPoints,col='red',cex=0.8)
-        dev.off()        
-        
+        dev.off()
+
     }
 }
 
-#salvando a tabela de dados da avaliacao dos modelos 
+#salvando a tabela de dados da avaliacao dos modelos
 write.table(resultados.evaluacion.MX,file=paste(projectFolder,"Maxent/","AUCmodelos.csv",sep=""), row.names=FALSE, col.names=TRUE, quote=FALSE, sep=",")
 
 write.csv(fossilPointsSuitability,file=paste(projectFolder,"Maxent/","suitabilityNoPontoFossil.csv",sep=""),row.names=F)
