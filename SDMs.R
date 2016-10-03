@@ -167,24 +167,24 @@ levelplot(species.layers,main='',col.regions=cols,names.attr=rasterNames) + laye
 dev.off()
 
 
-##PROPORCAO DA AREA PROJETADA##
+### CORRELACAO ENTRE OS DIRERENTES MODELOS ###
+algoritmos = c('Maxent','GLM','Random Forest')
+cor.list = list()
 
-for (i in 1:dim(species.layers)[3]){
-
-#area da America do Sul (em m2)
-areaAS = sum(areaPolygon(AmSulShape))
-#tranformando em km2
-areaAS = areaAS/1000000
-#area de occ da especie
-raster_layer = species.layers[[1]]
-raster_layer[raster_layer<1] = NA
-#tamanho das celulas do raster
-cell_size = area(raster_layer, na.rm=TRUE, weights=FALSE)
-cell_size <- cell_size[!is.na(cell_size)]
-#estimando a area total do raster
-raster_area_total <- length(cell_size)*median(cell_size)
-#porporcao da area
-indice = raster_area_total/areaAS
+for (i in 1:16){ #OBS.: 16 e o numero de projecoes a serem comparadas (ver na pasta 'raster layers')
+    layersToCompare=list()
+    for (j in 1:length(algoritmos)){
+        setwd(paste(projectFolder,algoritmos[j],'/Passado/Raster Layers',sep='')) #apenas passado
+        filesPass = list.files(paste(getwd()),full.names=TRUE,pattern='.asc')
+        filesPass=c(filesPass[1],filesPass[3],filesPass[5],filesPass[7],filesPass[9],filesPass[11],filesPass[13],filesPass[15],filesPass[17],filesPass[19],filesPass[21],filesPass[23],filesPass[25],filesPass[27],filesPass[29],filesPass[31]) #selecionando camadas e consertando a ordem das camadas
+        layersToCompare = append(layersToCompare, filesPass[i])
+    }
+    stackToTest = stack(layersToCompare)
+    valuesToTest = getValues(stackToTest)
+    cor.matrix = as.data.frame(cor(valuesToTest, use="complete.obs"))
+    cor.list[[i]] = data.frame(cor.matrix)
+    write.csv(cor.list[[i]], file=paste("/home/anderson/PosDoc/teste/Correlacoes/","correlacao_",names(cor.matrix)[1],".csv",sep=""),row.names=T)
+}
 
 
 ################################################################
