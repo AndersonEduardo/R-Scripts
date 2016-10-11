@@ -28,7 +28,7 @@ filesRaw <- stack(list.files(path=paste(envVarFolder,"dados_projeto/000",sep='')
 files = mask(filesRaw,AmSulShape) #cortando para Am. do Sul
 
 #abrindo e cortando camads de variaveis ambientais para o passado
-filesProjectionRaw <- stack(list.files(path=paste(envVarFolder,"dados_projeto/011",sep=''), pattern='asc', full.names=T)) ###abrindo camandas para projecao (passado, futuro, outro local, etc)
+filesProjectionRaw <- stack(list.files(path=paste(envVarFolder,"dados_projeto/021",sep=''), pattern='asc', full.names=T)) ###abrindo camandas para projecao (passado, futuro, outro local, etc)
 filesProjection = mask(filesProjectionRaw,AmSulShape) #cortando para Am. do Sul
 
 #testando correcaloes
@@ -59,7 +59,7 @@ for (i in 1:length(vetor_de_nomes)) {
   sp <- vetor_de_nomes[i]
   #res <- occ(query = sp, from = 'gbif', limit = 10000)
   #locs<-occ2df(res)
-  locs = read.csv(file=paste("/home/anderson/R/PosDoc/dados_ocorrencia/",sp,".csv",sep=""),header=T,stringsAsFactors=FALSE)    
+  locs = read.csv(file=paste("/home/anderson/PosDoc/dados_ocorrencia/",sp,".csv",sep=""),header=T,stringsAsFactors=FALSE)    
   locs2<-locs[,2:3]
   locs2[locs2 == 0] <- NA
   locs3<-locs2[complete.cases(locs2),]
@@ -102,14 +102,15 @@ options(java.parameters = "-Xmx7g") ###set available memmory to java
 
 for (i in 1:length(splist)){
 especie = i #escolher qual especie
-sp.file <- read.csv(paste(spOccFolder, splist[especie],".csv",sep=""),h=T) ### read sp occurrence
-sp.occ <- sp.file[,2:3] ## select lat long columns
-me <- maxent(predictors,sp.occ, args=c("raw","maximumiterations=1000"),path=paste("/home/anderson/R/PosDoc/teste/",splist[especie],sep="")) ## run maxent model with raw output
+#sp.file=read.table("CulpeoBergmann.txt",header=T)
+#sp.file <- read.csv(paste(spOccFolder, splist[especie],".csv",sep=""),h=T) ### read sp occurrence
+#sp.occ <- sp.file[,2:3] ## select lat long columns
+me <- maxent(predictors,sp.occ, args=c("raw","maximumiterations=1000"),path=paste("/home/anderson/PosDoc/pablo/culpeos")) ## run maxent model with raw output
 crs <- '+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0'
 r <- predict(me,predictors,crs=crs)
 #r <- predict(me,predictorsProjection,crs=crs) #para projetar passado, futuro, etc
 names(r) <- splist[especie]
-writeRaster(r, filename=paste("/home/anderson/R/PosDoc/teste/",splist[especie],"/",splist[especie],".asc",sep=""), overwrite=T)
+writeRaster(r, filename=paste("/home/anderson/PosDoc/pablo/culpeosPass.asc",sep=""), overwrite=T)
 }
 
 ######Verificando pontos dos fosseis#########
@@ -136,14 +137,17 @@ library(rasterVis)
 
 #definindo objeto com os nomes
 teste = 'Maxent'
-especie = 'Caiman crocodilus'
 
-setwd(paste(projectFolder,teste,'/Raster Layers',sep='')) #presente
+#presente
+setwd(paste(projectFolder,teste,'/Raster Layers',sep='')) 
 files = list.files(paste(getwd()),full.names=TRUE,pattern='.asc')
-files=c(files[1],files[3],files[5]) #caimans
-files=c(files[7],files[9]) #lagostomus e myocastor
+#caimans
+files=c(files[1],files[3],files[5]) 
+#lagostomus e myocastor
+files=c(files[7],files[9]) 
 
-setwd(paste(projectFolder,teste,'/Passado/Raster Layers',sep='')) #passado
+#passado
+setwd(paste(projectFolder,teste,'/Passado/Raster Layers',sep='')) 
 filesPass = list.files(paste(getwd()),full.names=TRUE,pattern='.asc')
  #caimans (completo)
 filesPass=c(filesPass[2],filesPass[4],filesPass[6],filesPass[8],filesPass[10],filesPass[12],filesPass[14],filesPass[16],filesPass[18],filesPass[20],filesPass[22],filesPass[24])
@@ -152,7 +156,7 @@ filesPass=c(filesPass[4],filesPass[6],filesPass[12],filesPass[14],filesPass[20],
 #L. maximus e M. coypus
 filesPass=c(filesPass[26],filesPass[28],filesPass[30],filesPass[32])
 
-#empilhando os rasters
+#empilhando os rasters (passado e presente)
 species.layers = stack(c(files,filesPass))
 
 #organizando para caimans (completo)
@@ -163,7 +167,6 @@ species.layers=species.layers[[ c(1,2,3,4,6,8,5,7,9) ]]
 species.layers=species.layers[[ c(1,2,3,5,4,6) ]]
 
 #cortando e gravando varios rasters com o shapefile da america do sul
-
 for (i in 1:length(names(species.layers))){
     species.layers[[i]] = mask(species.layers[[i]],AmSulShape)
     writeRaster(species.layers[[i]], filename=paste("/home/anderson/R/PosDoc/teste/",teste,'/Raster Layers Cortados/',names(species.layers)[i],".asc",sep=""), overwrite=T)
@@ -175,21 +178,19 @@ names(species.layers)
 rasterNames = gsub("Caiman_latirostris_._","",names(species.layers))
 rasterNames = gsub("presente","Presente",rasterNames)
 
-#levelplot#
+## levelplot ##
 setwd(paste("/home/anderson/PosDoc/teste/",teste,sep=''))
 
 ## Genero Caiman completo
 #cols <- colorRampPalette(brewer.pal(9,"YlGnBu")) #escala de cores amarelo-verde
 nomesSubgraficos = c("C. crocodilus","C. latirostris","C. yacare","10 kyr BP","10 kyr BP","10 kyr BP","11 kyr BP","11 kyr BP","11 kyr BP","21 kyr BP","21 kyr BP","21 kyr BP","22 kyr BP","22 kyr BP","22 kyr BP")
-
 #jpeg(filename='Caiman.jpg')
 pdf(file='CaimanCompleto.pdf')
-levelplot(species.layers,scales=list(x=list(cex=0.6), y=list(cex=0.6)),between=list(x=1.8, y=0.25),par.strip.text=list(cex=0.7),layout=c(3,5),col.regions=colorRampPalette(c("white","orange","darkblue")), main='',names.attr=nomesSubgraficos,colorkey=list(space="right")) + layer(sp.polygons(AmSulShape)) + layer(panel.xyplot(-41.553056, -12.393417,pch=17,col='blue',cex=1),rows=c(2,3)) + layer(panel.xyplot(-37.753611,-9.926944,pch=17,col='blue',cex=1),rows=c(4,5))
+levelplot(species.layers,scales=list(x=list(cex=0.6), y=list(cex=0.6)),between=list(x=1.8, y=0.25),par.strip.text=list(cex=0.7),layout=c(3,5),col.regions=colorRampPalette(c("white","orange","darkred")), main='',names.attr=nomesSubgraficos,colorkey=list(space="right")) + layer(sp.polygons(AmSulShape)) + layer(panel.xyplot(-41.553056, -12.393417,pch=17,col='blue',cex=1),rows=c(2,3)) + layer(panel.xyplot(-37.753611,-9.926944,pch=17,col='blue',cex=1),rows=c(4,5))
 dev.off()
 
 ## Genero Caiman (figura principal)
 nomesSubgraficos = c("C. crocodilus","C. latirostris","C. yacare","11 kyr BP","11 kyr BP","11 kyr BP","21 kyr BP","21 kyr BP","21 kyr BP")
-
 #jpeg(filename='Caiman.jpg')
 pdf(file='CaimanPrincipal.pdf')
 levelplot(species.layers,scales=list(x=list(cex=0.7), y=list(cex=0.7)),between=list(x=1, y=0.25),par.strip.text=list(cex=0.95),layout=c(3,3),col.regions=colorRampPalette(c("white","orange","darkred")), main='', names.attr=nomesSubgraficos, colorkey=list(space="right")) + layer(sp.polygons(AmSulShape)) + layer(panel.xyplot(-41.553056, -12.393417,pch=17,col="blue",cex=1),rows=c(2)) + layer(panel.xyplot(-37.753611,-9.926944,pch=17,col="blue",cex=1),rows=c(3))
@@ -197,8 +198,7 @@ dev.off()
 
 ## M. coypus L. maximus
 nomesSubgraficos = c("L. maximus","M. coypus","13 kyr BP","19 kyr BP","14 kyr BP","21 kyr BP")
-
-#jpeg(filename='Caiman.jpg')
+#jpeg(filename='MyoLago.jpg')
 pdf(file='MyoLago.pdf')
 levelplot(species.layers,scales=list(x=list(cex=0.7), y=list(cex=0.7)),between=list(x=1, y=0.25),par.strip.text=list(cex=0.95),layout=c(2,3),col.regions=colorRampPalette(c("white","orange","darkred")), main='', names.attr=nomesSubgraficos, colorkey=list(space="right")) + layer(sp.polygons(AmSulShape)) + layer(panel.xyplot(-55.993283,-34.270064,pch=17,col="blue",cex=1),rows=c(2:3),columns=c(1)) + layer(panel.xyplot(-41.553056,-12.393333,pch=17,col="blue",cex=1),rows=c(2:3),columns=c(2))
 dev.off()
@@ -248,7 +248,7 @@ for (i in 1:length(splist)){
     #coordinates(sp.occ)<- c("longitude","latitude")
 
     #extraindo dados da variavel climatica nos pontos de ocorrencia
-    presclim <- extract(predictors, sp.occ, method='bilinear', buffer=NULL, fun=NULL, df=TRUE)
+    presclim <- extract(predictors, method='bilinear', buffer=NULL, fun=NULL, df=TRUE)
 
     #criando um vetor de presenca para usar em uma coluna de presenca/ausencia na tabela final
     pres = rep(1, nrow(presclim))
