@@ -95,4 +95,21 @@ X11(width=8, height=5)
 plot(geo_raster1000,width=15, height=10,main=”Georgia lowland areas”,sub=paste(“0-999 meters asl, area =”,round(lowland_area, digits=1),”km2″))
 plot(geo_border,add=TRUE)
 
+## construindo uma equação empírica para modelar dados (i.e. fazer previsoes) ##
+
+sp.data = read.csv("/home/anderson/PosDoc/dados_ocorrencia/PO_unique/Lagostomus maximus.csv",h=T) #abrindo tabela de ocorrencia de sp
+var.pres = extract(predictors,sp.data[,2:3]) #OBS: predictors e um stack de rasters de variaveis climaticas no presente
+var.pres = var.pres[complete.cases(var.pres),]
+var.pass = extract(predictorsProjection,sp.data[,2:3]) #OBS: predictors e um stack de rasters de variaveis climaticas no passado
+var.pass = var.pass[complete.cases(var.pass),]
+
+modelo = glm(var.pres[,1]~var.pres[,2]) #esse modelo e so um exemplo (nao significa nada)
+
+plot(var.pres[,1]~var.pres[,2]) #dados
+points(fitted(modelo)~var.pres[,2],pch=20) #valores modelados para o presente (i.e. para os dados conhecidos)
+points(fitted(modelo)~var.pass[,2],pch=1,col='blue') #valores modelados para o passado (i.e. para os dados desconhecidos)
+
+qqplot(proj,fitted(modelo)) #comparando a distribuicao dos dados para presente e passado
+points(proj,proj,type='l',col='red') #linha de referencia (linha de 45 graus)
+
 
