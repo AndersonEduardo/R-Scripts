@@ -6,6 +6,7 @@ library(virtualspecies)
 library(maptools)
 library(dismo)
 library(raster)
+source("/home/anderson/R/R-Scripts")
 
 ###PRIMEIRA PARTE: criando sps virtuais###
 
@@ -46,11 +47,19 @@ for (i in 1:length(caminhosCamadasTemp)){
 ###SEGUNDA PARTE: amostragem de pontos de ocorrencia em diferentes camadas de tempo para fazer o pooled niche model###
 
 ###Parametros necessarios###
-Npass = 1:100 #numero de pontos a serem amostrados para camadas do passado (pensando em pontos fosseis)
+Npass = 1:10 #numero de pontos a serem amostrados para camadas do passado (pensando em pontos fosseis)
 Npres = c(10,100,200,400,800) #numero de pontos a serem amostrados para camadas do presente
+envVarFolder = "/home/anderson/PosDoc/dados_ambientais/dados_projeto" #pasta com as variaveis ambientais
 projectFolder = "/home/anderson/Documentos/Minha produção bibliográfica/Sps artificiais/" #pasta do projeto
 mainSampleFolder = '/home/anderson/Documentos/Minha produção bibliográfica/Sps artificiais/Amostras/' #caminho para pasta onde a planilha com os pontos amostrados sera salva
 spsTypes = c('spHW', 'spHD', 'spCD') #nomes das especies
+
+#abrindo e cortando camads de variaveis ambientais para o presente
+filesRaw <- stack(list.files(path=paste(envVarFolder,"dados_projeto/000",sep=''), pattern='asc', full.names=T)) ### stack all rasters in Bioclim folder
+#files <- stack(list.files(path = "/home/anderson/R/PosDoc/dados_ambientais/bcmidbi_2-5m _asc/dados_ambientais_para_projeto", pattern='asc', full.names=T))
+files = mask(filesRaw,AmSulShape) #cortando para Am. do Sul
+
+
 ############################
 
 for (h in 1:length(spsTypes)){
@@ -63,12 +72,20 @@ for (h in 1:length(spsTypes)){
                 realNicheMap = raster(nicheRealPath[i]) #abrindo o mapa de occ da sp
                 #nameScenario = names(realNicheMap)
                 if (names(realNicheMap) != 'X000'){ #verificando se e o mapa da ocorrencia no presente
-                    amostra_i = sampleOccurrences(realNicheMap, Npass[k],plot=FALSE) #realizando a amostragem
+                    amostra_i = sampleOccurrences(realNicheMap,Npass[k],plot=FALSE) #realizando a amostragem
+                    layers_i = stack(list.files(path=paste(envVarFolder,'/000',sep=''), pattern='asc', full.names=T)) ### stack all rasters in
+                    envVar_i = extract(layers_i, amostra_i[[1]][1:2], method='bilinear', buffer=NULL, fun=NULL, df=TRUE)
+                    amostra_i = cbind(amostra_i[[1]][1:2],envVar_i[,2:ncol(envVar_i)])
                 }
                 else{
-                    amostra_i = sampleOccurrences(realNicheMap, Npres[j],plot=FALSE) #realizando a amostragem
+                    amostra_i = sampleOccurrences(realNicheMap,Npres[j],plot=FALSE) #realizando a amostragem
+                    scenarioName = basename(nicheRealPath[1:24][i])
+                    scenarioName = gsub('.asc','',scenarioName)
+                    layers_i = stack(list.files(path=paste(envVarFolder,'/',scenarioName,sep=''), pattern='asc', full.names=T)) ### stack all rasters in
+                    envVar_i = extract(layers_i, amostra_i[[1]][1:2], method='bilinear', buffer=NULL, fun=NULL, df=TRUE)
+                    amostra_i = cbind(amostra_i[[1]][1:2],envVar_i[,2:ncol(envVar_i)])
                 }
-                amostra = rbind(amostra,amostra_i$sample.points)
+                amostra = rbind(amostra,amostra_i)
             }
             write.csv(amostra,file=paste(mainSampleFolder,spsTypes[h],'/ptsPres',Npres[j],'ptsPass',Npass[k],'.csv',sep=''),row.names=FALSE)#salvando a planilha com os dados da amostra
         }
@@ -106,13 +123,14 @@ for (i in 1:ncol(feature){
         for (k in 1:length(spsTypes)){
             sampleFolder = paste(mainSampleFolder,spsTypes[k],sep='') #pasta com os mapas de nicho real da sp
             samplePaths = list.files(path=sampleFolder, full.names=T, pattern='.csv') #lista com os enderecos dos mapas de distribuicao da sp
-            sp.occ = read.csv(paste(samplePaths[1],sep=''),header=TRUE) #abrindo a planilha de pontos de occ amostrados
-            sp.occ = sp.occ[,1:2] #pegando somente as coorqdenadas na planilha
+            sp.data = read.csv(paste(samplePaths[1],sep=''),header=TRUE) #abrindo a planilha de pontos de occ amostrados
+            sp.occ = sp.data[,1:2] #pegando somente as coorqdenadas na planilha
             names(sp.occ) = c('lon','lat')
             predictors = stack(paste(envVarPaths[1],'/bioclim_01.asc',sep=''),paste(envVarPaths[1],'/bioclim_12.asc',sep='')) #carregando as variaveis ambientais do presente (para calibrar o modelo com dados da atalidade)
             predictors = mask(predictors,AmSulShape) #recortando as variaveis ambientais
             #ajuste do modelo
-            me <- maxent(predictors,sp.occ, args=c("responsecurves=TRUE", "outputformat=logistic","randomseed=TRUE","randomtestpoints=25","replicates=10","replicatetype=subsample","outputgrids=FALSE","maximumiterations=5000",'removeduplicates=TRUE','writeclampgrid=TRUE','writemess=TRUE','threads=4','writebackgroundpredictions=TRUE',paste('betamultiplier=',betamultiplier[j],sep=''),paste('linear',feature[i,1],sep=''),paste('quadratic',feature[i,2],sep=''),paste('product',feature[i,3],sep=''),paste('threshold',feature[i,4],sep=''),paste('hinge',feature[i,5],sep='')),path=paste(maxentFolder,spsTypes[k],'/',names(feature)[i],'/',betamultiplier[j],sep='')) # run maxent model with raw output
+            me <- maxent(predictors,sp.occ,args=c("responsecurves=TRUE", "outputformat=logistic","randomseed=TRUE","randomtestpoints=25","replicates=10","replicatetype=subsample","outputgrids=FALSE","maximumiterations=5000",'removeduplicates=TRUE','writeclampgrid=TRUE','writemess=TRUE','threads=4','writebackgroundpredictions=TRUE',paste('betamultiplier=',betamultiplier[j],sep=''),paste('linear',feature[i,1],sep=''),paste('quadratic',feature[i,2],sep=''),paste('product',feature[i,3],sep=''),paste('threshold',feature[i,4],sep=''),paste('hinge',feature[i,5],sep='')),path=paste(maxentFolder,spsTypes[k],'/',names(feature)[i],'/',betamultiplier[j],sep='')) # run maxent model with raw output
+            TSSfunction(paste(maxentFolder,spsTypes[k],'/',names(feature)[i],'/',betamultiplier[j],sep='')) #TSS
             #projecoes do modelo
             for (l in 1:length(envVarPaths)){
                 nameScenario = basename(envVarPaths[l])

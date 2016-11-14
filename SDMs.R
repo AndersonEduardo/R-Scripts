@@ -246,7 +246,7 @@ for (i in 1:length(splist)){
     #coordinates(sp.occ)<- c("longitude","latitude")
 
     #extraindo dados da variavel climatica nos pontos de ocorrencia
-    presclim <- extract(predictors, method='bilinear', buffer=NULL, fun=NULL, df=TRUE)
+    presclim <- extract(predictors, sp.occ, method='bilinear', buffer=NULL, fun=NULL, df=TRUE)
 
     #criando um vetor de presenca para usar em uma coluna de presenca/ausencia na tabela final
     pres = rep(1, nrow(presclim))
