@@ -517,7 +517,7 @@ for (i in 1:length(splist)){
     #avaliando o modelo
     V <- numeric()#abrir un vector vacío 
     
-    for (j in 1:100){
+    for (j in 1:10){
         tryCatch({# bootstrapping with 10 replications
 
             #reparando uma porcao dos dados de presenca e ausencia (background) para calibrar (treinar) o modelo
@@ -1113,5 +1113,3 @@ write.csv(fossilPointsSuitability,file=paste(projectFolder,"Maxent/","suitabilit
 #registrando e informando o tempo de processamento
 msgm = proc.time() - ptm
 print(paste('Tempo gasto para rodar MAXENT: ', msgm[3]/60,' minutos',sep=''))
-
-

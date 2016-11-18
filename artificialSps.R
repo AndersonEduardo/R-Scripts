@@ -6,7 +6,7 @@ library(virtualspecies)
 library(maptools)
 library(dismo)
 library(raster)
-source("/home/anderson/R/R-Scripts")
+source("/home/anderson/R/R-Scripts/TSSfunction.R")
 
 ###PRIMEIRA PARTE: criando sps virtuais###
 
@@ -54,7 +54,7 @@ projectFolder = "/home/anderson/Documentos/Minha produção bibliográfica/Sps a
 mainSampleFolder = '/home/anderson/Documentos/Minha produção bibliográfica/Sps artificiais/Amostras/' #caminho para pasta onde a planilha com os pontos amostrados sera salva
 spsTypes = c('spHW', 'spHD', 'spCD') #nomes das especies
 
-#abrindo e cortando camads de variaveis ambientais para o presente
+#abrindo e cortando camadas de variaveis ambientais para o presente
 filesRaw <- stack(list.files(path=paste(envVarFolder,"dados_projeto/000",sep=''), pattern='asc', full.names=T)) ### stack all rasters in Bioclim folder
 #files <- stack(list.files(path = "/home/anderson/R/PosDoc/dados_ambientais/bcmidbi_2-5m _asc/dados_ambientais_para_projeto", pattern='asc', full.names=T))
 files = mask(filesRaw,AmSulShape) #cortando para Am. do Sul
@@ -92,10 +92,10 @@ for (h in 1:length(spsTypes)){
     }
 }
 
-###TERCEIRA PARTE: SDM usando de pontos de ocorrencia em diferentes camadas de tempo (atual a 120 kyr BP)###
+08:33###TERCEIRA PARTE: SDM usando de pontos de ocorrencia em diferentes camadas de tempo (atual a 120 kyr BP)###
 
 #######################################################
-##################### MAXENT ##########################
+####################### GLM ###########################
 #######################################################
 
 options(java.parameters = "-Xmx7g") ###set available memmory to java
@@ -104,83 +104,240 @@ envVarFolder = "/home/anderson/PosDoc/dados_ambientais/dados_projeto" #pasta com
 envVarPaths = list.files(path=envVarFolder, full.names=T) #lista com os caminhos das camadas no sistema (comp.)
 AmSulShape = readShapePoly("/home/anderson/PosDoc/Am_Sul/borders.shp") #shape da America do Sul
 mainSampleFolder = '/home/anderson/Documentos/Minha produção bibliográfica/Sps artificiais/Amostras/' #caminho para pasta onde a planilha spsTypes = c('spHW', 'spHD', 'spCD') #nomes das especies
-maxentFolder = '/home/anderson/Documentos/Minha produção bibliográfica/Sps artificiais/Maxent/' #pasta para resultados do maxent
+GLMfolder = '/home/anderson/Documentos/Minha produção bibliográfica/Sps artificiais/GLM/' #pasta para resultados do maxent
 spsTypes = c('spHW', 'spHD', 'spCD') #nomes das especies
-
-#criando as variaveis e seus niveis
-l1=c(rep('=FALSE',0),rep('=TRUE',5))
-l2=c(rep('=FALSE',1),rep('=TRUE',4))
-l3=c(rep('=FALSE',2),rep('=TRUE',3))
-l4=c(rep('=FALSE',3),rep('=TRUE',2))
-l5=c(rep('=FALSE',4),rep('=TRUE',1))
-feature = data.frame(rbind(l1,l2,l3,l4,l5))
-names(feature) = c('hinge','threshold','product','quadratic','linear')
-betamultiplier = seq(1,15,0.5)
 #
+model1 = pres ~ bioclim_01 + bioclim_04 + bioclim_10 + bioclim_11 + bioclim_12 + bioclim_15 + bioclim_16 + bioclim_17 
+    model2 = pres ~ bioclim_01 + I(bioclim_01^2) + bioclim_04 + I(bioclim_04^2) + bioclim_10 + I(bioclim_10^2) + bioclim_11 + I(bioclim_11^2) + bioclim_12 + I(bioclim_12^2) + bioclim_15 + I(bioclim_15^2) + bioclim_16 + I(bioclim_16^2) + bioclim_17 + I(bioclim_17^2)
+model3 = pres ~ bioclim_01 + bioclim_12
+model4 = pres ~ bioclim_01 + I(bioclim_01^2) + bioclim_12 + I(bioclim_12^2)
+model = c(model1,model2,model3,model4)
+scenarioModel = c('8varLinearModel','8varQuadModel','2varLinearModel','2varQuadModel')
+#
+varNames = list(c('bioclim_01','bioclim_04','bioclim_10','bioclim_11','bioclim_12','bioclim_15','bioclim_16','bioclim_17'),c('bioclim_01','bioclim_04','bioclim_10','bioclim_11','bioclim_12','bioclim_15','bioclim_16','bioclim_17'),c('bioclim_01','bioclim_12'),c('bioclim_01','bioclim_12'))
 
-for (i in 1:ncol(feature){
-    for (j in 1:length(betamultiplier)){
-        for (k in 1:length(spsTypes)){
-            sampleFolder = paste(mainSampleFolder,spsTypes[k],sep='') #pasta com os mapas de nicho real da sp
-            samplePaths = list.files(path=sampleFolder, full.names=T, pattern='.csv') #lista com os enderecos dos mapas de distribuicao da sp
-            sp.data = read.csv(paste(samplePaths[1],sep=''),header=TRUE) #abrindo a planilha de pontos de occ amostrados
-            sp.occ = sp.data[,1:2] #pegando somente as coorqdenadas na planilha
-            names(sp.occ) = c('lon','lat')
-            predictors = stack(paste(envVarPaths[1],'/bioclim_01.asc',sep=''),paste(envVarPaths[1],'/bioclim_12.asc',sep='')) #carregando as variaveis ambientais do presente (para calibrar o modelo com dados da atalidade)
-            predictors = mask(predictors,AmSulShape) #recortando as variaveis ambientais
-            #ajuste do modelo
-            me <- maxent(predictors,sp.occ,args=c("responsecurves=TRUE", "outputformat=logistic","randomseed=TRUE","randomtestpoints=25","replicates=10","replicatetype=subsample","outputgrids=FALSE","maximumiterations=5000",'removeduplicates=TRUE','writeclampgrid=TRUE','writemess=TRUE','threads=4','writebackgroundpredictions=TRUE',paste('betamultiplier=',betamultiplier[j],sep=''),paste('linear',feature[i,1],sep=''),paste('quadratic',feature[i,2],sep=''),paste('product',feature[i,3],sep=''),paste('threshold',feature[i,4],sep=''),paste('hinge',feature[i,5],sep='')),path=paste(maxentFolder,spsTypes[k],'/',names(feature)[i],'/',betamultiplier[j],sep='')) # run maxent model with raw output
-            TSSfunction(paste(maxentFolder,spsTypes[k],'/',names(feature)[i],'/',betamultiplier[j],sep='')) #TSS
-            #projecoes do modelo
-            for (l in 1:length(envVarPaths)){
-                nameScenario = basename(envVarPaths[l])
-                predictors = stack(paste(envVarPaths[l],'/bioclim_01.asc',sep=''),paste(envVarPaths[l],'/bioclim_12.asc',sep='')) #carregando as variaveis ambientais
-                predictors = mask(predictors,AmSulShape) #recortando as variaveis ambientais
-                crs = CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0') #ajustando CRS
-                proj <- predict(me@models[[1]],predictors,crs=crs) #rodando a projecao espacial do modelo
-                proj = mask(proj,AmSulShape) #recortando as variaveis ambientais
-                names(proj) <- nameScenario #ajustando nome
-                writeRaster(proj, filename=paste(maxentFolder,spsTypes[k],'/Projections/',names(feature)[i],'/',betamultiplier[j],'/',nameScenario,'.asc',sep=''), overwrite=T) #salvando o mapa de suitability projetado
-            }
+
+for (i in 1:length(spsTypes)){
+    modelInfo = data.frame()
+    for (j in 1:length(model)){
+
+        ##preparando o conjunto de dados
+        predictors = stack(list.files(path=envVarPaths[1],full.names=T, pattern='.asc')) #predictors com todas as variaveis (presente)
+        predictors = mask(predictors,AmSulShape) #recortando as variaveis ambientais
+        sampleFolder = paste(mainSampleFolder,spsTypes[i],sep='') #pasta com os mapas de nicho real da sp
+        samplePaths = list.files(path=sampleFolder, full.names=T, pattern='.csv') #lista com os enderecos dos mapas de distribuicao da sp
+        sp.data = read.csv(paste(samplePaths[2],sep=''),header=TRUE) #abrindo a planilha de pontos de occ amostrados
+        sp.data = data.frame(cbind(sp.data,pres=1))
+        names(sp.data) = c('lon','lat',"bioclim_01","bioclim_04","bioclim_10","bioclim_11","bioclim_12","bioclim_15","bioclim_16","bioclim_17",'pres')
+        pseudoausencia1.occ <- randomPoints(mask=predictors[[1]], n=1000, p=sp.data[1:2], excludep=TRUE) 
+        pseudoausencia2.occ <- round(pseudoausencia1.occ[,1:2], digits=4)
+        pseudoausencia3.occ <- pseudoausencia2.occ[!duplicated(pseudoausencia2.occ),]
+        pseudoausencia4.occ <- pseudoausencia3.occ[complete.cases(pseudoausencia3.occ),]
+        pseudoausencia.occ <- data.frame(pseudoausencia4.occ)
+        colnames(pseudoausencia.occ) <- c("lon", "lat")
+        pseudoausencia.clim <- extract(predictors, pseudoausencia.occ, method='bilinear', buffer=NULL, fun=NULL, df=TRUE)
+        pseudoausencia.data <- data.frame(cbind(pseudoausencia.occ,pseudoausencia.clim[2:ncol(pseudoausencia.clim)],pres=0))
+        dataset = data.frame(rbind(sp.data,pseudoausencia.data))
+
+        ##avaliando o modelo
+        V <- numeric()#abrir un vector vazio 
+        
+        for (k in 1:10){
+            ##reparando uma porcao dos dados de presenca e ausencia (background) para calibrar (treinar) o modelo
+            rand = round(0.75*runif(nrow(sp.data)))
+            presenciasTrain = sp.data[rand==0,]
+            ausenciasTrain = pseudoausencia.data[rand==0,]
+            
+            ##juntando presencas e ausencias da calibracao
+            presausTrainRaw <- rbind(presenciasTrain, ausenciasTrain)
+            presausTrainRaw = data.frame(presausTrainRaw)
+            presausTrainRaw = presausTrainRaw[!duplicated(presausTrainRaw[,1:2]),] #selecionar colunas de longitude e latitude
+            presausTrainRaw<-presausTrainRaw[complete.cases(presausTrainRaw),]
+            presausTrain = presausTrainRaw
+
+            ##AJUSTANDO O MODELO##                
+            GLM = glm(model[[j]], family=binomial(link=logit), data=dataset)
+
+            ##TSSfunction(paste(maxentFolder,spsTypes[k],'/',names(feature)[i],'/',betamultiplier[j],sep='')) #TSS
+
+            #pegando a porcao dos dados separados para a avaliacao (validacao) do modelo
+            presencias.evaluacion = sp.data[rand==1,]
+            presencias.evaluacion <- cbind(presencias.evaluacion$lon,presencias.evaluacion$lat)
+            pseudoausencias.evaluacion = pseudoausencia.data[rand==1,]
+            pseudoausencias.evaluacion = cbind(pseudoausencias.evaluacion$lon,pseudoausencias.evaluacion$la)
+
+            ##RODANDO A AVALIACAO DO MODELO##
+            evaluacion=evaluate(presencias.evaluacion, pseudoausencias.evaluacion, GLM, predictors)
+
+            #registrando o valor de AUC em um objeto
+            V[k]<-evaluacion@"auc" #sacamos el valor de auc (fíjate que es una @ en lugar de $ para mirar dentro de los slots)y guardamos en vector
+        }
+
+        auc<-mean(V, na.rm=T)#media de los vectores de las iternaciones de j
+        
+        modelInfo = rbind(modelInfo, data.frame(Scenario=scenarioModel[j],Deviance=GLM$deviance,Null_deviance=GLM$null.deviance,AIC=GLM$aic,AUC=auc))
+        names(modelInfo) = c('Scenario','Deviance','Null_deviance','AIC','AUC')
+        
+        ##projecoes do modelo
+        for (l in 1:length(envVarPaths[1:24])){
+            predictors.proj = stack(list.files(path=envVarPaths[l],full.names=T, pattern='.asc')) #predictors com todas as variaveis (presente)
+            predictors.proj = predictors.proj[[varNames[[j]]]] #carregando as variaveis ambientais
+            nameScenario = basename(envVarPaths[l])
+            crs = CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0') #ajustando CRS
+            proj <- predict(predictors.proj,GLM,type=c('response'),crs=crs) #rodando a projecao espacial do modelo
+            names(proj) <- nameScenario #ajustando nome
+            writeRaster(proj, filename=paste(GLMfolder,spsTypes[i],'/',scenarioModel[j],'/Projections/',nameScenario,'.asc',sep=''), overwrite=T) #salvando o mapa de suitability projetado
         }
     }
-}        
+    write.csv(modelInfo,paste(GLMfolder,spsTypes[i],'/','modelInfo.csv',sep=''),row.names=F)
+}
 ###############################################
 ###############################################
 ###############################################
 
-###QUARTA PARTE: calculando a correlacao entre projecao do SDM e a distribuicao espacial real do nicho da sp###
+
+###QUARTA PARTE: comparando projecao do SDM e a distribuicao espacial real do nicho da sp###
+
 
 projectFolder = "/home/anderson/Documentos/Minha produção bibliográfica/Sps artificiais/" #pasta do projeto
 spsTypes = c('spHW', 'spHD', 'spCD') #nomes das especies
-l1=c(rep('=FALSE',0),rep('=TRUE',5))
-l2=c(rep('=FALSE',1),rep('=TRUE',4))
-l3=c(rep('=FALSE',2),rep('=TRUE',3))
-l4=c(rep('=FALSE',3),rep('=TRUE',2))
-l5=c(rep('=FALSE',4),rep('=TRUE',1))
-feature = data.frame(rbind(l1,l2,l3,l4,l5))
-names(feature) = c('hinge','threshold','product','quadratic','linear')
-betamultiplier = seq(1,15,0.5)
+scenarioModel = c('8varLinearModel','8varQuadModel','2varLinearModel','2varQuadModel')
 
 for (i in 1:length(spsTypes)){
-    nicheRealFolder = paste(projectFolder,'NichoReal/',spsTypes[i],sep='') #pasta com os mapas de nicho real da sp
-    nicheRealPath = list.files(path=nicheRealFolder,pattern='asc',full.names=T) #lista com os enderecos dos mapas de distribuicao da sp
-    for (j in 1:length(betamultiplier)){
-        for (k in 1:ncol(feature)){
-            projectionsFolder = paste('/home/anderson/Documentos/Minha produção bibliográfica/Sps artificiais/Maxent/',spsTypes[i],'/Projections/',names(feature)[k],'/',betamultiplier[j],sep='') #pasta com as projecoes do cenario
-            projectionsPath = list.files(path=projectionsFolder, pattern='asc',full.names=T) #caminhos para os .asc na paste do cenario
-            outputData = data.frame(spsTypes=character(0),feature=character(0),betamultiplier=numeric(0),correlation=numeric(0),stringsAsFactors=FALSE) 
-            for (l in 1:length(nicheRealPath)){
-                realNiche = raster(nicheRealPath[l]) #nicho real
-                sdmNiche = raster(projectionsPath[l]) #mapa de suitability gerado por SDM
-                layersToCompare = stack(c(realNiche,sdmNiche)) #empilhando os arquivos .asc
-                names(layersToCompare) = c('realNiche','sdmNiche') #atualizando os nomes 
-                valuesToTest = getValues(layersToCompare) #pegando os dados numericos no .asc
-                cor.matrix = as.data.frame(cor(valuesToTest, use="complete.obs")) #teste de correlacao espacial
-                dataScenar = c(spsTypes[i],names(feature)[k],betamultiplier[j],cor.matrix[2,1]) #gerando uma linha com as info
-                outputData[l,] = dataScenar #gravando numa planilha de output
-            }
-            write.csv(cor.matrix, file=paste(projectionsFolder,"/correlacao.csv",sep=""),row.names=TRUE) #salvando os dados do cenario
+    for (j in 1:length(model)){
+        nicheRealFolder = paste(projectFolder,'NichoReal/',spsTypes[i],sep='') #pasta com os mapas de nicho real da sp
+        nicheRealPath = list.files(path=nicheRealFolder,pattern='asc',full.names=T) #lista com os enderecos dos mapas de distribuicao da sp
+        projectionsFolder = paste(projectFolder,'GLM/',spsTypes[i],'/',scenarioModel[j],'/Projections',sep='') #pasta com as projecoes do cenario
+        projectionsPath = list.files(path=projectionsFolder, pattern='asc',full.names=T) #caminhos para os .asc na paste do cenario
+        outputData = data.frame()
+        l=1
+        for (l in 1:length(nicheRealPath[1:24])){
+            realNiche = raster(nicheRealPath[l]) #nicho real
+            realNiche.spgrid = as(realNiche,'SpatialGridDataFrame')
+            sdmNiche = raster(projectionsPath[l]) #mapa de suitability gerado por SDM
+            sdmNiche.spgrid = as(sdmNiche,'SpatialGridDataFrame')
+            nicheOverlap = niche.overlap(c(realNiche.spgrid,sdmNiche.spgrid))
+            output_i= c(paste(l,'kyrBP',sep=''),nicheOverlap[1,2],nicheOverlap[2,1])
+            outputData = rbind(outputData,output_i)
         }
+        names(outputData) = c('kyrBP','Schoeners_D','Hellinger_distances')
+        
+
+        
+        
+        
+        
+write.csv(cor.matrix, file=paste(projectionsFolder,"/NO.csv",sep=""),row.names=TRUE) #salvando os dados do cenario
     }
 }
+
+
+
+##########################################################################
+#########################TESTANDO BIOMOD##################################
+
+#myRespXY <- DataSpecies[,c("X_WGS84","Y_WGS84")]
+myRespXY = dataset[,c('lon','lat')]
+#myResp = rep(1,nrow(myRespXY))
+myResp = dataset[,'pres']
+predictors = stack(predictors)
+
+myBiomodData <- BIOMOD_FormatingData(resp.var = myResp,
+                                     expl.var = predictors,
+                                     resp.xy = myRespXY,
+                                     resp.name = myRespName)
+
+myBiomodOption <- BIOMOD_ModelingOptions()
+
+myBiomodModelOut <- BIOMOD_Modeling(
+    myBiomodData,
+    models = c('GLM','RF'),
+    models.options = myBiomodOption,
+    NbRunEval=3,
+    DataSplit=50,
+    Prevalence=0.5,
+    VarImport=3,
+    models.eval.meth = c('TSS','ROC'),
+    SaveObj = TRUE,
+    rescal.all.models = TRUE,
+    do.full.models = FALSE,
+    modeling.id = paste(myRespName,"FirstModeling",sep=""))
+
+myBiomodProj <- BIOMOD_Projection(
+    modeling.output = myBiomodModelOut,
+    new.env = predictors,
+    proj.name = 'current',
+    selected.models = 'all',
+    binary.meth = 'TSS',
+    compress = 'xz',
+    clamping.mask = F,
+    output.format = '.grd'
+)
+
+
+
+##RODANDO SDMs com BIOMOD
+projectFolder = "/home/anderson/Documentos/Minha produção bibliográfica/Sps artificiais/" #pasta do projeto
+spsTypes = c('spHW', 'spHD', 'spCD') #nomes das especies
+
+for (i in 1:length(spsTypes)){
+
+    sampleFolder = paste(mainSampleFolder,spsTypes[i],sep='') #pasta com os mapas de nicho real da sp
+    samplePaths = list.files(path=sampleFolder, full.names=T, pattern='.csv') #lista com os enderecos dos mapas de distribuicao da sp
+    predictors = stack(list.files(path=envVarPaths[1],full.names=T, pattern='.asc')) #predictors com todas as variaveis
+    predictors = mask(predictors,AmSulShape) #recortando as variaveis ambientais
+    sp.data = read.csv(paste(samplePaths[2],sep=''),header=TRUE) #abrindo a planilha de pontos de occ amostrados
+    names(sp.data) = c('lon','lat',"bioclim_01","bioclim_04","bioclim_10","bioclim_11","bioclim_12","bioclim_15","bioclim_16","bioclim_17")
+    pseudoausencia1.occ <- randomPoints(mask=predictors[[1]], n=nrow(sp.data), p=sp.data[,1:2], excludep=TRUE) #este sera usado no loop para gerar ausencias de teste, la embaixo
+    pseudoausencia2.occ <- round(pseudoausencia1.occ[,1:2], digits=4)
+    pseudoausencia3.occ <- pseudoausencia2.occ[!duplicated(pseudoausencia2.occ),]
+    pseudoausencia4.occ <- pseudoausencia3.occ[complete.cases(pseudoausencia3.occ),]
+    pseudoausencia.occ <- data.frame(pseudoausencia4.occ)
+    colnames(pseudoausencia.occ) <- c("lon", "lat")
+    pseudoausencia.clim <- extract(predictors, pseudoausencia.occ, method='bilinear', buffer=NULL, fun=NULL, df=TRUE)
+    pres = c(rep(1, nrow(sp.data)),rep(0, nrow(pseudoausencia.clim)))
+    pseudoausencia.data <- cbind(pseudoausencia.occ,pseudoausencia.clim[2:ncol(pseudoausencia.clim)])
+    dataset = data.frame(rbind(sp.data,pseudoausencia.data))
+    dataset = cbind(dataset,pres)
+
+    setwd(paste(projectFolder,'/BioMOD',sep=''))
+
+    myRespName = paste(spsTypes[i])
+    myRespXY = dataset[,c('lon','lat')]
+    myResp = dataset[,'pres']
+    predictors = stack(predictors)
+    myBiomodData <- BIOMOD_FormatingData(resp.var = myResp,
+                                     expl.var = predictors,
+                                     resp.xy = myRespXY,
+                                     resp.name = myRespName)
+
+    myBiomodOption <- BIOMOD_ModelingOptions()
+
+    myBiomodModelOut <- BIOMOD_Modeling(
+        myBiomodData,
+        models = c('GLM','RF'),
+        models.options = myBiomodOption,
+        NbRunEval=3,
+        DataSplit=75,
+        VarImport=3,
+        models.eval.meth = c('TSS','ROC'),
+        SaveObj = TRUE,
+        rescal.all.models = TRUE,
+        do.full.models = FALSE,
+        modeling.id = paste(myRespName,"FirstModeling",sep=""))
+    
+    myBiomodProj <- BIOMOD_Projection(
+        modeling.output = myBiomodModelOut,
+        new.env = predictors,
+        proj.name = 'current',
+        selected.models = 'all',
+        binary.meth = 'TSS',
+        compress = 'xz',
+        clamping.mask = F,
+        output.format = '.grd'
+    )
+}
+
+
+    
+    

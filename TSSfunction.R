@@ -6,10 +6,10 @@
 #mres <- read.csv("maxentResults.csv",h=T)
 
 TSSfunction = function(maxentOutputFolder){
-#    setwd(paste(maxentOutputFolder,sep=''))
+    #setwd(paste(maxentOutputFolder,sep=''))
+    mres <- read.csv(paste(maxentOutputFolder,"/maxentResults.csv",sep=''),h=T)
     for (j in 0:(nrow(mres)-2)) { #loop em que cada iteracao eh para uma linha da planilha maxentResults.csv
-
-        mres <- read.csv(paste(maxentOutputFolder,"/maxentResults.csv",sep=''),h=T)
+        
         trasam <- mres$X.Training.samples[j+1]
         tessam <- mres$X.Test.samples[j+1]
         tesAUC <- mres$Test.AUC[j+1]
