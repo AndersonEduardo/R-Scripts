@@ -202,6 +202,13 @@ for (i in 1:length(spsTypes)){
 projectFolder = "/home/anderson/Documentos/Minha produção bibliográfica/Sps artificiais/" #pasta do projeto
 spsTypes = c('spHW', 'spHD', 'spCD') #nomes das especies
 scenarioModel = c('8varLinearModel','8varQuadModel','2varLinearModel','2varQuadModel')
+##
+model1 = pres ~ bioclim_01 + bioclim_04 + bioclim_10 + bioclim_11 + bioclim_12 + bioclim_15 + bioclim_16 + bioclim_17 
+model2 = pres ~ bioclim_01 + I(bioclim_01^2) + bioclim_04 + I(bioclim_04^2) + bioclim_10 + I(bioclim_10^2) + bioclim_11 + I(bioclim_11^2) + bioclim_12 + I(bioclim_12^2) + bioclim_15 + I(bioclim_15^2) + bioclim_16 + I(bioclim_16^2) + bioclim_17 + I(bioclim_17^2)
+model3 = pres ~ bioclim_01 + bioclim_12
+model4 = pres ~ bioclim_01 + I(bioclim_01^2) + bioclim_12 + I(bioclim_12^2)
+model = c(model1,model2,model3,model4)
+
 
 for (i in 1:length(spsTypes)){
     for (j in 1:length(model)){
@@ -209,135 +216,153 @@ for (i in 1:length(spsTypes)){
         nicheRealPath = list.files(path=nicheRealFolder,pattern='asc',full.names=T) #lista com os enderecos dos mapas de distribuicao da sp
         projectionsFolder = paste(projectFolder,'GLM/',spsTypes[i],'/',scenarioModel[j],'/Projections',sep='') #pasta com as projecoes do cenario
         projectionsPath = list.files(path=projectionsFolder, pattern='asc',full.names=T) #caminhos para os .asc na paste do cenario
-        outputData = data.frame()
-        l=1
+        outputData = data.frame(kyrBP=numeric(),Schoeners_D=numeric(),Hellinger_distances=numeric())
         for (l in 1:length(nicheRealPath[1:24])){
             realNiche = raster(nicheRealPath[l]) #nicho real
             realNiche.spgrid = as(realNiche,'SpatialGridDataFrame')
             sdmNiche = raster(projectionsPath[l]) #mapa de suitability gerado por SDM
             sdmNiche.spgrid = as(sdmNiche,'SpatialGridDataFrame')
             nicheOverlap = niche.overlap(c(realNiche.spgrid,sdmNiche.spgrid))
-            output_i= c(paste(l,'kyrBP',sep=''),nicheOverlap[1,2],nicheOverlap[2,1])
-            outputData = rbind(outputData,output_i)
+            output_i= data.frame(cbind(kyrBP=l-1,Schoeners_D=nicheOverlap[1,2],Hellinger_distances=nicheOverlap[2,1]))
+            outputData = data.frame(rbind(outputData,output_i))
         }
-        names(outputData) = c('kyrBP','Schoeners_D','Hellinger_distances')
-        
-
-        
-        
-        
-        
-write.csv(cor.matrix, file=paste(projectionsFolder,"/NO.csv",sep=""),row.names=TRUE) #salvando os dados do cenario
+        names(outputData) = c('kyrBP','Schoeners_D','Hellinger_distances')  
+        write.csv(outputData, file=paste(projectionsFolder,"/NO.csv",sep=""),row.names=FALSE) #salvando os dados do cenario
     }
 }
 
 
+### QUINTA PARTE: construindo graficos dos resultados ###
 
-##########################################################################
-#########################TESTANDO BIOMOD##################################
-
-#myRespXY <- DataSpecies[,c("X_WGS84","Y_WGS84")]
-myRespXY = dataset[,c('lon','lat')]
-#myResp = rep(1,nrow(myRespXY))
-myResp = dataset[,'pres']
-predictors = stack(predictors)
-
-myBiomodData <- BIOMOD_FormatingData(resp.var = myResp,
-                                     expl.var = predictors,
-                                     resp.xy = myRespXY,
-                                     resp.name = myRespName)
-
-myBiomodOption <- BIOMOD_ModelingOptions()
-
-myBiomodModelOut <- BIOMOD_Modeling(
-    myBiomodData,
-    models = c('GLM','RF'),
-    models.options = myBiomodOption,
-    NbRunEval=3,
-    DataSplit=50,
-    Prevalence=0.5,
-    VarImport=3,
-    models.eval.meth = c('TSS','ROC'),
-    SaveObj = TRUE,
-    rescal.all.models = TRUE,
-    do.full.models = FALSE,
-    modeling.id = paste(myRespName,"FirstModeling",sep=""))
-
-myBiomodProj <- BIOMOD_Projection(
-    modeling.output = myBiomodModelOut,
-    new.env = predictors,
-    proj.name = 'current',
-    selected.models = 'all',
-    binary.meth = 'TSS',
-    compress = 'xz',
-    clamping.mask = F,
-    output.format = '.grd'
-)
-
-
-
-##RODANDO SDMs com BIOMOD
-projectFolder = "/home/anderson/Documentos/Minha produção bibliográfica/Sps artificiais/" #pasta do projeto
-spsTypes = c('spHW', 'spHD', 'spCD') #nomes das especies
-
+###abrindo as planilhas de dados
+outputData = list()
+vetor.nomes = vector()
 for (i in 1:length(spsTypes)){
-
-    sampleFolder = paste(mainSampleFolder,spsTypes[i],sep='') #pasta com os mapas de nicho real da sp
-    samplePaths = list.files(path=sampleFolder, full.names=T, pattern='.csv') #lista com os enderecos dos mapas de distribuicao da sp
-    predictors = stack(list.files(path=envVarPaths[1],full.names=T, pattern='.asc')) #predictors com todas as variaveis
-    predictors = mask(predictors,AmSulShape) #recortando as variaveis ambientais
-    sp.data = read.csv(paste(samplePaths[2],sep=''),header=TRUE) #abrindo a planilha de pontos de occ amostrados
-    names(sp.data) = c('lon','lat',"bioclim_01","bioclim_04","bioclim_10","bioclim_11","bioclim_12","bioclim_15","bioclim_16","bioclim_17")
-    pseudoausencia1.occ <- randomPoints(mask=predictors[[1]], n=nrow(sp.data), p=sp.data[,1:2], excludep=TRUE) #este sera usado no loop para gerar ausencias de teste, la embaixo
-    pseudoausencia2.occ <- round(pseudoausencia1.occ[,1:2], digits=4)
-    pseudoausencia3.occ <- pseudoausencia2.occ[!duplicated(pseudoausencia2.occ),]
-    pseudoausencia4.occ <- pseudoausencia3.occ[complete.cases(pseudoausencia3.occ),]
-    pseudoausencia.occ <- data.frame(pseudoausencia4.occ)
-    colnames(pseudoausencia.occ) <- c("lon", "lat")
-    pseudoausencia.clim <- extract(predictors, pseudoausencia.occ, method='bilinear', buffer=NULL, fun=NULL, df=TRUE)
-    pres = c(rep(1, nrow(sp.data)),rep(0, nrow(pseudoausencia.clim)))
-    pseudoausencia.data <- cbind(pseudoausencia.occ,pseudoausencia.clim[2:ncol(pseudoausencia.clim)])
-    dataset = data.frame(rbind(sp.data,pseudoausencia.data))
-    dataset = cbind(dataset,pres)
-
-    setwd(paste(projectFolder,'/BioMOD',sep=''))
-
-    myRespName = paste(spsTypes[i])
-    myRespXY = dataset[,c('lon','lat')]
-    myResp = dataset[,'pres']
-    predictors = stack(predictors)
-    myBiomodData <- BIOMOD_FormatingData(resp.var = myResp,
-                                     expl.var = predictors,
-                                     resp.xy = myRespXY,
-                                     resp.name = myRespName)
-
-    myBiomodOption <- BIOMOD_ModelingOptions()
-
-    myBiomodModelOut <- BIOMOD_Modeling(
-        myBiomodData,
-        models = c('GLM','RF'),
-        models.options = myBiomodOption,
-        NbRunEval=3,
-        DataSplit=75,
-        VarImport=3,
-        models.eval.meth = c('TSS','ROC'),
-        SaveObj = TRUE,
-        rescal.all.models = TRUE,
-        do.full.models = FALSE,
-        modeling.id = paste(myRespName,"FirstModeling",sep=""))
-    
-    myBiomodProj <- BIOMOD_Projection(
-        modeling.output = myBiomodModelOut,
-        new.env = predictors,
-        proj.name = 'current',
-        selected.models = 'all',
-        binary.meth = 'TSS',
-        compress = 'xz',
-        clamping.mask = F,
-        output.format = '.grd'
-    )
+    for (j in 1:length(model)){
+        k = j + length(model)*(i-1)
+        outputData[[k]] = read.csv(file=paste(projectFolder,'GLM/',spsTypes[i],'/',scenarioModel[j],'/Projections','/NO.csv',sep=""),header=TRUE)
+        vetor.nomes = append(vetor.nomes,paste(spsTypes[i],scenarioModel[j],sep=''))
+    }
 }
+names(outputData) = vetor.nomes
+
+###graficos
+
+##Boxplots
+
+##HW
+HWdataD = data.frame(rbind(data.frame(indexD=outputData$spHW8varQuadModel$Schoeners_D,model='8var.&quadratic'),data.frame(indexD=outputData$spHW8varLinearModel$Schoeners_D,model='8var.&linear'),data.frame(indexD=outputData$spHW2varQuadModel$Schoeners_D,model='2var.&quadratic'),data.frame(indexD=outputData$spHW2varLinearModel$Schoeners_D,model='2var.&linear')))
+HWdataH = data.frame(rbind(data.frame(indexH=outputData$spHW8varQuadModel$Hellinger_distances,model='8var.&quadratic'),data.frame(indexH=outputData$spHW8varLinearModel$Hellinger_distances,model='8var.&linear'),data.frame(indexH=outputData$spHW2varQuadModel$Hellinger_distances,model='2var.&quadratic'),data.frame(indexH=outputData$spHW2varLinearModel$Hellinger_distances,model='2var.&linear')))
+
+##HD
+HDdataD = data.frame(rbind(data.frame(indexD=outputData$spHD8varQuadModel$Schoeners_D,model='8var.&quadratic'),data.frame(indexD=outputData$spHD8varLinearModel$Schoeners_D,model='8var.&linear'),data.frame(indexD=outputData$spHD2varQuadModel$Schoeners_D,model='2var.&quadratic'),data.frame(indexD=outputData$spHD2varLinearModel$Schoeners_D,model='2var.&linear')))
+HDdataH = data.frame(rbind(data.frame(indexH=outputData$spHD8varQuadModel$Hellinger_distances,model='8var.&quadratic'),data.frame(indexH=outputData$spHD8varLinearModel$Hellinger_distances,model='8var.&linear'),data.frame(indexH=outputData$spHD2varQuadModel$Hellinger_distances,model='2var.&quadratic'),data.frame(indexH=outputData$spHD2varLinearModel$Hellinger_distances,model='2var.&linear')))
+
+##CD
+CDdataD = data.frame(rbind(data.frame(indexD=outputData$spCD8varQuadModel$Schoeners_D,model='8var.&quadratic'),data.frame(indexD=outputData$spCD8varLinearModel$Schoeners_D,model='8var.&linear'),data.frame(indexD=outputData$spCD2varQuadModel$Schoeners_D,model='2var.&quadratic'),data.frame(indexD=outputData$spCD2varLinearModel$Schoeners_D,model='2var.&linear')))
+CDdataH = data.frame(rbind(data.frame(indexH=outputData$spCD8varQuadModel$Hellinger_distances,model='8var.&quadratic'),data.frame(indexH=outputData$spCD8varLinearModel$Hellinger_distances,model='8var.&linear'),data.frame(indexH=outputData$spCD2varQuadModel$Hellinger_distances,model='2var.&quadratic'),data.frame(indexH=outputData$spCD2varLinearModel$Hellinger_distances,model='2var.&linear')))
 
 
-    
-    
+pdf(file='/home/anderson/Documentos/Minha produção bibliográfica/Sps artificiais/GLM/boxplots.pdf')
+par(mfrow=c(2,3))
+##
+boxplot(indexD~model,data=HWdataD,ylim=c(0.3,1.0),main='"Hot & Wet" species')
+stripchart(indexD~model,data=HWdataD,vertical=TRUE,method="jitter",pch=20,cex=1,col=rgb(0.5,0.5,0.5,0.2),add=TRUE) 
+##
+boxplot(indexD~model,data=HDdataD,ylim=c(0.3,1.0),main='"Hot & Dry" species')
+stripchart(indexD~model,data=HDdataD,vertical=TRUE,method="jitter",pch=20,cex=1,col=rgb(0.5,0.5,0.5,0.2),add=TRUE) 
+##
+boxplot(indexD~model,data=CDdataD,ylim=c(0.3,1.0),main='"Cold & Dry" species')
+stripchart(indexD~model,data=CDdataD,vertical=TRUE,method="jitter",pch=20,cex=1,col=rgb(0.5,0.5,0.5,0.2),add=TRUE) 
+##
+boxplot(indexH~model,data=HWdataH,ylim=c(0.3,1.0),main='"Hot & Wet" species')
+stripchart(indexH~model,data=HWdataH,vertical=TRUE,method="jitter",pch=20,cex=1,col=rgb(0.5,0.5,0.5,0.2),add=TRUE) 
+##
+boxplot(indexH~model,data=HDdataH,ylim=c(0.3,1.0),main='"Hot & Dry" species')
+stripchart(indexH~model,data=HDdataH,vertical=TRUE,method="jitter",pch=20,cex=1,col=rgb(0.5,0.5,0.5,0.2),add=TRUE) 
+##
+boxplot(indexH~model,data=CDdataH,ylim=c(0.3,1.0),main='"Cold & Dry" species')
+stripchart(indexH~model,data=CDdataH,vertical=TRUE,method="jitter",pch=20,cex=1,col=rgb(0.5,0.5,0.5,0.2),add=TRUE) 
+dev.off()
+
+
+##Schoeners' D ao longo do tempo##
+
+pdf(file='/home/anderson/Documentos/Minha produção bibliográfica/Sps artificiais/GLM/DxTime.pdf')
+par(mfrow=c( 1,3))
+##HW species
+plot(outputData$spHW8varQuadModel$Schoeners_D[1:23]~outputData$spHW8varQuadModel$kyrBP[1:23],t='b',pch=20,cex=1.5,ylim=c(0,1),col='black',ylab="Schoeners' D",xlab='kyr BP',main='Hot & Wet species')
+points(outputData$spHW8varLinearModel$Schoeners_D[1:23]~outputData$spHW8varLinearModel$kyrBP[1:23],t='b',pch=18,cex=1.5,ylim=c(0.5,1),col='blue')
+points(outputData$spHW2varQuadModel$Schoeners_D[1:23]~outputData$spHW2varQuadModel$kyrBP[1:23],t='b',ylim=c(0.5,1),pch=17,cex=1.5,col='green')
+points(outputData$spHW2varLinearModel$Schoeners_D[1:23]~outputData$spHW2varLinearModel$kyrBP[1:23],t='b',ylim=c(0.5,1),pch=16,cex=1.5,col='red')
+legend('bottomright',legend=c('8 var. - quadratic','8 var. - linear','2 var. - quadratic','2 var. - linear'),pch=c(20,18,17,16),col=c('black','blue','green','red'))
+##HD species
+plot(outputData$spHD8varQuadModel$Schoeners_D[1:23]~outputData$spHD8varQuadModel$kyrBP[1:23],t='b',pch=20,cex=1.5,ylim=c(0,1),col='black',ylab="Schoeners' D",xlab='kyr BP',main='Hot & Dry species')
+points(outputData$spHD8varLinearModel$Schoeners_D[1:23]~outputData$spHD8varLinearModel$kyrBP[1:23],t='b',pch=18,cex=1.5,ylim=c(0.5,1),col='blue')
+points(outputData$spHD2varQuadModel$Schoeners_D[1:23]~outputData$spHD2varQuadModel$kyrBP[1:23],t='b',ylim=c(0.5,1),pch=17,cex=1.5,col='green')
+points(outputData$spHD2varLinearModel$Schoeners_D[1:23]~outputData$spHD2varLinearModel$kyrBP[1:23],t='b',ylim=c(0.5,1),pch=16,cex=1.5,col='red')
+legend('bottomright',legend=c('8 var. - quadratic','8 var. - linear','2 var. - quadratic','2 var. - linear'),pch=c(20,18,17,16), col=c('black','blue','green','red'))#
+##CD species
+plot(outputData$spCD8varQuadModel$Schoeners_D[1:23]~outputData$spCD8varQuadModel$kyrBP[1:23],t='b',pch=20,cex=1.5,ylim=c(0,1),col='black',ylab="Schoeners' D",xlab='kyr BP',main='Cold & Dry species')
+points(outputData$spCD8varLinearModel$Schoeners_D[1:23]~outputData$spCD8varLinearModel$kyrBP[1:23],t='b',pch=18,cex=1.5,ylim=c(0.5,1),col='blue')
+points(outputData$spCD2varQuadModel$Schoeners_D[1:23]~outputData$spCD2varQuadModel$kyrBP[1:23],t='b',ylim=c(0.5,1),pch=17,cex=1.5,col='green')
+points(outputData$spCD2varLinearModel$Schoeners_D[1:23]~outputData$spCD2varLinearModel$kyrBP[1:23],t='b',ylim=c(0.5,1),pch=16,cex=1.5,col='red')
+legend('bottomright',legend=c('8 var. - quadratic','8 var. - linear','2 var. - quadratic','2 var. - linear'),pch=c(20,18,17,16),col=c('black','blue','green','red'))#
+dev.off()
+
+
+##Distancia de Hellinger ao longo do tempo
+pdf(file='/home/anderson/Documentos/Minha produção bibliográfica/Sps artificiais/GLM/HellingerXtime.pdf')
+par(mfrow=c( 1,3))
+##HW species
+plot(outputData$spHW8varQuadModel$Hellinger_distances[1:23]~outputData$spHW8varQuadModel$kyrBP[1:23],t='b',pch=20,cex=1.5,ylim=c(0,1),col='black',ylab="Hellinger distance",xlab='kyr BP',main='Hot & Wet species')
+points(outputData$spHW8varLinearModel$Hellinger_distances[1:23]~outputData$spHW8varLinearModel$kyrBP[1:23],t='b',pch=18,cex=1.5,ylim=c(0.5,1),col='blue')
+points(outputData$spHW2varQuadModel$Hellinger_distances[1:23]~outputData$spHW2varQuadModel$kyrBP[1:23],t='b',ylim=c(0.5,1),pch=17,cex=1.5,col='green')
+points(outputData$spHW2varLinearModel$Hellinger_distances[1:23]~outputData$spHW2varLinearModel$kyrBP[1:23],t='b',ylim=c(0.5,1),pch=16,cex=1.5,col='red')
+legend('bottomright',legend=c('8 var. - quadratic','8 var. - linear','2 var. - quadratic','2 var. - linear'),pch=c(20,18,17,16),col=c('black','blue','green','red'))
+##HD species
+plot(outputData$spHD8varQuadModel$Hellinger_distances[1:23]~outputData$spHD8varQuadModel$kyrBP[1:23],t='b',pch=20,cex=1.5,ylim=c(0,1),col='black',ylab="Hellinger distance",xlab='kyr BP',main='Hot & Dry species')
+points(outputData$spHD8varLinearModel$Hellinger_distances[1:23]~outputData$spHD8varLinearModel$kyrBP[1:23],t='b',pch=18,cex=1.5,ylim=c(0.5,1),col='blue')
+points(outputData$spHD2varQuadModel$Hellinger_distances[1:23]~outputData$spHD2varQuadModel$kyrBP[1:23],t='b',ylim=c(0.5,1),pch=17,cex=1.5,col='green')
+points(outputData$spHD2varLinearModel$Hellinger_distances[1:23]~outputData$spHD2varLinearModel$kyrBP[1:23],t='b',ylim=c(0.5,1),pch=16,cex=1.5,col='red')
+legend('bottomright',legend=c('8 var. - quadratic','8 var. - linear','2 var. - quadratic','2 var. - linear'),pch=c(20,18,17,16), col=c('black','blue','green','red'))#
+##CD species
+plot(outputData$spCD8varQuadModel$Hellinger_distances[1:23]~outputData$spCD8varQuadModel$kyrBP[1:23],t='b',pch=20,cex=1.5,ylim=c(0,1),col='black',ylab="Hellinger distance",xlab='kyr BP',main='Cold & Dry species')
+points(outputData$spCD8varLinearModel$Hellinger_distances[1:23]~outputData$spCD8varLinearModel$kyrBP[1:23],t='b',pch=18,cex=1.5,ylim=c(0.5,1),col='blue')
+points(outputData$spCD2varQuadModel$Hellinger_distances[1:23]~outputData$spCD2varQuadModel$kyrBP[1:23],t='b',ylim=c(0.5,1),pch=17,cex=1.5,col='green')
+points(outputData$spCD2varLinearModel$Hellinger_distances[1:23]~outputData$spCD2varLinearModel$kyrBP[1:23],t='b',ylim=c(0.5,1),pch=16,cex=1.5,col='red')
+legend('bottomright',legend=c('8 var. - quadratic','8 var. - linear','2 var. - quadratic','2 var. - linear'),pch=c(20,18,17,16),col=c('black','blue','green','red'))#
+dev.off()
+
+##distribuicao presente, inter e maximo glacial
+
+HWpresentReal = "/home/anderson/Documentos/Minha produção bibliográfica/Sps artificiais/NichoReal/spHW/000.asc"
+HWpresentSDM8VQ = "/home/anderson/Documentos/Minha produção bibliográfica/Sps artificiais/GLM/spHW/8varQuadModel/Projections/000.asc"
+HWpresentSDM8VL = "/home/anderson/Documentos/Minha produção bibliográfica/Sps artificiais/GLM/spHW/8varLinearModel/Projections/000.asc"
+HWpresentSDM2VQ = "/home/anderson/Documentos/Minha produção bibliográfica/Sps artificiais/GLM/spHW/2varQuadModel/Projections/000.asc"
+HWpresentSDM2VL = "/home/anderson/Documentos/Minha produção bibliográfica/Sps artificiais/GLM/spHW/2varLinearModel/Projections/000.asc"
+#
+HDpresentReal = "/home/anderson/Documentos/Minha produção bibliográfica/Sps artificiais/NichoReal/spHD/000.asc"
+HDpresentSDM8VQ = "/home/anderson/Documentos/Minha produção bibliográfica/Sps artificiais/GLM/spHD/8varQuadModel/Projections/000.asc"
+HDpresentSDM8VL = "/home/anderson/Documentos/Minha produção bibliográfica/Sps artificiais/GLM/spHD/8varLinearModel/Projections/000.asc"
+HDpresentSDM2VQ = "/home/anderson/Documentos/Minha produção bibliográfica/Sps artificiais/GLM/spHD/2varQuadModel/Projections/000.asc"
+HDpresentSDM2VL = "/home/anderson/Documentos/Minha produção bibliográfica/Sps artificiais/GLM/spHD/2varLinearModel/Projections/000.asc"
+#
+CDpresentReal = "/home/anderson/Documentos/Minha produção bibliográfica/Sps artificiais/NichoReal/spCD/000.asc"
+CDpresentSDM8VQ = "/home/anderson/Documentos/Minha produção bibliográfica/Sps artificiais/GLM/spCD/8varQuadModel/Projections/000.asc"
+CDpresentSDM8VL = "/home/anderson/Documentos/Minha produção bibliográfica/Sps artificiais/GLM/spCD/8varLinearModel/Projections/000.asc"
+CDpresentSDM2VQ = "/home/anderson/Documentos/Minha produção bibliográfica/Sps artificiais/GLM/spCD/2varQuadModel/Projections/000.asc"
+CDpresentSDM2VL = "/home/anderson/Documentos/Minha produção bibliográfica/Sps artificiais/GLM/spCD/2varLinearModel/Projections/000.asc"
+
+speciesLayers = stack(c(HWpresentReal,HDpresentReal,CDpresentReal,
+                        HWpresentSDM8VQ,HDpresentSDM8VQ,CDpresentSDM8VQ,
+                        HWpresentSDM8VL,HDpresentSDM8VL,CDpresentSDM8VL,
+                        HWpresentSDM2VQ,HDpresentSDM2VQ,CDpresentSDM2VQ,
+                        HWpresentSDM2VL,HDpresentSDM2VL,CDpresentSDM2VL))
+speciesLayers = mask(speciesLayers,AmSulShape)
+
+nomesSubgraficos = c('Hot&Wet sp','Hot&Dry sp','Cold&Dry sp','8 var./Quadratic','8 var./Quadratic','8 var./Quadratic','8 var./Linear','8 var./Linear','8 var./Linear','2 var./Quadratic','2 var./Quadratic','2 var./Quadratic','2 var./Linear','2 var./Linear','2 var./Linear')
+
+pdf(file='/home/anderson/Documentos/Minha produção bibliográfica/Sps artificiais/GLM/realXmodel.pdf')
+rasterVis::levelplot(speciesLayers,scales=list(x=list(cex=0.6), y=list(cex=0.6)),between=list(x=1.8, y=0.25),par.strip.text=list(cex=0.6),layout=c(3,5), main='',names.attr=nomesSubgraficos,colorkey=list(space="right")) + layer(sp.polygons(AmSulShape))
+dev.off()

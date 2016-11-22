@@ -57,9 +57,9 @@ for (i in 1:length(vetor_de_nomes)) {
 #for (i in 1:length(unique(Especies$Especie))) {
   #sp<-as.character(Especies[i,1])
   sp <- vetor_de_nomes[i]
-  #res <- occ(query = sp, from = 'gbif', limit = 10000)
-  #locs<-occ2df(res)
-  locs = read.csv(file=paste("/home/anderson/PosDoc/dados_ocorrencia/",sp,".csv",sep=""),header=T,stringsAsFactors=FALSE)    
+  res <- occ(query = sp, from = 'gbif', limit = 10000)
+  locs<-occ2df(res)
+  #locs = read.csv(file=paste("/home/anderson/PosDoc/dados_ocorrencia/",sp,".csv",sep=""),header=T,stringsAsFactors=FALSE)    
   locs2<-locs[,2:3]
   locs2[locs2 == 0] <- NA
   locs3<-locs2[complete.cases(locs2),]
@@ -83,7 +83,8 @@ data(wrld_simpl)
 especie = splist[1] #escolher qual especie
 sp.file <- read.csv(paste(spOccFolder,especie,".csv",sep=""),h=T) ### read sp occurrence
 sp.occ <- sp.file[,2:3] ## select lat long columns
-sp.occ = sp.occ[sp.occ$lat > -50,] #eliminar pontos 
+sp.occ = sp.occ[sp.occ$latitude < 0,] #eliminar pontos
+sp.occ = sp.occ[sp.occ$longitude > -80,] #eliminar pontos 
 plot(wrld_simpl, xlim=c(-80,10), ylim=c(-60,10), axes=TRUE, col= 'light yellow' )
 box() # restore the box around the map
 # plot points
