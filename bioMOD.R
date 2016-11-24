@@ -135,8 +135,8 @@ for (i in 1:length(splist)){
     evaluationScores = get_evaluations(myBiomodModelOut)
     ##
     writeRaster(projStack,filename=paste(projectFolder,'biomod/myOutput/',names(projStack),'_000',sep=''),bylayer=TRUE,format='ascii',overwrite=TRUE)
-    write.csv(data.frame(varImportance),paste(projectFolder,'biomod/myOutput/varImportance/varImportance_000.csv',sep=''),row.names=TRUE)
-    write.csv(data.frame(evaluationScores),paste(projectFolder,'biomod/myOutput/evaluationScores/evaluationScores_000.csv',sep=''),row.names=TRUE)
+    write.csv(data.frame(varImportance),paste(projectFolder,'biomod/myOutput/varImportance/varImportance_',myRespName,'_000.csv',sep=''),row.names=TRUE)
+    write.csv(data.frame(evaluationScores),paste(projectFolder,'biomod/myOutput/evaluationScores/evaluationScores_',myRespName,'_000.csv',sep=''),row.names=TRUE)
         
 ###PROJECAO PARA O PASSADO###
     
@@ -173,8 +173,8 @@ for (i in 1:length(splist)){
         evaluationScoresPass = get_evaluations(myBiomodModelOut)
         ##
         writeRaster(projStackPass,filename=paste(projectFolder,'biomod/myOutput/',names(projStack),'_',sp.fossil$kyr,'kyrBP',sep=''),bylayer=TRUE,format='ascii',overwrite=TRUE)
-        write.csv(data.frame(varImportancePass),paste(projectFolder,'biomod/myOutput/varImportance/varImportance_',sp.fossil$kyr,'kyrBP.csv',sep=''),row.names=TRUE)
-        write.csv(data.frame(evaluationScoresPass),paste(projectFolder,'biomod/myOutput/evaluationScores/evaluationScores_',sp.fossil$kyr,'kyrBP.csv',sep=''),row.names=TRUE)
+        ## write.csv(data.frame(varImportancePass),paste(projectFolder,'biomod/myOutput/varImportance/varImportance_',sp.fossil$kyr,'kyrBP.csv',sep=''),row.names=TRUE)
+        ## write.csv(data.frame(evaluationScoresPass),paste(projectFolder,'biomod/myOutput/evaluationScores/evaluationScores_',sp.fossil$kyr,'kyrBP.csv',sep=''),row.names=TRUE)
 
         ##suitability no ponto fossil:
         ##criando um objeto com as coordenadas do registro fossil
@@ -182,7 +182,7 @@ for (i in 1:length(splist)){
         fossilPoints = cbind(fossilPoints$longitude, fossilPoints$latitude)
         ##extratindo valor do suitability nas coordenadas do registro fossil
         suitabNoPontoFossil = extract(projStackPass,fossilPoints)
-        write.csv(suitabNoPontoFossil,paste(projectFolder,'biomod/myOutput/suitabilityNoPontoFossil/',sp.fossil.data[l,]$species,sep=''))
+        write.csv(suitabNoPontoFossil,paste(projectFolder,'biomod/myOutput/suitabilityNoPontoFossil/',sp.fossil$species,sp.fossil$kyr,'kyrBP',sep=''))
     }
 }   
 
