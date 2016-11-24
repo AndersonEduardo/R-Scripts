@@ -47,7 +47,7 @@ predictorsProjection = files.crop.sub.projection
 occ.sps <- list.files(paste(spOccFolder,sep=''),pattern="csv")
 splist <-unlist(lapply(occ.sps, FUN = strsplit, split=("\\.csv")))
 ##fosseis
-occ.sps.fosseis = read.csv(paste(spOccFolder,"fosseis.csv",sep=''),header=T)
+occ.sps.fosseis = read.csv(paste(spOccFolder,"fosseis/fosseis.csv",sep=''),header=T)
 splist.fosseis = lapply(occ.sps.fosseis[,1],as.character)
 
 
@@ -64,7 +64,7 @@ for (i in 1:length(splist)){
 
     ##juntando dados das variaveis climaticas nos pontos de ocorrencia, coordenadas de ocorrencia e o vetor (coluna na tabela) para presenca/ausencia
     presencesData = data.frame(cbind(presencesVars,pres,sp.occ))
-    presencesData = presencesData[complete.cases(presencias),]
+    presencesData = presencesData[complete.cases(presencesData),]
 
     ##criando ausencias para o background
     background1 <- randomPoints(mask=predictors[[1]], n=5000, p=presencesData[,c("latitude","longitude")], excludep=TRUE)
@@ -121,7 +121,7 @@ for (i in 1:length(splist)){
     myBiomodProj <- BIOMOD_Projection(
         modeling.output = myBiomodModelOut,
         new.env = predictors,
-        proj.name = 'current',
+        proj.name = '000',
         selected.models = paste(myBiomodModelOut@models.computed,sep=''),
         binary.meth = 'TSS',
         compress = FALSE,
@@ -135,7 +135,7 @@ for (i in 1:length(splist)){
     evaluationScores = get_evaluations(myBiomodModelOut)
     ##
     writeRaster(projStack,filename=paste(projectFolder,'biomod/myOutput/',names(projStack),'_000',sep=''),bylayer=TRUE,format='ascii',overwrite=TRUE)
-    write.csv(data.frame(varIportance),paste(projectFolder,'biomod/myOutput/varImportance/varImportance_000.csv',sep=''),row.names=TRUE)
+    write.csv(data.frame(varImportance),paste(projectFolder,'biomod/myOutput/varImportance/varImportance_000.csv',sep=''),row.names=TRUE)
     write.csv(data.frame(evaluationScores),paste(projectFolder,'biomod/myOutput/evaluationScores/evaluationScores_000.csv',sep=''),row.names=TRUE)
         
 ###PROJECAO PARA O PASSADO###
@@ -160,20 +160,21 @@ for (i in 1:length(splist)){
             modeling.output = myBiomodModelOut,
             new.env = predictorsProjection,
             proj.name = paste(sp.fossil$kyr,'kyrBP',sep=''),
-            selected.models = 'all',
+            selected.models = paste(myBiomodModelOut@models.computed,sep=''),
             binary.meth = 'TSS',
             compress = TRUE,
             clamping.mask = TRUE,
-            output.format = '.grd')        
+            output.format = '.grd',
+            on_0_1000 = FALSE)        
         
         ##My outputs
         projStackPass = get_predictions(myBiomodProj)
-        varIportancePass = get_variables_importance(myBiomodModelOut)
+        varImportancePass = get_variables_importance(myBiomodModelOut)
         evaluationScoresPass = get_evaluations(myBiomodModelOut)
         ##
-        writeRaster(projStackPass,filename=paste(projectFolder,'biomod/myOutput/',names(projStack),'_',l,'kyrBP',sep=''),bylayer=TRUE,format='ascii',overwrite=TRUE)
-        write.csv(data.frame(varIportancePass),paste(projectFolder,'biomod/myOutput/varImportance/varImportance_',l,'kyrBP.csv',sep=''),row.names=TRUE)
-        write.csv(data.frame(evaluationScoresPass),paste(projectFolder,'biomod/myOutput/evaluationScores/evaluationScores_',l,'kyrBP.csv',sep=''),row.names=TRUE)
+        writeRaster(projStackPass,filename=paste(projectFolder,'biomod/myOutput/',names(projStack),'_',sp.fossil$kyr,'kyrBP',sep=''),bylayer=TRUE,format='ascii',overwrite=TRUE)
+        write.csv(data.frame(varImportancePass),paste(projectFolder,'biomod/myOutput/varImportance/varImportance_',sp.fossil$kyr,'kyrBP.csv',sep=''),row.names=TRUE)
+        write.csv(data.frame(evaluationScoresPass),paste(projectFolder,'biomod/myOutput/evaluationScores/evaluationScores_',sp.fossil$kyr,'kyrBP.csv',sep=''),row.names=TRUE)
 
         ##suitability no ponto fossil:
         ##criando um objeto com as coordenadas do registro fossil
@@ -183,8 +184,7 @@ for (i in 1:length(splist)){
         suitabNoPontoFossil = extract(projStackPass,fossilPoints)
         write.csv(suitabNoPontoFossil,paste(projectFolder,'biomod/myOutput/suitabilityNoPontoFossil/',sp.fossil.data[l,]$species,sep=''))
     }
-}
-    
+}   
 
     
 
