@@ -1,44 +1,52 @@
-#selecionando a pasta dos outputs do Maxent
-#setwd('/home/anderson/Documentos/Minha produção bibliográfica/Sps artificiais/Maxent/spHW/hinge/1')
+library(raster)
+##TSS
 
-# GET EACH MODEL TEST AUC AND CALCULATE TSS
+CyacareBIN = raster('/home/anderson/PosDoc/teste/Maxent/Raster Layers/Caiman yacareBINARIO.asc')
+CyacareBIN.data = rasterToPoints(CyacareBIN)
 
-#mres <- read.csv("maxentResults.csv",h=T)
+CyacarePoints = read.csv("/home/anderson/PosDoc/dados_ocorrencia/PO_unique/Caiman yacare.csv",header=T)
+CyacarePoints.data = extract(CyacareBIN,CyacarePoints[,2:3])
 
-TSSfunction = function(maxentOutputFolder){
-    #setwd(paste(maxentOutputFolder,sep=''))
-    mres <- read.csv(paste(maxentOutputFolder,"/maxentResults.csv",sep=''),h=T)
-    for (j in 0:(nrow(mres)-2)) { #loop em que cada iteracao eh para uma linha da planilha maxentResults.csv
-        
-        trasam <- mres$X.Training.samples[j+1]
-        tessam <- mres$X.Test.samples[j+1]
-        tesAUC <- mres$Test.AUC[j+1]
-        threshold <- mres$X10.percentile.training.presence.logistic.threshold[j+1] #change here the threshold
-        
-        spred <- read.csv(paste(maxentOutputFolder,"/species_",j,"_samplePredictions.csv",sep=""),h=T)
-        
-        spred <- spred[which(spred[,3]=="test"),]
-        
-        a <- nrow(spred[which(spred[,6]>threshold),])
-        b <- nrow(spred[which(spred[,6]<threshold),])
-        
-        bgpred <- read.csv(paste(maxentOutputFolder,"/species_",j,"_backgroundPredictions.csv",sep=""),h=T)
-        
-        c <- nrow(bgpred[which(bgpred[,5]>threshold),])
-        d <- nrow(bgpred[which(bgpred[,5]<threshold),])
-        
-        #sen <- a/(a+b)
-        #spe <- d/(c+d)
-        
-        TSS <- (a/(a+b))+(d/(c+d))-1
-        
-        if (j == 0) {
-            df <- data.frame(trasam,tessam,tesAUC,TSS)
-        } else {
-            df2 <- data.frame(trasam,tessam,tesAUC,TSS)
-            df <- rbind(df,df2)
+dataVetor=numeric()
+for (i in 1:nrow(CyacareBIN.data)){
+    binaryIndicator = 0
+    for (j in 1:nrow(CyacarePoints[,2:3])){
+        if ( (round(CyacareBIN.data[i,1],digits=2) == round(CyacarePoints[j,2],digits=2)) && (round(CyacareBIN.data[i,2],digits=2) == round(CyacarePoints[j,3],digits=2)) ){
+            binaryIndicator = 1
         }
     }
-    write.csv(df,paste(maxentOutputFolder,'/TSS.csv',sep=''),row.names=FALSE)
-    #return(df)
+    if (binaryIndicator == 0){
+        dataVetor = append(dataVetor,0)
+    }else{
+        dataVetor = append(dataVetor,1)
+    }
 }
+
+
+dataSet = data.frame(CyacareBIN.data,CyacarePoints=dataVetor)
+names(dataSet) = c('lon','lat','forecast','observed')
+
+##matriz de confusao (MC)
+a=b=c=d=0
+for (i in 1:nrow(dataSet)){
+    if ( (dataSet$forecast[i]==1) && (dataSet$observed[i]==1) ){
+        a = a+1
+    }
+    ##
+    if ( (dataSet$forecast[i]==1) && (dataSet$observed[i]==0) ){
+        b = b+1
+    }
+    ##
+    if ( (dataSet$forecast[i]==0) && (dataSet$observed[i]==1) ){
+        c = c+1
+    }
+    ##
+    if ( (dataSet$forecast[i]==0) && (dataSet$observed[i]==0) ){
+        d = d+1
+    }
+}
+
+MC = matrix(c(a,b,c,d),nrow=2,ncol=2,byrow=TRUE)
+
+TSS = (a*d-b*c)/((a+c)*(b+d))
+

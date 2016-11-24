@@ -1,11 +1,13 @@
-library(biomod2)
+data.xylibrary(biomod2)
 library(maptools)
 library(dismo)
 
 ##########################################################################
 #########################TESTANDO BIOMOD##################################
 
-##planilha de presencas, backgrownd e variaveis ambientais
+##PRIMEIRA PARTE: planilha de presencas, backgrownd e variaveis ambientais
+
+options(java.parameters = "-Xmx7g") ###set available memmory to java
 
 ##DEFININDO PASTAS DE TRABALHO##
 envVarFolder = "/home/anderson/PosDoc/dados_ambientais/"
@@ -50,6 +52,7 @@ splist <-unlist(lapply(occ.sps, FUN = strsplit, split=("\\.csv")))
 occ.sps.fosseis = read.csv(paste(spOccFolder,"fosseis/fosseis.csv",sep=''),header=T)
 splist.fosseis = lapply(occ.sps.fosseis[,1],as.character)
 
+##SEGUNDA PARTE: rodando SDMs para as especies (e fazendo projecoes)
 
 for (i in 1:length(splist)){
     especie = splist[i] #escolher qual especie
@@ -185,6 +188,3 @@ for (i in 1:length(splist)){
         write.csv(suitabNoPontoFossil,paste(projectFolder,'biomod/myOutput/suitabilityNoPontoFossil/',sp.fossil$species,sp.fossil$kyr,'kyrBP',sep=''))
     }
 }   
-
-    
-
