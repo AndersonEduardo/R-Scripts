@@ -1,4 +1,4 @@
-data.xylibrary(biomod2)
+library(biomod2)
 library(maptools)
 library(dismo)
 
