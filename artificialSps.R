@@ -12,9 +12,9 @@ source("/home/anderson/R/R-Scripts/TSSfunction.R")
 
 ###Parametros necessarios###
 envVarFolder = "/home/anderson/PosDoc/dados_ambientais/dados_projeto" #pasta com as variaveis ambientais
+caminhosCamadasTemp = list.files(path=envVarFolder, full.names=T) #lista com os caminhos das camadas no sistema (comp.)
 projectFolder = "/home/anderson/Documentos/Minha produção bibliográfica/Sps artificiais/" #pasta do projeto
 AmSulShape = readShapePoly("/home/anderson/PosDoc/Am_Sul/borders.shp") #shape da America do Sul
-caminhosCamadasTemp = list.files(path=envVarFolder, full.names=T) #lista com os caminhos das camadas no sistema (comp.)
 ############################
 
 for (i in 1:length(caminhosCamadasTemp)){
@@ -47,15 +47,15 @@ for (i in 1:length(caminhosCamadasTemp)){
 ###SEGUNDA PARTE: amostragem de pontos de ocorrencia em diferentes camadas de tempo para fazer o pooled niche model###
 
 ###Parametros necessarios###
-Npass = 1:10 #numero de pontos a serem amostrados para camadas do passado (pensando em pontos fosseis)
-Npres = c(10,100,200,400,800) #numero de pontos a serem amostrados para camadas do presente
+Npass = 1 #numero de pontos a serem amostrados para camadas do passado (pensando em pontos fosseis)
+Npres = 1#c(10,100,200,400,800) #numero de pontos a serem amostrados para camadas do presente
 envVarFolder = "/home/anderson/PosDoc/dados_ambientais/dados_projeto" #pasta com as variaveis ambientais
 projectFolder = "/home/anderson/Documentos/Minha produção bibliográfica/Sps artificiais/" #pasta do projeto
 mainSampleFolder = '/home/anderson/Documentos/Minha produção bibliográfica/Sps artificiais/Amostras/' #caminho para pasta onde a planilha com os pontos amostrados sera salva
 spsTypes = c('spHW', 'spHD', 'spCD') #nomes das especies
 
 #abrindo e cortando camadas de variaveis ambientais para o presente
-filesRaw <- stack(list.files(path=paste(envVarFolder,"dados_projeto/000",sep=''), pattern='asc', full.names=T)) ### stack all rasters in Bioclim folder
+filesRaw <- stack(list.files(path=paste(envVarFolder,"/000",sep=''), pattern='asc', full.names=T)) ### stack all rasters in Bioclim folder
 #files <- stack(list.files(path = "/home/anderson/R/PosDoc/dados_ambientais/bcmidbi_2-5m _asc/dados_ambientais_para_projeto", pattern='asc', full.names=T))
 files = mask(filesRaw,AmSulShape) #cortando para Am. do Sul
 
@@ -87,12 +87,84 @@ for (h in 1:length(spsTypes)){
                 }
                 amostra = rbind(amostra,amostra_i)
             }
+            names(amostra) = c('lon','lat',"bioclim_01","bioclim_04","bioclim_10","bioclim_11","bioclim_12","bioclim_15","bioclim_16","bioclim_17")
             write.csv(amostra,file=paste(mainSampleFolder,spsTypes[h],'/ptsPres',Npres[j],'ptsPass',Npass[k],'.csv',sep=''),row.names=FALSE)#salvando a planilha com os dados da amostra
         }
     }
 }
 
-08:33###TERCEIRA PARTE: SDM usando de pontos de ocorrencia em diferentes camadas de tempo (atual a 120 kyr BP)###
+##Background points
+for (i in 1:length(spsTypes)){
+    backgroundPoints = data.frame()
+    for (j in 1:length(nicheRealPath[1:24])){
+        predictors = stack(list.files(path=paste(caminhosCamadasTemp[j],sep=''),pattern='asc',full.names=TRUE)) #carregando as variaveis ambientais
+        predictors = mask(predictors,AmSulShape) #recortando as variaveis ambientais
+        
+        pooledOccPoints = read.csv(paste(mainSampleFolder,spsTypes[i],'/ptsPres1ptsPass1.csv',sep=''),header=TRUE)
+        backgroundPoints_i<- randomPoints(mask=predictors[[1]], n=200, p=pooledOccPoints[,c("lon","lat")], excludep=TRUE)
+        colnames(backgroundPoints_i) <- c("lon", "lat")
+        
+        ##extraindo dados da variavel climatica nos pontos de background
+        ausencesVars <- extract(predictors, backgroundPoints_i,method='bilinear',buffer=NULL,fun=NULL)
+        backgroundPoints = data.frame(rbind(backgroundPoints,data.frame(backgroundPoints_i,ausencesVars)))
+    }
+    backgroundPoints1 = round(backgroundPoints, digits=4)
+    backgroundPoints2 <- backgroundPoints1[!duplicated(backgroundPoints1),]
+    backgroundPoints3 <- backgroundPoints2[complete.cases(backgroundPoints2),]
+    backgroundPoints <- data.frame(backgroundPoints3)
+    write.csv(backgroundPoints,file = paste(mainSampleFolder,spsTypes[h],'/background.csv',sep=''),row.names=FALSE)
+}
+
+###TERCEIRA PARTE: SDM usando de pontos de ocorrencia em diferentes camadas de tempo (atual a 120 kyr BP)###
+
+options(java.parameters = "-Xmx7g") ###set available memmory to java
+projectFolder = "/home/anderson/Documentos/Minha produção bibliográfica/Sps artificiais/" #pasta do projeto
+envVarFolder = "/home/anderson/PosDoc/dados_ambientais/dados_projeto" #pasta com as variaveis ambientais
+envVarPaths = list.files(path=envVarFolder, full.names=T) #lista com os caminhos das camadas no sistema (comp.)
+AmSulShape = readShapePoly("/home/anderson/PosDoc/Am_Sul/borders.shp") #shape da America do Sul
+mainSampleFolder = '/home/anderson/Documentos/Minha produção bibliográfica/Sps artificiais/Amostras/' #caminho para pasta onde a planilha 
+maxentFolder = '/home/anderson/Documentos/Minha produção bibliográfica/Sps artificiais/Maxent/' #pasta para resultados do maxent
+spsTypes = c('spHW', 'spHD', 'spCD') #nomes das especies
+##
+varNames = list(c('bioclim_01','bioclim_04','bioclim_10','bioclim_11','bioclim_12','bioclim_15','bioclim_16','bioclim_17'),c('bioclim_01','bioclim_04','bioclim_10','bioclim_11','bioclim_12','bioclim_15','bioclim_16','bioclim_17'),c('bioclim_01','bioclim_12'),c('bioclim_01','bioclim_12'))
+
+for (i in 1:length(spsTypes)){
+    occPoints = read.csv(paste(mainSampleFolder,spsTypes[i],'/ptsPres1ptsPass1.csv',sep=''),header=TRUE) #abrindo pontos de ocorrencia
+    backgroundPoints = read.csv(paste(mainSampleFolder,spsTypes[i],'/background.csv',sep=''),header=TRUE) #abrindo pontos de background
+    names(backgroundPoints) = names(occPoints) #certificando que os nomes das colunas estão iguais (cuidado aqui...)
+    dataSet = data.frame(cbind(rbind(occPoints,backgroundPoints),pres=c(rep(1,nrow(occPoints)),rep(0,nrow(backgroundPoints))))) #planilha de dados no formato SWD
+    ##
+    me = dismo::maxent(
+                    x=dataSet[,3:(ncol(dataSet)-1)],
+                    p=dataSet$pres,
+                    args=c('responsecurves=TRUE',
+                           -o,paste(maxentFolder,spsTypes[i],"/",sep="") )),
+                           randomtestpoints=25,
+                           replicates=3,
+                           replicatetype=subsample,
+                           writebackgroundpredictions=TRUE,
+                           linear=TRUE,
+                           quadratic=TRUE,
+                           product=FALSE,
+                           threshold=FALSE,
+                           hinge=FALSE,
+                           writeplotdata=TRUE,
+                           maximumiterations=1000,
+                           threads=2'
+                           )) #ajustando as curvas de resposta da especie
+    ##
+    
+    ## for (j in 1:length(envVarPaths[1:24])){
+    ##     predictors = stack(list.files(path=envVarPaths[j],full.names=T, pattern='.asc')) #predictors com todas as variaveis (presente)
+    ##     predictors = mask(predictors,AmSulShape) #recortando as variaveis ambientais
+    ##     crs = CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0') #ajustando CRS
+    ##     proj = dismo::predict(predictors,maxt,crs=crs) #realzando projetacoes
+    ## }
+}
+    
+    plot(proj)
+    plot(AmSulShape,add=TRUE)
+
 
 #######################################################
 ####################### GLM ###########################
@@ -108,12 +180,12 @@ GLMfolder = '/home/anderson/Documentos/Minha produção bibliográfica/Sps artif
 spsTypes = c('spHW', 'spHD', 'spCD') #nomes das especies
 #
 model1 = pres ~ bioclim_01 + bioclim_04 + bioclim_10 + bioclim_11 + bioclim_12 + bioclim_15 + bioclim_16 + bioclim_17 
-    model2 = pres ~ bioclim_01 + I(bioclim_01^2) + bioclim_04 + I(bioclim_04^2) + bioclim_10 + I(bioclim_10^2) + bioclim_11 + I(bioclim_11^2) + bioclim_12 + I(bioclim_12^2) + bioclim_15 + I(bioclim_15^2) + bioclim_16 + I(bioclim_16^2) + bioclim_17 + I(bioclim_17^2)
+model2 = pres ~ bioclim_01 + I(bioclim_01^2) + bioclim_04 + I(bioclim_04^2) + bioclim_10 + I(bioclim_10^2) + bioclim_11 + I(bioclim_11^2) + bioclim_12 + I(bioclim_12^2) + bioclim_15 + I(bioclim_15^2) + bioclim_16 + I(bioclim_16^2) + bioclim_17 + I(bioclim_17^2)
 model3 = pres ~ bioclim_01 + bioclim_12
 model4 = pres ~ bioclim_01 + I(bioclim_01^2) + bioclim_12 + I(bioclim_12^2)
 model = c(model1,model2,model3,model4)
 scenarioModel = c('8varLinearModel','8varQuadModel','2varLinearModel','2varQuadModel')
-#
+                                        #
 varNames = list(c('bioclim_01','bioclim_04','bioclim_10','bioclim_11','bioclim_12','bioclim_15','bioclim_16','bioclim_17'),c('bioclim_01','bioclim_04','bioclim_10','bioclim_11','bioclim_12','bioclim_15','bioclim_16','bioclim_17'),c('bioclim_01','bioclim_12'),c('bioclim_01','bioclim_12'))
 
 
@@ -138,7 +210,7 @@ for (i in 1:length(spsTypes)){
         pseudoausencia.clim <- extract(predictors, pseudoausencia.occ, method='bilinear', buffer=NULL, fun=NULL, df=TRUE)
         pseudoausencia.data <- data.frame(cbind(pseudoausencia.occ,pseudoausencia.clim[2:ncol(pseudoausencia.clim)],pres=0))
         dataset = data.frame(rbind(sp.data,pseudoausencia.data))
-
+        
         ##avaliando o modelo
         V <- numeric()#abrir un vector vazio 
         
@@ -154,13 +226,13 @@ for (i in 1:length(spsTypes)){
             presausTrainRaw = presausTrainRaw[!duplicated(presausTrainRaw[,1:2]),] #selecionar colunas de longitude e latitude
             presausTrainRaw<-presausTrainRaw[complete.cases(presausTrainRaw),]
             presausTrain = presausTrainRaw
-
+            
             ##AJUSTANDO O MODELO##                
             GLM = glm(model[[j]], family=binomial(link=logit), data=dataset)
-
+            
             ##TSSfunction(paste(maxentFolder,spsTypes[k],'/',names(feature)[i],'/',betamultiplier[j],sep='')) #TSS
-
-            #pegando a porcao dos dados separados para a avaliacao (validacao) do modelo
+            
+            ##pegando a porcao dos dados separados para a avaliacao (validacao) do modelo
             presencias.evaluacion = sp.data[rand==1,]
             presencias.evaluacion <- cbind(presencias.evaluacion$lon,presencias.evaluacion$lat)
             pseudoausencias.evaluacion = pseudoausencia.data[rand==1,]
@@ -169,7 +241,7 @@ for (i in 1:length(spsTypes)){
             ##RODANDO A AVALIACAO DO MODELO##
             evaluacion=evaluate(presencias.evaluacion, pseudoausencias.evaluacion, GLM, predictors)
 
-            #registrando o valor de AUC em um objeto
+            ##registrando o valor de AUC em um objeto
             V[k]<-evaluacion@"auc" #sacamos el valor de auc (fíjate que es una @ en lugar de $ para mirar dentro de los slots)y guardamos en vector
         }
 
@@ -208,7 +280,6 @@ model2 = pres ~ bioclim_01 + I(bioclim_01^2) + bioclim_04 + I(bioclim_04^2) + bi
 model3 = pres ~ bioclim_01 + bioclim_12
 model4 = pres ~ bioclim_01 + I(bioclim_01^2) + bioclim_12 + I(bioclim_12^2)
 model = c(model1,model2,model3,model4)
-
 
 for (i in 1:length(spsTypes)){
     for (j in 1:length(model)){
