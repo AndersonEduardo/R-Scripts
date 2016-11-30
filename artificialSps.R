@@ -6,7 +6,7 @@ library(virtualspecies)
 library(maptools)
 library(dismo)
 library(raster)
-source("/home/anderson/R/R-Scripts/TSSfunction.R")
+source("/home/anderson/R/R-Scripts/TSSmaxent.R")
 
 ###PRIMEIRA PARTE: criando sps virtuais###
 
@@ -54,14 +54,8 @@ projectFolder = "/home/anderson/Documentos/Minha produção bibliográfica/Sps a
 mainSampleFolder = '/home/anderson/Documentos/Minha produção bibliográfica/Sps artificiais/Amostras/' #caminho para pasta onde a planilha com os pontos amostrados sera salva
 spsTypes = c('spHW', 'spHD', 'spCD') #nomes das especies
 
-#abrindo e cortando camadas de variaveis ambientais para o presente
-filesRaw <- stack(list.files(path=paste(envVarFolder,"/000",sep=''), pattern='asc', full.names=T)) ### stack all rasters in Bioclim folder
-#files <- stack(list.files(path = "/home/anderson/R/PosDoc/dados_ambientais/bcmidbi_2-5m _asc/dados_ambientais_para_projeto", pattern='asc', full.names=T))
-files = mask(filesRaw,AmSulShape) #cortando para Am. do Sul
-
-
 ############################
-
+for(g in 1:100){
 for (h in 1:length(spsTypes)){
     nicheRealFolder = paste(projectFolder,'NichoReal/',spsTypes[h],sep='') #pasta com os mapas de nicho real da sp
     nicheRealPath = list.files(path=nicheRealFolder, full.names=T, pattern='.asc') #lista com os enderecos dos mapas de distribuicao da sp
@@ -88,34 +82,44 @@ for (h in 1:length(spsTypes)){
                 amostra = rbind(amostra,amostra_i)
             }
             names(amostra) = c('lon','lat',"bioclim_01","bioclim_04","bioclim_10","bioclim_11","bioclim_12","bioclim_15","bioclim_16","bioclim_17")
-            write.csv(amostra,file=paste(mainSampleFolder,spsTypes[h],'/ptsPres',Npres[j],'ptsPass',Npass[k],'.csv',sep=''),row.names=FALSE)#salvando a planilha com os dados da amostra
+            write.csv(amostra,file=paste(mainSampleFolder,spsTypes[h],'occurrences_',g,'.csv',sep=''),row.names=FALSE)#salvando a planilha com os dados da amostra
         }
     }
 }
+}
 
 ##Background points
+for (g in 1:100){
 for (i in 1:length(spsTypes)){
     backgroundPoints = data.frame()
+    nicheRealFolder = paste(projectFolder,'NichoReal/',spsTypes[i],sep='') #pasta com os mapas de nicho real da sp
+    nicheRealPath = list.files(path=nicheRealFolder, full.names=TRUE, pattern='.asc') #lista com os enderecos dos mapas de distribuicao da sp
     for (j in 1:length(nicheRealPath[1:24])){
         predictors = stack(list.files(path=paste(caminhosCamadasTemp[j],sep=''),pattern='asc',full.names=TRUE)) #carregando as variaveis ambientais
         predictors = mask(predictors,AmSulShape) #recortando as variaveis ambientais
         
-        pooledOccPoints = read.csv(paste(mainSampleFolder,spsTypes[i],'/ptsPres1ptsPass1.csv',sep=''),header=TRUE)
-        backgroundPoints_i<- randomPoints(mask=predictors[[1]], n=200, p=pooledOccPoints[,c("lon","lat")], excludep=TRUE)
+        pooledOccPoints = read.csv(paste(mainSampleFolder,spsTypes[i],'/occurrences_',g,'.csv',sep=''),header=TRUE) #abrindo .csv de occ
+        backgroundPoints_i<- randomPoints(mask=predictors[[1]], n=200, p=pooledOccPoints[,c("lon","lat")], excludep=TRUE) #sorteando coordenadas
         colnames(backgroundPoints_i) <- c("lon", "lat")
         
         ##extraindo dados da variavel climatica nos pontos de background
-        ausencesVars <- extract(predictors, backgroundPoints_i,method='bilinear',buffer=NULL,fun=NULL)
-        backgroundPoints = data.frame(rbind(backgroundPoints,data.frame(backgroundPoints_i,ausencesVars)))
+        ausencesVars <- extract(predictors, backgroundPoints_i,method='bilinear',buffer=NULL,fun=NULL) #extraindo variaveis ambientais nas coordenadas para cada time slice 'j'
+        backgroundPoints = data.frame(rbind(backgroundPoints,data.frame(backgroundPoints_i,ausencesVars))) #dados completos dos background points
     }
+    ##'limpando' os background points
     backgroundPoints1 = round(backgroundPoints, digits=4)
     backgroundPoints2 <- backgroundPoints1[!duplicated(backgroundPoints1),]
     backgroundPoints3 <- backgroundPoints2[complete.cases(backgroundPoints2),]
     backgroundPoints <- data.frame(backgroundPoints3)
-    write.csv(backgroundPoints,file = paste(mainSampleFolder,spsTypes[h],'/background.csv',sep=''),row.names=FALSE)
+    write.csv(backgroundPoints,file = paste(mainSampleFolder,spsTypes[i],'/background_',g,'.csv',sep=''),row.names=FALSE)
+}
 }
 
 ###TERCEIRA PARTE: SDM usando de pontos de ocorrencia em diferentes camadas de tempo (atual a 120 kyr BP)###
+
+#######################################################
+####################### MAXENT ########################
+#######################################################
 
 options(java.parameters = "-Xmx7g") ###set available memmory to java
 projectFolder = "/home/anderson/Documentos/Minha produção bibliográfica/Sps artificiais/" #pasta do projeto
@@ -125,8 +129,6 @@ AmSulShape = readShapePoly("/home/anderson/PosDoc/Am_Sul/borders.shp") #shape da
 mainSampleFolder = '/home/anderson/Documentos/Minha produção bibliográfica/Sps artificiais/Amostras/' #caminho para pasta onde a planilha 
 maxentFolder = '/home/anderson/Documentos/Minha produção bibliográfica/Sps artificiais/Maxent/' #pasta para resultados do maxent
 spsTypes = c('spHW', 'spHD', 'spCD') #nomes das especies
-##
-varNames = list(c('bioclim_01','bioclim_04','bioclim_10','bioclim_11','bioclim_12','bioclim_15','bioclim_16','bioclim_17'),c('bioclim_01','bioclim_04','bioclim_10','bioclim_11','bioclim_12','bioclim_15','bioclim_16','bioclim_17'),c('bioclim_01','bioclim_12'),c('bioclim_01','bioclim_12'))
 
 for (i in 1:length(spsTypes)){
     occPoints = read.csv(paste(mainSampleFolder,spsTypes[i],'/ptsPres1ptsPass1.csv',sep=''),header=TRUE) #abrindo pontos de ocorrencia
@@ -137,34 +139,38 @@ for (i in 1:length(spsTypes)){
     me = dismo::maxent(
                     x=dataSet[,3:(ncol(dataSet)-1)],
                     p=dataSet$pres,
+                    path=paste(maxentFolder,spsTypes[i],sep=''),
                     args=c('responsecurves=TRUE',
-                           -o,paste(maxentFolder,spsTypes[i],"/",sep="") )),
-                           randomtestpoints=25,
-                           replicates=3,
-                           replicatetype=subsample,
-                           writebackgroundpredictions=TRUE,
-                           linear=TRUE,
-                           quadratic=TRUE,
-                           product=FALSE,
-                           threshold=FALSE,
-                           hinge=FALSE,
-                           writeplotdata=TRUE,
-                           maximumiterations=1000,
-                           threads=2'
-                           )) #ajustando as curvas de resposta da especie
+                           'randomseed=true',
+                           'randomtestpoints=25',
+                           'replicates=3',
+                           'replicatetype=subsample',
+                           'writebackgroundpredictions=TRUE',
+                           'linear=TRUE',
+                           'quadratic=TRUE',
+                           'product=FALSE',
+                           'threshold=FALSE',
+                           'hinge=FALSE',
+                           'maximumiterations=1000',
+                           'threads=2'
+                           ))
     ##
-    
-    ## for (j in 1:length(envVarPaths[1:24])){
-    ##     predictors = stack(list.files(path=envVarPaths[j],full.names=T, pattern='.asc')) #predictors com todas as variaveis (presente)
-    ##     predictors = mask(predictors,AmSulShape) #recortando as variaveis ambientais
-    ##     crs = CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0') #ajustando CRS
-    ##     proj = dismo::predict(predictors,maxt,crs=crs) #realzando projetacoes
-    ## }
+    TSS_i= TSSmaxent(paste(maxentFolder,spsTypes[i],sep=''))
+    ##
+    for (j in 1:length(envVarPaths[1:24])){
+        predictors = stack(list.files(path=envVarPaths[j],full.names=T, pattern='.asc')) #predictors com todas as variaveis (presente)
+        predictors = mask(predictors,AmSulShape) #recortando as variaveis ambientais
+        crs = CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0') #ajustando CRS
+        proj = dismo::predict(me,predictors,crs=crs) #realzando projetacoes
+        writeRaster(mean(proj),paste(maxentFolder,spsTypes[i],'/projections/projection-',j-1,'kyrBP.asc',sep=''))
+    }
 }
-    
-    plot(proj)
-    plot(AmSulShape,add=TRUE)
 
+#######################################################
+#######################################################
+#######################################################
+
+  
 
 #######################################################
 ####################### GLM ###########################
@@ -267,6 +273,95 @@ for (i in 1:length(spsTypes)){
 ###############################################
 ###############################################
 
+###############################################
+################### BIOMOD ####################
+###############################################
+library(biomod2)
+
+options(java.parameters = "-Xmx7g") ###set available memmory to java
+projectFolder = "/home/anderson/Documentos/Minha produção bibliográfica/Sps artificiais/" #pasta do projeto
+envVarFolder = "/home/anderson/PosDoc/dados_ambientais/dados_projeto" #pasta com as variaveis ambientais
+envVarPaths = list.files(path=envVarFolder, full.names=T) #lista com os caminhos das camadas no sistema (comp.)
+AmSulShape = readShapePoly("/home/anderson/PosDoc/Am_Sul/borders.shp") #shape da America do Sul
+mainSampleFolder = '/home/anderson/Documentos/Minha produção bibliográfica/Sps artificiais/Amostras/' #caminho para pasta onde a planilha 
+biomodFolder = '/home/anderson/Documentos/Minha produção bibliográfica/Sps artificiais/biomod/' #pasta para resultados do maxent
+spsTypes = c('spHW', 'spHD', 'spCD') #nomes das especies
+
+for (g in 1:50){
+for (i in 1:length(spsTypes)){
+    setwd(paste(biomodFolder,spsTypes[i],'/biomodOutputs',sep='')) #mudando a pasta de trabalho para os outputs do biomod
+    ##
+    if (!dir.exists(paste(g))){
+        dir.create(paste(g,sep=''))
+    }
+    ##
+    setwd(paste(g))
+    ##
+    occPoints = read.csv(paste(mainSampleFolder,spsTypes[i],'/ptsPres1ptsPass1.csv',sep=''),header=TRUE) #abrindo pontos de ocorrencia
+    backgroundPoints = read.csv(paste(mainSampleFolder,spsTypes[i],'/background.csv',sep=''),header=TRUE) #abrindo pontos de background
+    names(backgroundPoints) = names(occPoints) #certificando que os nomes das colunas estão iguais (cuidado aqui...)
+    dataSet = data.frame(cbind(rbind(occPoints,backgroundPoints),pres=c(rep(1,nrow(occPoints)),rep(0,nrow(backgroundPoints))))) #planilha de dados no formato SWD
+    ##
+    ##DADOS DE ENTRADA PARA O BIOMOD2###
+    myResp = dataSet$pres
+    predictors = dataSet[,c("bioclim_01","bioclim_04","bioclim_10","bioclim_11","bioclim_12","bioclim_15","bioclim_16","bioclim_17")]
+    myRespXY = dataSet[,c('lon','lat')] 
+    myRespName = spsTypes[i]
+    
+    myBiomodData <- BIOMOD_FormatingData(resp.var = myResp,
+                                         resp.xy = myRespXY,
+                                         expl.var = predictors,
+                                         resp.name = myRespName)
+    
+    myBiomodOption <- BIOMOD_ModelingOptions(MAXENT.Phillips=list(path_to_maxent.jar="/home/anderson/R/x86_64-pc-linux-gnu-library/3.3/dismo/java",maximumiterations=5000,linear=TRUE,quadratic=TRUE,product=FALSE,threshold=FALSE,hinge=FALSE,threads=2))
+    
+    myBiomodModelOut <- BIOMOD_Modeling(
+        myBiomodData,
+        models = c('GLM','MAXENT.Phillips'),
+        models.options = myBiomodOption,
+        NbRunEval = 3,
+        DataSplit = 75,
+        VarImport = 3,
+        models.eval.meth = c('TSS','ROC'),
+        SaveObj = TRUE,
+        rescal.all.models = TRUE,
+        do.full.models = FALSE,
+        modeling.id = paste(myRespName,"_Models",sep=""))
+
+    ##PROJECOES##
+    for (j in 1:length(envVarPaths[1:24])){
+        predictors = stack(list.files(path=envVarPaths[j],full.names=T, pattern='.asc')) #predictors com todas as variaveis (presente)
+        predictors = mask(predictors,AmSulShape) #recortando as variaveis ambientais
+        crs = CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0') #ajustando CRS
+        
+        myBiomodProj <- BIOMOD_Projection(
+            modeling.output = myBiomodModelOut,
+            new.env = stack(predictors),
+            proj.name = paste(j-1,'kyrBP',sep=''),
+            selected.models = paste(myBiomodModelOut@models.computed,sep=''),
+            binary.meth = 'TSS',
+            compress = FALSE,
+            clamping.mask = TRUE,
+            output.format = '.grd',
+            on_0_1000 = FALSE)
+        
+        ##My output data
+        projStack = get_predictions(myBiomodProj)
+        varImportance = get_variables_importance(myBiomodModelOut)
+        evaluationScores = get_evaluations(myBiomodModelOut)
+        ##
+        writeRaster(projStack,filename=paste(biomodFolder,spsTypes[i],'/projections/',names(projStack),'-',j-1,'kyrBP',sep=''),bylayer=TRUE,format='ascii',overwrite=TRUE)
+        write.csv(data.frame(varImportance),paste(biomodFolder,spsTypes[i],'/varImportance/varImportance_',myRespName,'-',j-1,'kyrBP.csv',sep=''),row.names=TRUE)
+        write.csv(data.frame(evaluationScores),paste(biomodFolder,spsTypes[i],'/evaluationScores/evaluationScores_',myRespName,'-',j-1,'kyrBP.csv',sep=''),row.names=TRUE)
+    }
+}
+}
+
+
+###############################################
+###############################################
+###############################################
+
 
 ###QUARTA PARTE: comparando projecao do SDM e a distribuicao espacial real do nicho da sp###
 
@@ -301,7 +396,6 @@ for (i in 1:length(spsTypes)){
         write.csv(outputData, file=paste(projectionsFolder,"/NO.csv",sep=""),row.names=FALSE) #salvando os dados do cenario
     }
 }
-
 
 ### QUINTA PARTE: construindo graficos dos resultados ###
 
