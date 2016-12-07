@@ -53,6 +53,7 @@ envVarFolder = "/home/anderson/PosDoc/dados_ambientais/dados_projeto" #pasta com
 caminhosCamadasTemp = list.files(path=envVarFolder, full.names=T) #lista com os caminhos das camadas no sistema (comp.)
 projectFolder = "/home/anderson/Documentos/Minha produção bibliográfica/Sps artificiais/" #pasta do projeto
 mainSampleFolder = '/home/anderson/Documentos/Minha produção bibliográfica/Sps artificiais/Amostras/' #caminho para pasta onde a planilha com os pontos amostrados sera salva
+AmSulShape = readShapePoly("/home/anderson/PosDoc/Am_Sul/borders.shp") #shape da America do Sul
 biomodFolder = '/home/anderson/Documentos/Minha produção bibliográfica/Sps artificiais/biomod/' #pasta para resultados do maxent
 spsTypes = c('spHW', 'spHD', 'spCD') #nomes das especies
 
@@ -93,17 +94,18 @@ for(g in 1:10){
 }
 
 ##Background points
-for (g in 1:10){
+for (g in 1:10){ #loop para replicar a 'amostragem de pontos fosseis'
     for (i in 1:length(spsTypes)){
         backgroundPoints = data.frame()
         nicheRealFolder = paste(projectFolder,'NichoReal/',spsTypes[i],sep='') #pasta com os mapas de nicho real da sp
         nicheRealPath = list.files(path=nicheRealFolder, full.names=TRUE, pattern='.asc') #lista com os enderecos dos mapas de distribuicao da sp
         for (j in 1:length(nicheRealPath[1:24])){
             predictors = stack(list.files(path=paste(caminhosCamadasTemp[j],sep=''),pattern='asc',full.names=TRUE)) #carregando as variaveis ambientais
-            predictors = mask(predictors,AmSulShape) #recortando as variaveis ambientais #ARRUMAR: RETIRAR, P FICAR MAIS RAPIDO
+            #predictors = mask(predictors,AmSulShape) #recortando as variaveis ambientais #ARRUMAR: RETIRAR, P FICAR MAIS RAPIDO
             
-            pooledOccPoints = read.csv(paste(mainSampleFolder,spsTypes[i],'/occurrences_',g,'.csv',sep=''),header=TRUE) #abrindo .csv de occ #ARRUMAR: RETIRAR ESTA LINHA (E MELHOR GERAR BACKGROUND CONSIDERANDO TUDO, E DEPOIS ELIMINAR)
-            backgroundPoints_i<- randomPoints(mask=predictors[[1]],n=200,p=pooledOccPoints[,c("lon","lat")], excludep=TRUE) #sorteando coordenadas #ARRUMAR: RETIRAR O ARGUMENTO 'P' (VIDE COMENTARIO NA LINHA ANTERIOR)
+            #pooledOccPoints = read.csv(paste(mainSampleFolder,spsTypes[i],'/occurrences_',g,'.csv',sep=''),header=TRUE) #abrindo .csv de occ #ARRUMAR: RETIRAR ESTA LINHA (E MELHOR GERAR BACKGROUND CONSIDERANDO TUDO, E DEPOIS ELIMINAR)
+            #backgroundPoints_i<- randomPoints(mask=predictors[[1]],n=200,p=pooledOccPoints[,c("lon","lat")], excludep=TRUE) #sorteando coordenadas #ARRUMAR: RETIRAR O ARGUMENTO 'P' (VIDE COMENTARIO NA LINHA ANTERIOR)
+            backgroundPoints_i<- randomPoints(mask=predictors[[1]],n=200, excludep=TRUE)
             colnames(backgroundPoints_i) <- c("lon", "lat")
             
             ##extraindo dados da variavel climatica nos pontos de background
@@ -111,12 +113,12 @@ for (g in 1:10){
             backgroundPoints = data.frame(rbind(backgroundPoints,data.frame(backgroundPoints_i,ausencesVars))) #dados completos dos background points
         }
         ##'limpando' os background points
-        backgroundPoints1 = round(backgroundPoints, digits=4) ##ARRUMAR: RETIRAR COLUNAS DAS COORDENADAS PARA 'LIMPAR'
+        ##backgroundPoints1 = round(backgroundPoints, digits=4) ##ARRUMAR: RETIRAR COLUNAS DAS COORDENADAS PARA 'LIMPAR'
+        backgroundPoints1 = round(backgroundPoints[,c("bioclim_01","bioclim_04","bioclim_10","bioclim_11","bioclim_12","bioclim_15","bioclim_16","bioclim_17")], digits=4)
         backgroundPoints2 <- backgroundPoints1[!duplicated(backgroundPoints1),]
         backgroundPoints3 <- backgroundPoints2[complete.cases(backgroundPoints2),]
         backgroundPoints <- data.frame(backgroundPoints3)
-        setwd(paste(projectFolder,'Amostras/',spsTypes[i],'/',sep='')) #mudando a pasta de trabalho para os outputs do biomod
-        names(amostra) = c('lon','lat',"bioclim_01","bioclim_04","bioclim_10","bioclim_11","bioclim_12","bioclim_15","bioclim_16","bioclim_17")        
+        setwd(paste(projectFolder,'Amostras/',spsTypes[i],'/',sep='')) 
         write.csv(backgroundPoints,file=paste('background_',g,'.csv',sep=''),row.names=FALSE)
     }
 }
@@ -147,6 +149,7 @@ for (i in 1:length(spsTypes)){
                     p=dataSet$pres,
                     path=paste(maxentFolder,spsTypes[i],sep=''),
                     args=c('responsecurves=TRUE',
+                           'jackknife=TRUE'
                            'randomseed=true',
                            'randomtestpoints=25',
                            'replicates=3',
@@ -308,7 +311,7 @@ for (g in 1:10){
         ##
         ##DADOS DE ENTRADA PARA O BIOMOD2###
         myResp = dataSet$pres
-        predictors = dataSet[,c("bioclim_01","bioclim_04","bioclim_10","bioclim_11","bioclim_12","bioclim_15","bioclim_16","bioclim_17")]
+        predictors = dataSet[,c("bioclim_01","bioclim_12")]
         myRespXY = dataSet[,c('lon','lat')] 
         myRespName = spsTypes[i]
         
@@ -334,8 +337,9 @@ for (g in 1:10){
         
         ##PROJECOES##
         for (j in 1:length(envVarPaths[1:24])){
+            setwd(paste(biomodFolder,spsTypes[i],'/biomodOutputs/',g,sep='')) #mudando a pasta de trabalho para os outputs do biomod
             predictors = stack(list.files(path=envVarPaths[j],full.names=T, pattern='.asc')) #predictors com todas as variaveis (presente)
-            predictors = mask(predictors,AmSulShape) #recortando as variaveis ambientais
+            predictors = stack(c(predictors$bioclim_01,predictors$bioclim_12)) #recortando as variaveis ambientais
             crs = CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0') #ajustando CRS
             
             myBiomodProj <- BIOMOD_Projection(
@@ -354,9 +358,26 @@ for (g in 1:10){
             varImportance = get_variables_importance(myBiomodModelOut)
             evaluationScores = get_evaluations(myBiomodModelOut)
             ##
-            writeRaster(projStack,filename=paste(biomodFolder,spsTypes[i],'/projections/',names(projStack),'-',j-1,'kyrBP',sep=''),bylayer=TRUE,format='ascii',overwrite=TRUE)
-            write.csv(data.frame(varImportance),paste(biomodFolder,spsTypes[i],'/varImportance/varImportance_',myRespName,'-',j-1,'kyrBP.csv',sep=''),row.names=TRUE)
-            write.csv(data.frame(evaluationScores),paste(biomodFolder,spsTypes[i],'/evaluationScores/evaluationScores_',myRespName,'-',j-1,'kyrBP.csv',sep=''),row.names=TRUE)
+            setwd(paste(biomodFolder,spsTypes[i],'/projections/',sep='')) #mudando a pasta de trabalho para os outputs do biomod
+            if (!dir.exists(paste(g))){
+                dir.create(paste(g,sep=''))
+            }
+            setwd(paste(g))
+            writeRaster(projStack,filename=paste(biomodFolder,spsTypes[i],'/projections/',g,'/',names(projStack),'-',j-1,'kyrBP',sep=''),bylayer=TRUE,format='ascii',overwrite=TRUE)
+            ##
+            setwd(paste(biomodFolder,spsTypes[i],'/varImportance/',sep='')) #mudando a pasta de trabalho para os outputs do biomod
+            if (!dir.exists(paste(g))){
+                dir.create(paste(g,sep=''))
+            }
+            setwd(paste(g))
+            write.csv(data.frame(varImportance),paste(biomodFolder,spsTypes[i],'/varImportance/',g,'/varImportance_',myRespName,'-',j-1,'kyrBP.csv',sep=''),row.names=TRUE)
+            ##
+            setwd(paste(biomodFolder,spsTypes[i],'/evaluationScores/',sep='')) #mudando a pasta de trabalho para os outputs do biomod
+            if (!dir.exists(paste(g))){
+                dir.create(paste(g,sep=''))
+            }
+            setwd(paste(g))
+            write.csv(data.frame(evaluationScores),paste(biomodFolder,spsTypes[i],'/evaluationScores/',g,'/evaluationScores_',myRespName,'-',j-1,'kyrBP.csv',sep=''),row.names=TRUE)
         }
     }
 }
