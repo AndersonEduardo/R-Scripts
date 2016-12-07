@@ -1,7 +1,6 @@
 #########################################################################################
 ####ALGORITMO PARA FAZER A DISTRIBUICAO REAL DAS ESPECIES EM VARIOS MOMENTOS DO TEMPO####
 #########################################################################################
-
 library(virtualspecies)
 library(maptools)
 library(dismo)
@@ -41,14 +40,14 @@ for (i in 1:length(caminhosCamadasTemp)){
     for(j in 1:dim(auxVector)[3]){
         projection(auxVector[[j]]) = CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0') #ajustando CRS
         writeRaster(auxVector[[j]], filename=paste(projectFolder,'NichoReal/',names(auxVector[[j]]),'/',nameScenario,'.asc',sep=""), overwrite=T,prj=T) #salvando o raster do mapa da sp
-        }
     }
+}
 
 ###SEGUNDA PARTE: amostragem de pontos de ocorrencia em diferentes camadas de tempo para fazer o pooled niche model###
 
 ###Parametros necessarios###
 Npass = 1 #numero de pontos a serem amostrados para camadas do passado (pensando em pontos fosseis)
-Npres = 1#c(10,100,200,400,800) #numero de pontos a serem amostrados para camadas do presente
+Npres = 1 #c(10,100,200,400,800) #numero de pontos a serem amostrados para camadas do presente
 envVarFolder = "/home/anderson/PosDoc/dados_ambientais/dados_projeto" #pasta com as variaveis ambientais
 caminhosCamadasTemp = list.files(path=envVarFolder, full.names=T) #lista com os caminhos das camadas no sistema (comp.)
 projectFolder = "/home/anderson/Documentos/Minha produção bibliográfica/Sps artificiais/" #pasta do projeto
