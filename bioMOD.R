@@ -1,7 +1,6 @@
 library(biomod2)
 library(maptools)
 library(dismo)
-
 ##########################################################################
 #########################TESTANDO BIOMOD##################################
 
@@ -152,7 +151,11 @@ for (i in 1:length(splist)){
         sp.fossil = sp.fossil.data[l,]
         
         ##abrindo as variaveis ambientais do tempo do fossil
-        filesProjectionRaw <- stack(list.files(path = paste(envVarFolder,"dados_projeto/0",sp.fossil$kyr,sep=""), pattern='asc', full.names=T)) ###abrindo camandas para projecao (passado, futuro, outro local, etc)
+        if (sp.fossil$kyr >= 100){
+            filesProjectionRaw <- stack(list.files(path = paste(envVarFolder,"dados_projeto/",sp.fossil$kyr,sep=""), pattern='asc', full.names=T)) ###abrindo camandas para projecao (passado, futuro, outro local, etc)
+        }else{
+            filesProjectionRaw <- stack(list.files(path = paste(envVarFolder,"dados_projeto/0",sp.fossil$kyr,sep=""), pattern='asc', full.names=T)) ###abrindo camandas para projecao (passado, futuro, outro local, etc)}else{
+        }
         filesProjection = mask(filesProjectionRaw,AmSulShape) #cortando para Am. do Sul
         files.crop.sub.projection <- dropLayer(filesProjection, c(1,2,5,6)) #removendo as camadas que mostraram correlacao
         predictorsProjection = stack(files.crop.sub.projection) #preditoras para o tempo do fossil
