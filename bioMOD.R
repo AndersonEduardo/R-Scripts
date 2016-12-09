@@ -123,7 +123,7 @@ for (i in 1:length(splist)){
     myBiomodProj <- BIOMOD_Projection(
         modeling.output = myBiomodModelOut,
         new.env = predictors,
-        proj.name = '000',
+        proj.name = '000kyrBP'
         selected.models = paste(myBiomodModelOut@models.computed,sep=''),
         binary.meth = 'TSS',
         compress = FALSE,
@@ -151,7 +151,7 @@ for (i in 1:length(splist)){
         sp.fossil = sp.fossil.data[l,]
         
         ##abrindo as variaveis ambientais do tempo do fossil
-        if (sp.fossil$kyr >= 100){
+        if (sp.fossil$kyr >= 100)){
             filesProjectionRaw <- stack(list.files(path = paste(envVarFolder,"dados_projeto/",sp.fossil$kyr,sep=""), pattern='asc', full.names=T)) ###abrindo camandas para projecao (passado, futuro, outro local, etc)
         }else{
             filesProjectionRaw <- stack(list.files(path = paste(envVarFolder,"dados_projeto/0",sp.fossil$kyr,sep=""), pattern='asc', full.names=T)) ###abrindo camandas para projecao (passado, futuro, outro local, etc)}else{

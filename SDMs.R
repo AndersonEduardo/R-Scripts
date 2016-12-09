@@ -27,14 +27,14 @@ filesRaw <- stack(list.files(path=paste(envVarFolder,"dados_projeto/000",sep='')
 #files <- stack(list.files(path = "/home/anderson/R/PosDoc/dados_ambientais/bcmidbi_2-5m _asc/dados_ambientais_para_projeto", pattern='asc', full.names=T))
 files = mask(filesRaw,AmSulShape) #cortando para Am. do Sul
 
-#abrindo e cortando camads de variaveis ambientais para o passado
+##abrindo e cortando camads de variaveis ambientais para o passado
 filesProjectionRaw <- stack(list.files(path=paste(envVarFolder,"dados_projeto/021",sep=''), pattern='asc', full.names=T)) ###abrindo camandas para projecao (passado, futuro, outro local, etc)
 filesProjection = mask(filesProjectionRaw,AmSulShape) #cortando para Am. do Sul
 
-#testando correcaloes
-## test<-getValues(files)
-## cor.matrix <- as.data.frame(cor(test, use="complete.obs"))
-#write.csv(cor.matrix,'cor_matrix.csv')
+##testando correcaloes
+##test<-getValues(files)
+##cor.matrix <- as.data.frame(cor(test, use="complete.obs"))
+##write.csv(cor.matrix,'cor_matrix.csv')
 
 #remove highly correlated variables Bio1,Bio3,Bio9,Bio13,Bio14
 files.crop.sub <- dropLayer(files, c(1,2,5,6)) #### remove selected layers
@@ -137,7 +137,7 @@ dev.off()
 library(rasterVis)
 
 #definindo objeto com os nomes
-teste = 'Random Forest'
+teste = 'Maxent'
 
 #presente
 setwd(paste(projectFolder,teste,'/Raster Layers',sep='')) 
@@ -201,6 +201,75 @@ nomesSubgraficos = c("L. maximus","M. coypus","13 kyr BP","19 kyr BP","14 kyr BP
 pdf(file='MyoLago.pdf')
 levelplot(species.layers,scales=list(x=list(cex=0.7), y=list(cex=0.7)),between=list(x=1, y=0.25),par.strip.text=list(cex=0.95),layout=c(2,3),col.regions=colorRampPalette(c("white","orange","darkred")), main='', names.attr=nomesSubgraficos, colorkey=list(space="right")) + layer(sp.polygons(AmSulShape)) + layer(panel.xyplot(-55.993283,-34.270064,pch=17,col="blue",cex=1),rows=c(2:3),columns=c(1)) + layer(panel.xyplot(-41.553056,-12.393333,pch=17,col="blue",cex=1),rows=c(2:3),columns=c(2))
 dev.off()
+
+
+##codigo para graficos a partir dos resultados do Biomod##
+myOutputFolder = "/home/anderson/PosDoc/teste/biomod/myOutput"
+filesPath = list.files(paste(myOutputFolder),full.names=TRUE,pattern='Melanosuchus.niger')
+layers = stack(filesPath)
+
+spString = 'Melanosuchus.niger'
+
+##media presente (000) para MAXENT, RF e GLM
+meanMX000 = mean(layers[[ c(paste(spString,'_AllData_RUN',1:3,'_MAXENT.Phillips_000',sep=''))]]) #MX
+meanRF000 = mean(layers[[ c(paste(spString,'_AllData_RUN',1:3,'_RF_000',sep=''))]]) #RF
+meanGLM000 = mean(layers[[ c(paste(spString,'_AllData_RUN',1:3,'_GLM_000',sep=''))]]) #GLM
+
+###media para as projecoes para o passado
+##10kyrBP
+meanMX010 = mean(layers[[ c(paste(spString,'_AllData_RUN',1:3,'_MAXENT.Phillips_10kyrBP',sep=''))]]) #MX
+meanRF010 = mean(layers[[ c(paste(spString,'_AllData_RUN',1:3,'_RF_10kyrBP',sep=''))]]) #RF
+meanGLM010 = mean(layers[[ c(paste(spString,'_AllData_RUN',1:3,'_GLM_10kyrBP',sep=''))]]) #GLM
+
+###media para as projecoes para o passado
+##11kyrBP
+meanMX011 = mean(layers[[ c(paste(spString,'_AllData_RUN',1:3,'_MAXENT.Phillips_11kyrBP',sep=''))]]) #MX
+meanRF011 = mean(layers[[ c(paste(spString,'_AllData_RUN',1:3,'_RF_11kyrBP',sep=''))]]) #RF
+meanGLM011 = mean(layers[[ c(paste(spString,'_AllData_RUN',1:3,'_GLM_11kyrBP',sep=''))]]) #GLM
+
+###media para as projecoes para o passado
+##21kyrBP
+meanMX021 = mean(layers[[ c(paste(spString,'_AllData_RUN',1:3,'_MAXENT.Phillips_21kyrBP',sep=''))]]) #MX
+meanRF021 = mean(layers[[ c(paste(spString,'_AllData_RUN',1:3,'_RF_21kyrBP',sep=''))]]) #RF
+meanGLM021 = mean(layers[[ c(paste(spString,'_AllData_RUN',1:3,'_GLM_21kyrBP',sep=''))]]) #GLM
+
+###media para as projecoes para o passado
+##22kyrBP
+meanMX022 = mean(layers[[ c(paste(spString,'_AllData_RUN',1:3,'_MAXENT.Phillips_22kyrBP',sep=''))]]) #MX
+meanRF022 = mean(layers[[ c(paste(spString,'_AllData_RUN',1:3,'_RF_22kyrBP',sep=''))]]) #RF
+meanGLM022 = mean(layers[[ c(paste(spString,'_AllData_RUN',1:3,'_GLM_22kyrBP',sep=''))]]) #GLM
+
+###media para as projecoes para o passado
+##120kyrBP
+meanMX120 = mean(layers[[ c(paste(spString,'_AllData_RUN',1:3,'_MAXENT.Phillips_120kyrBP',sep=''))]]) #MX
+meanRF120 = mean(layers[[ c(paste(spString,'_AllData_RUN',1:3,'_RF_120kyrBP',sep=''))]]) #RF
+meanGLM120 = mean(layers[[ c(paste(spString,'_AllData_RUN',1:3,'_GLM_120kyrBP',sep=''))]]) #GLM
+
+##salvando
+writeRaster(meanMX000,paste(myOutputFolder,'/',spString,'MX000.asc',sep=''))
+writeRaster(meanRF000,paste(myOutputFolder,'/',spString,'RF000.asc',sep='')) 
+writeRaster(meanGLM000,paste(myOutputFolder,'/',spString,'GLM000.asc',sep='')) 
+
+writeRaster(meanMX010,paste(myOutputFolder,'/',spString,'MX010.asc',sep=''))
+writeRaster(meanRF010,paste(myOutputFolder,'/',spString,'RF010.asc',sep='')) 
+writeRaster(meanGLM010,paste(myOutputFolder,'/',spString,'GLM010.asc',sep='')) 
+
+writeRaster(meanMX011,paste(myOutputFolder,'/',spString,'MX011.asc',sep=''))
+writeRaster(meanRF011,paste(myOutputFolder,'/',spString,'RF011.asc',sep='')) 
+writeRaster(meanGLM011,paste(myOutputFolder,'/',spString,'GLM011.asc',sep='')) 
+
+writeRaster(meanMX021,paste(myOutputFolder,'/',spString,'MX021.asc',sep=''))
+writeRaster(meanRF021,paste(myOutputFolder,'/',spString,'RF021.asc',sep='')) 
+writeRaster(meanGLM021,paste(myOutputFolder,'/',spString,'GLM021.asc',sep='')) 
+
+writeRaster(meanMX022,paste(myOutputFolder,'/',spString,'MX022.asc',sep=''))
+writeRaster(meanRF022,paste(myOutputFolder,'/',spString,'RF022.asc',sep='')) 
+writeRaster(meanGLM022,paste(myOutputFolder,'/',spString,'GLM022.asc',sep='')) 
+
+writeRaster(meanMX120,paste(myOutputFolder,'/',spString,'MX120.asc',sep=''))
+writeRaster(meanRF120,paste(myOutputFolder,'/',spString,'RF120.asc',sep='')) 
+writeRaster(meanGLM120,paste(myOutputFolder,'/',spString,'GLM120.asc',sep='')) 
+
 
 
 ### CORRELACAO ENTRE OS DIRERENTES MODELOS ###

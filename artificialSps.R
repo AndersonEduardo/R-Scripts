@@ -398,10 +398,13 @@ model4 = pres ~ bioclim_01 + I(bioclim_01^2) + bioclim_12 + I(bioclim_12^2)
 model = c(model1,model2,model3,model4)
 
 for (i in 1:length(spsTypes)){
-    for (j in 1:length(model)){
+    for (j in 1:10){
+
+        ##CONSTRUIR LOOP PARA PEGAR A MEDIA DAS 10 REPLICAS OU PEGAR A MEDIA DAS COMPARAÇÕES (DEPOIS DE RODAR SOBRE CADA UMA DAS 10)?
+        
         nicheRealFolder = paste(projectFolder,'NichoReal/',spsTypes[i],sep='') #pasta com os mapas de nicho real da sp
         nicheRealPath = list.files(path=nicheRealFolder,pattern='asc',full.names=T) #lista com os enderecos dos mapas de distribuicao da sp
-        projectionsFolder = paste(projectFolder,'GLM/',spsTypes[i],'/',scenarioModel[j],'/Projections',sep='') #pasta com as projecoes do cenario
+        projectionsFolder = paste(projectFolder,'biomod/',spsTypes[i],'/Projections',j,sep='') #pasta com as projecoes do cenario
         projectionsPath = list.files(path=projectionsFolder, pattern='asc',full.names=T) #caminhos para os .asc na paste do cenario
         outputData = data.frame(kyrBP=numeric(),Schoeners_D=numeric(),Hellinger_distances=numeric())
         for (l in 1:length(nicheRealPath[1:24])){
