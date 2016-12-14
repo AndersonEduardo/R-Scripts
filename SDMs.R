@@ -137,7 +137,7 @@ dev.off()
 library(rasterVis)
 
 #definindo objeto com os nomes
-teste = ''
+teste = 'Random Forest'
 
 #presente
 setwd(paste(projectFolder,teste,'/Raster Layers',sep='')) 
@@ -153,19 +153,19 @@ setwd(paste(projectFolder,teste,'/Passado/Raster Layers',sep=''))
 filesPass = list.files(paste(getwd()),full.names=TRUE,pattern='.asc')
 
  #caimans (completo)
-filesPass=c(filesPass[2],filesPass[4],filesPass[6],filesPass[8],filesPass[9],filesPass[11],filesPass[13],filesPass[15],filesPass[17],filesPass[18],filesPass[20],filesPass[22],filesPass[24],filesPass[26],filesPass[27],filesPass[37:41])
+filesPass=c(filesPass[2],filesPass[4],filesPass[6],filesPass[8],filesPass[10],filesPass[12],filesPass[14],filesPass[16],filesPass[18],filesPass[20],filesPass[22],filesPass[24],filesPass[30],filesPass[32],filesPass[34],filesPass[36] )#filesPass[33:36]) 
 #caimans (principal)
-filesPass=c(filesPass[4],filesPass[6],filesPass[9], filesPass[13],filesPass[15],filesPass[18],filesPass[22],filesPass[24],filesPass[27],filesPass[38],filesPass[39],filesPass[41]) 
+filesPass=c(filesPass[4],filesPass[6],filesPass[12], filesPass[14],filesPass[20],filesPass[22],filesPass[32],filesPass[34]) 
 #L. maximus e M. coypus
-filesPass=c(filesPass[29],filesPass[31],filesPass[43],filesPass[45])
+filesPass=c(filesPass[26],filesPass[28],filesPass[38],filesPass[40])
 
 #empilhando os rasters (passado e presente)
 species.layers = stack(c(files,filesPass))
 
 #organizando para caimans (completo)
-species.layers=species.layers[[ c(1,2,3,4, 5,10,15,20, 6,11,16,21, 7,12,17,22, 8,13,18,23, 9,14,19,24) ]]
+species.layers=species.layers[[ c(1,2,3,4, 5,9,13,17, 6,10,14,18, 7,11,15,19, 8,12,16,20) ]]
 #organizando para caimans (principal)
-species.layers=species.layers[[ c(1,2,3,4, 5,8,11,14, 6,9,12,15, 7,10,13,16) ]]
+species.layers=species.layers[[ c(1,2,3,4, 5,7,9,11, 6,8,10,12) ]]
 #organizando para L. maximus e M. coypus
 species.layers=species.layers[[ c(1,2,3,5,4,6) ]]
 
@@ -185,30 +185,30 @@ rasterNames = gsub("presente","Presente",rasterNames)
 setwd(paste("/home/anderson/PosDoc/teste/",teste,sep=''))
 
 ## Genero Caiman completo
-nomesSubgraficos = c("C. crocodilus","C. latirostris","C. yacare","M. niger","10 kyr BP","10 kyr BP","10 kyr BP","10 kyr BP","11 kyr BP","11 kyr BP","11 kyr BP","11 kyr BP","21 kyr BP","21 kyr BP","21 kyr BP","21 kyr BP","22 kyr BP","22 kyr BP","22 kyr BP","22 kyr BP","120 kyr BP","120 kyr BP","120 kyr BP","120 kyr BP")
+nomesSubgraficos = c("C. crocodilus","C. latirostris","C. yacare","M. niger","10 kyr BP","10 kyr BP","10 kyr BP","10 kyr BP","11 kyr BP","11 kyr BP","11 kyr BP","11 kyr BP","21 kyr BP","21 kyr BP","21 kyr BP","21 kyr BP","22 kyr BP","22 kyr BP","22 kyr BP","22 kyr BP")
 #pdf(file='CaimanCompleto.pdf')
 jpeg(file='CaimanCompleto.jpg', width = 1200, height = 1200)
-levelplot(species.layers,scales=list(x=list(cex=1), y=list(cex=1)),between=list(x=1.8, y=0.25),par.strip.text=list(cex=1.5),layout=c(4,6),col.regions=colorRampPalette(c("white","orange","darkred")), main='',names.attr=nomesSubgraficos,colorkey=list(space="right")) + layer(sp.polygons(AmSulShape)) + layer(panel.xyplot(-41.553056, -12.393417,pch=17,col='blue',cex=1.6),rows=c(2,3)) + layer(panel.xyplot(-37.753611,-9.926944,pch=17,col='blue',cex=1.6),rows=c(4,5)) + layer(panel.xyplot(-53.283333,-33.683333,pch=17,col='blue',cex=1.6),rows=6)
+levelplot(species.layers,scales=list(x=list(cex=1), y=list(cex=1)),between=list(x=1.8, y=0.25),par.strip.text=list(cex=1.8),layout=c(4,5),col.regions=colorRampPalette(c("white","orange","darkred")), main='',names.attr=nomesSubgraficos,colorkey=list(space="right",labels=list(cex=1.2))) + layer(sp.polygons(AmSulShape)) + layer(panel.xyplot(-41.553056, -12.393417,pch=17,col='blue',cex=1.6),rows=c(2,3)) + layer(panel.xyplot(-37.753611,-9.926944,pch=17,col='blue',cex=1.6),rows=c(4,5))
 dev.off()
 
 ## Genero Caiman (figura principal)
-nomesSubgraficos = c("C. crocodilus","C. latirostris","C. yacare","M. niger","11 kyr BP","11 kyr BP","11 kyr BP","11 kyr BP","21 kyr BP","21 kyr BP","21 kyr BP","21 kyr BP","120 kyr BP","120 kyr BP","120 kyr BP","120 kyr BP")
+nomesSubgraficos = c("C. crocodilus","C. latirostris","C. yacare","M. niger","11 kyr BP","11 kyr BP","11 kyr BP","11 kyr BP","21 kyr BP","21 kyr BP","21 kyr BP","21 kyr BP")
 ##pdf(file='CaimanPrincipal.pdf')
 jpeg(file='CaimanPrincipal.jpg', width = 1200, height = 1200)
-levelplot(species.layers,scales=list(x=list(cex=1.3), y=list(cex=1.3)),between=list(x=1, y=0.25),par.strip.text=list(cex=1.6),layout=c(4,4),col.regions=colorRampPalette(c("white","orange","darkred")), main='', names.attr=nomesSubgraficos, colorkey=list(space="right")) + layer(sp.polygons(AmSulShape)) + layer(panel.xyplot(-41.553056, -12.393417,pch=17,col="blue",cex=1.7),rows=c(2)) + layer(panel.xyplot(-37.753611,-9.926944,pch=17,col="blue",cex=1.7),rows=c(3)) + layer(panel.xyplot(-53.283333,-33.683333,pch=17,col='blue',cex=1.7),rows=4)
+levelplot(species.layers,scales=list(x=list(cex=1.3), y=list(cex=1.3)),between=list(x=1, y=0.25),par.strip.text=list(cex=2.5),layout=c(4,3),col.regions=colorRampPalette(c("white","orange","darkred")), main='', names.attr=nomesSubgraficos, colorkey=list(space="right",labels=list(cex=1.8))) + layer(sp.polygons(AmSulShape)) + layer(panel.xyplot(-41.553056, -12.393417,pch=17,col="blue",cex=2),rows=c(2)) + layer(panel.xyplot(-37.753611,-9.926944,pch=17,col="blue",cex=2),rows=c(3)) + layer(panel.xyplot(-53.283333,-33.683333,pch=17,col='blue',cex=2),rows=4)
 dev.off()
 
 ## M. coypus L. maximus
 nomesSubgraficos = c("L. maximus","M. coypus","13 kyr BP","19 kyr BP","14 kyr BP","20 kyr BP")
 ##pdf(file='MyoLago.pdf')
 jpeg(file='MyoLago.jpg', width = 1200, height = 1200)
-levelplot(species.layers,scales=list(x=list(cex=1.5), y=list(cex=1.5)),between=list(x=1, y=0.25),par.strip.text=list(cex=2),layout=c(2,3),col.regions=colorRampPalette(c("white","orange","darkred")), main='', names.attr=nomesSubgraficos, colorkey=list(space="right")) + layer(sp.polygons(AmSulShape)) + layer(panel.xyplot(-55.993283,-34.270064,pch=17,col="blue",cex=1),rows=c(2:3),columns=c(1)) + layer(panel.xyplot(-41.553056,-12.393333,pch=17,col="blue",cex=1),rows=c(2:3),columns=c(2))
+levelplot(species.layers,scales=list(x=list(cex=1.5), y=list(cex=1.5)),between=list(x=1.8, y=0.25),par.strip.text=list(cex=2.1),layout=c(2,3),col.regions=colorRampPalette(c("white","orange","darkred")), main='', names.attr=nomesSubgraficos, colorkey=list(space="right",labels=list(cex=1.75))) + layer(sp.polygons(AmSulShape)) + layer(panel.xyplot(-55.993283,-34.270064,pch=17,col="blue",cex=2),rows=c(2:3),columns=c(1)) + layer(panel.xyplot(-41.553056,-12.393333,pch=17,col="blue",cex=2),rows=c(2:3),columns=c(2))
 dev.off()
 
 
 ##codigo para graficos a partir dos resultados do Biomod##
 
-spString = 'Caiman.crocodilus'
+spString = 'Melanosuchus.niger'
 
 myOutputFolder = "/home/anderson/PosDoc/teste/biomod/myOutput"
 filesPath = list.files(paste(myOutputFolder),full.names=TRUE,pattern=spString)
@@ -257,29 +257,29 @@ meanRF120 = mean(layers[[ c(paste(spString,'_AllData_RUN',1:3,'_RF_120kyrBP',sep
 meanGLM120 = mean(layers[[ c(paste(spString,'_AllData_RUN',1:3,'_GLM_120kyrBP',sep=''))]]) #GLM
 
 ##salvando
-writeRaster(meanMX000>threshold,paste(myOutputFolder,'/',spString,'MX000-BINARIO.asc',sep=''))
-writeRaster(meanRF000>threshold,paste(myOutputFolder,'/',spString,'RF000-BINARIO.asc',sep='')) 
-writeRaster(meanGLM000>threshold,paste(myOutputFolder,'/',spString,'GLM000-BINARIO.asc',sep='')) 
+writeRaster(meanMX000,paste(myOutputFolder,'/',spString,'MX000.asc',sep=''),overwrite=TRUE)
+writeRaster(meanRF000,paste(myOutputFolder,'/',spString,'RF000.asc',sep=''),overwrite=TRUE) 
+writeRaster(meanGLM000,paste(myOutputFolder,'/',spString,'GLM000.asc',sep=''),overwrite=TRUE) 
 
-writeRaster(meanMX010>threshold,paste(myOutputFolder,'/',spString,'MX010-BINARIO.asc',sep=''))
-writeRaster(meanRF010>threshold,paste(myOutputFolder,'/',spString,'RF010-BINARIO.asc',sep='')) 
-writeRaster(meanGLM010>threshold,paste(myOutputFolder,'/',spString,'GLM010-BINARIO.asc',sep='')) 
+writeRaster(meanMX010>threshold,paste(myOutputFolder,'/',spString,'MX010-BINARIO.asc',sep=''),overwrite=TRUE)
+writeRaster(meanRF010>threshold,paste(myOutputFolder,'/',spString,'RF010-BINARIO.asc',sep=''),overwrite=TRUE) 
+writeRaster(meanGLM010>threshold,paste(myOutputFolder,'/',spString,'GLM010-BINARIO.asc',sep=''),overwrite=TRUE) 
 
-writeRaster(meanMX011>threshold,paste(myOutputFolder,'/',spString,'MX011-BINARIO.asc',sep=''))
-writeRaster(meanRF011>threshold,paste(myOutputFolder,'/',spString,'RF011-BINARIO.asc',sep='')) 
-writeRaster(meanGLM011>threshold,paste(myOutputFolder,'/',spString,'GLM011-BINARIO.asc',sep='')) 
+writeRaster(meanMX011>threshold,paste(myOutputFolder,'/',spString,'MX011-BINARIO.asc',sep=''),overwrite=TRUE)
+writeRaster(meanRF011>threshold,paste(myOutputFolder,'/',spString,'RF011-BINARIO.asc',sep=''),overwrite=TRUE) 
+writeRaster(meanGLM011>threshold,paste(myOutputFolder,'/',spString,'GLM011-BINARIO.asc',sep=''),overwrite=TRUE) 
 
-writeRaster(meanMX021>threshold,paste(myOutputFolder,'/',spString,'MX021-BINARIO.asc',sep=''))
-writeRaster(meanRF021>threshold,paste(myOutputFolder,'/',spString,'RF021-BINARIO.asc',sep='')) 
-writeRaster(meanGLM021>threshold,paste(myOutputFolder,'/',spString,'GLM021-BINARIO.asc',sep='')) 
+writeRaster(meanMX021>threshold,paste(myOutputFolder,'/',spString,'MX021-BINARIO.asc',sep=''),overwrite=TRUE)
+writeRaster(meanRF021>threshold,paste(myOutputFolder,'/',spString,'RF021-BINARIO.asc',sep=''),overwrite=TRUE) 
+writeRaster(meanGLM021>threshold,paste(myOutputFolder,'/',spString,'GLM021-BINARIO.asc',sep=''),overwrite=TRUE) 
 
-writeRaster(meanMX022>threshold,paste(myOutputFolder,'/',spString,'MX022-BINARIO.asc',sep=''))
-writeRaster(meanRF022>threshold,paste(myOutputFolder,'/',spString,'RF022-BINARIO.asc',sep='')) 
-writeRaster(meanGLM022>threshold,paste(myOutputFolder,'/',spString,'GLM022-BINARIO.asc',sep='')) 
+writeRaster(meanMX022>threshold,paste(myOutputFolder,'/',spString,'MX022-BINARIO.asc',sep=''),overwrite=TRUE)
+writeRaster(meanRF022>threshold,paste(myOutputFolder,'/',spString,'RF022-BINARIO.asc',sep=''),overwrite=TRUE) 
+writeRaster(meanGLM022>threshold,paste(myOutputFolder,'/',spString,'GLM022-BINARIO.asc',sep=''),overwrite=TRUE) 
 
-writeRaster(meanMX120>threshold,paste(myOutputFolder,'/',spString,'MX120-BINARIO.asc',sep=''))
-writeRaster(meanRF120>threshold,paste(myOutputFolder,'/',spString,'RF120-BINARIO.asc',sep='')) 
-writeRaster(meanGLM120>threshold,paste(myOutputFolder,'/',spString,'GLM120-BINARIO.asc',sep='')) 
+writeRaster(meanMX120>threshold,paste(myOutputFolder,'/',spString,'MX120-BINARIO.asc',sep=''),overwrite=TRUE)
+writeRaster(meanRF120>threshold,paste(myOutputFolder,'/',spString,'RF120-BINARIO.asc',sep=''),overwrite=TRUE) 
+writeRaster(meanGLM120>threshold,paste(myOutputFolder,'/',spString,'GLM120-BINARIO.asc',sep=''),overwrite=TRUE) 
 
 
 
@@ -393,7 +393,8 @@ for (i in 1:length(splist)){
             presausTrain = presausTrainRaw
 
             ##CRIANDO E RODANDO O MODELO##    
-            model <- pres ~ bioclim_10+bioclim_11+bioclim_16+bioclim_17
+            ##model <- pres ~ bioclim_10+bioclim_11+bioclim_16+bioclim_17
+            model <- pres ~ bioclim_10 + I(bioclim_10^2) + bioclim_11 + I(bioclim_11^2) + bioclim_16 + I(bioclim_16^2) + bioclim_17 + I(bioclim_17^2)
             RF <- randomForest(model, data=presausTrain, ntree=500)
 
             #porcentajepres = round(0.25*nrow(presencias)) #seleccionar un porcentajes de filas de un data.frame
@@ -432,7 +433,7 @@ for (i in 1:length(splist)){
     projecaoSuitability <- predict(predictors, RF)
 
     #gravando um raster com o mapa de projecao gerado pelo modelo
-    writeRaster(projecaoSuitability,filename=paste(projectFolder,"Random Forest/",splist[especie],"/",splist[especie],".grd", sep=""),overwrite=T)
+    writeRaster(projecaoSuitability,filename=paste(projectFolder,"Random Forest/",splist[especie],"/",splist[especie],".asc", sep=""),overwrite=T)
 
     #gravando um PDF com o mapa gerado pelo modelo
     pdf(file=paste(projectFolder,"Random Forest/",splist[i],"/",splist[i],".pdf",sep=""))
@@ -614,7 +615,8 @@ for (i in 1:length(splist)){
             presausTrain = presausTrainRaw
 
             ##CRIANDO E RODANDO O MODELO##                
-            model <- pres ~ bioclim_10 + I(bioclim_10^2) + bioclim_11 + I(bioclim_11^2) + bioclim_16 + I(bioclim_16^2) + bioclim_17 + I(bioclim_17^2)
+            #model <- pres ~ bioclim_10 + I(bioclim_10^2) + bioclim_11 + I(bioclim_11^2) + bioclim_16 + I(bioclim_16^2) + bioclim_17 + I(bioclim_17^2)
+            model <- pres ~ bioclim_11 + bioclim_17  #melhor modelo
             GLM <- glm(model, family=binomial(link=logit), data=presausTrain)
 
             
@@ -654,12 +656,12 @@ for (i in 1:length(splist)){
     projecaoSuitability <- predict(predictors, GLM, type='response')
 
     #gravando um raster com o mapa de projecao gerado pelo modelo
-    writeRaster(projecaoSuitability,filename=paste(projectFolder,"GLM/",splist[i],"/",splist[i],".grd", sep=""),overwrite=T)
+    writeRaster(projecaoSuitability,filename=paste(projectFolder,"GLM/",splist[i],"/",splist[i],".asc", sep=""),overwrite=TRUE)
 
     #gravando um PDF com o mapa gerado pelo modelo
     pdf(file=paste(projectFolder,"GLM/",splist[i],"/",splist[i],".pdf",sep=""))
     plot(projecaoSuitability, main=paste(splist[i]))
-    plot(AmSulShape,add=T)
+    plot(AmSulShape,add=TRUE)
     points(presencias$longitude,presencias$latitude,col='orange',pch=20,cex=0.75)
     points(presencias$longitude,presencias$latitude,col='red',cex=0.7)
     dev.off()
@@ -735,7 +737,6 @@ for (i in 1:length(splist)){
         points(fossilPoints,col='orange',pch=20,cex=0.75)
         points(fossilPoints,col='red',cex=0.8)
         dev.off()
-            
     }
 }
 

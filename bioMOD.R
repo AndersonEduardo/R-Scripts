@@ -55,7 +55,7 @@ splist.fosseis = lapply(occ.sps.fosseis[,1],as.character)
 
 for (i in 1:length(splist)){
     especie = splist[i] #escolher qual especie
-    sp.file <- read.csv(paste(spOccFolder,especie,".csv",sep=""),h=T) ### read sp occurrence
+    sp.file <- read.csv(paste(spOccFolder,especie,".csv",sep=""),header=TRUE) ### read sp occurrence
     sp.occ <- sp.file[,2:3] ## select lat long columns
     
     ##extraindo dados da variavel climatica nos pontos de ocorrencia
@@ -123,7 +123,7 @@ for (i in 1:length(splist)){
     myBiomodProj <- BIOMOD_Projection(
         modeling.output = myBiomodModelOut,
         new.env = predictors,
-        proj.name = '000kyrBP'
+        proj.name = '000kyrBP',
         selected.models = paste(myBiomodModelOut@models.computed,sep=''),
         binary.meth = 'TSS',
         compress = FALSE,
@@ -151,10 +151,10 @@ for (i in 1:length(splist)){
         sp.fossil = sp.fossil.data[l,]
         
         ##abrindo as variaveis ambientais do tempo do fossil
-        if (sp.fossil$kyr >= 100)){
-            filesProjectionRaw <- stack(list.files(path = paste(envVarFolder,"dados_projeto/",sp.fossil$kyr,sep=""), pattern='asc', full.names=T)) ###abrindo camandas para projecao (passado, futuro, outro local, etc)
+        if (sp.fossil$kyr >= 100){
+            filesProjectionRaw <- stack(list.files(path = paste(envVarFolder,"dados_projeto/",sp.fossil$kyr,sep=""), pattern='asc', full.names=TRUE)) ###abrindo camandas para projecao (passado, futuro, outro local, etc)
         }else{
-            filesProjectionRaw <- stack(list.files(path = paste(envVarFolder,"dados_projeto/0",sp.fossil$kyr,sep=""), pattern='asc', full.names=T)) ###abrindo camandas para projecao (passado, futuro, outro local, etc)}else{
+            filesProjectionRaw <- stack(list.files(path = paste(envVarFolder,"dados_projeto/0",sp.fossil$kyr,sep=""), pattern='asc', full.names=TRUE)) ###abrindo camandas para projecao (passado, futuro, outro local, etc)}else{
         }
         filesProjection = mask(filesProjectionRaw,AmSulShape) #cortando para Am. do Sul
         files.crop.sub.projection <- dropLayer(filesProjection, c(1,2,5,6)) #removendo as camadas que mostraram correlacao
@@ -181,7 +181,7 @@ for (i in 1:length(splist)){
         writeRaster(projStackPass,filename=paste(projectFolder,'biomod/myOutput/',names(projStack),'_',sp.fossil$kyr,'kyrBP',sep=''),bylayer=TRUE,format='ascii',overwrite=TRUE)
         ## write.csv(data.frame(varImportancePass),paste(projectFolder,'biomod/myOutput/varImportance/varImportance_',sp.fossil$kyr,'kyrBP.csv',sep=''),row.names=TRUE)
         ## write.csv(data.frame(evaluationScoresPass),paste(projectFolder,'biomod/myOutput/evaluationScores/evaluationScores_',sp.fossil$kyr,'kyrBP.csv',sep=''),row.names=TRUE)
-
+        
         ##suitability no ponto fossil:
         ##criando um objeto com as coordenadas do registro fossil
         fossilPoints = sp.fossil
@@ -190,4 +190,5 @@ for (i in 1:length(splist)){
         suitabNoPontoFossil = extract(projStackPass,fossilPoints)
         write.csv(suitabNoPontoFossil,paste(projectFolder,'biomod/myOutput/suitabilityNoPontoFossil/',sp.fossil$species,sp.fossil$kyr,'kyrBP',sep=''))
     }
-}   
+}
+
