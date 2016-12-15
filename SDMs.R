@@ -146,7 +146,7 @@ files = list.files(paste(getwd()),full.names=TRUE,pattern='.asc')
 ##TSS pela minha funcao
 source("/home/anderson/R/R-Scripts/TSSfunction.R")
 ##mapa binario
-teste = 'Random Forest'
+teste = 'Maxent'
 setwd(paste(projectFolder,teste,'/Raster Layers',sep='')) 
 files = list.files(paste(getwd()),full.names=TRUE,pattern='.asc')
 files = files[c(2,4,6,8,10,12)]
@@ -165,6 +165,12 @@ for (i in 1:length(rasterNames)){
     tssValue = TSSfunction(species.layers[[names(species.layers)[i]]]>0,sp.file)
     tssTable = rbind(tssTable,cbind(teste,especie,tssValue))
 }
+
+setwd("/home/anderson/PosDoc/teste/Random Forest/Passado/Raster Layers")
+raster.layer = stack(list.files(paste(getwd()),full.names=TRUE,pattern='Melanosuchus.niger'))
+pontos = data.frame(lon=c(-41.553056,-37.753611), lat=c(-12.393417,-9.926944))
+
+suitability = extract(x=raster.layer,y=pontos[2,])
 
 
 #caimans
