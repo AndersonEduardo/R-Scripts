@@ -13,9 +13,9 @@ TSSfunction = function(binaryMap,spOccPoints){
             spOccPoints = spOccPoints 
 
             ##extraindo informacoes para matriz de confusao
-            a = sum(extract(binMap,spOccPoints)) ##observed: presente - forecast: presente
-            b = sum(binMap.data[,3])-sum(extract(binMap,spOccPoints)) ##observed: ausente - forecast: presente
-            c = nrow(spOccPoints)-sum(extract(binMap,spOccPoints)) ##observed: presente - forecast: ausente
+            a = sum(extract(binMap,spOccPoints),na.rm=TRUE) ##observed: presente - forecast: presente
+            b = sum(binMap.data[,3])-sum(extract(binMap,spOccPoints),na.rm=TRUE) ##observed: ausente - forecast: presente
+            c = nrow(spOccPoints)-sum(extract(binMap,spOccPoints),na.rm=TRUE) ##observed: presente - forecast: ausente
             d = nrow(binMap.data)-(a+b+c)  ##observed: ausente - forecast: ausente
             
             ##matriz de confusao

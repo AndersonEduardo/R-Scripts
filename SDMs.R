@@ -67,7 +67,7 @@ for (i in 1:length(vetor_de_nomes)) {
   locs5<-locs4[!duplicated(locs4), ]
   locs6<-cbind(sp,locs5) 
   #write.csv(locs6, file=paste("/home/anderson/R/PosDoc/dados_ocorrencia/",unique(Especies$Especie)[i],".csv",sep=""),row.names=F)
-  write.csv(locs6, file=paste("/home/anderson/R/PosDoc/dados_ocorrencia/PO_unique/",sp,".csv",sep=""),row.names=F)
+  write.csv(locs6, file=paste("/home/anderson/PosDoc/dados_ocorrencia/PO_unique/",sp,".csv",sep=""),row.names=F)
 }
 
 ########## Criando objetos com a lista de especies #############
@@ -142,6 +142,30 @@ teste = 'Random Forest'
 #presente
 setwd(paste(projectFolder,teste,'/Raster Layers',sep='')) 
 files = list.files(paste(getwd()),full.names=TRUE,pattern='.asc')
+
+##TSS pela minha funcao
+source("/home/anderson/R/R-Scripts/TSSfunction.R")
+##mapa binario
+teste = 'Random Forest'
+setwd(paste(projectFolder,teste,'/Raster Layers',sep='')) 
+files = list.files(paste(getwd()),full.names=TRUE,pattern='.asc')
+files = files[c(2,4,6,8,10,12)]
+species.layers = stack(files)
+
+rasterNames = gsub("_"," ",names(species.layers))
+rasterNames = gsub("BINARIO","",rasterNames)
+
+##planilha de ocorrencia da especie
+tssTable=data.frame()
+for (i in 1:length(rasterNames)){
+    especie = rasterNames[i]
+    sp.file <- read.csv(paste(spOccFolder,especie,".csv",sep=""),h=TRUE) ### read sp occurrence
+    sp.file = sp.file[,2:3]
+    ##TSS
+    tssValue = TSSfunction(species.layers[[names(species.layers)[i]]]>0,sp.file)
+    tssTable = rbind(tssTable,cbind(teste,especie,tssValue))
+}
+
 
 #caimans
 files=c(files[1],files[3],files[5],files[9]) 
