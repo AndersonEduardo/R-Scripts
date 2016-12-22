@@ -1,10 +1,12 @@
 ##########################################################################
-######################SDM WITH RANDOM FOREST##############################
+############################## SDM WITH GLM ##############################
 ###########################Anderson A. Eduardo############################
 ##########################################################################
 library(raster)
 library(maptools)
 library(dismo)
+source("/home/anderson/R/R-Scripts/TSSfunction.R")
+
 
 ###PRIMEIRA PARTE: planilha de presencas, backgrownd e variaveis ambientais
 
@@ -32,11 +34,11 @@ files = mask(filesRaw,AmSulShape) #cortando para Am. do Sul
 
 ##remove highly correlated variables Bio1,Bio3,Bio9,Bio13,Bio14
 #files.crop.sub <- dropLayer(files, c(1,2,5,6)) #remove selected layers
-files.crop.sub = files[[c('bioclim_10','bioclim_11','bioclim_15','bioclim_16','bioclim_17')]] #remove selected layers
+files.crop.sub = files[[c('bioclim_10','bioclim_11','bioclim_15','bioclim_16','bioclim_17')]] #choose selected layers
 ##files.crop.sub.projection <- dropLayer(filesProjection, c(1,2,5,6))
 
 ##definindo os objetos para as variaveis preditoras
-predictors <- files.crop.sub
+predictors <- stack(files.crop.sub)
 ##predictorsProjection = files.crop.sub.projection
 
 ##Criando objeto com a lista de especies
@@ -48,15 +50,25 @@ splist.fosseis = lapply(occ.sps.fosseis[,1],as.character)
 
 ###SEGUNDA PARTE: rodando SDMs para as especies (e fazendo projecoes)
 
-#registrando o tempo de processamento
+##registrando o tempo de processamento
 ptm <- proc.time()
 
-#abrindo um data.frame para armazenar os resultados de AUC
-resultsEvaluationRF<-data.frame(algorithm=character(), species=character(), auc=numeric(),tss=numeric(),stringsAsFactors=FALSE)
+##abrindo um data.frame para armazenar os resultados de AUC
+resultsEvaluationGLM<-data.frame(algorithm=character(), species=character(), auc=numeric(),tss=numeric(),stringsAsFactors=FALSE)
 index=0 #auxiliara na criacao do data.frame durante o loop
 fossilPointsSuitability = data.frame() #objetvo em que serao gravadas as projcoes de suitability especificamente para cada ponto de registro fossil
 
+##criando um objeto com os modelos de cada especie
+modelo = list()
+modelo[['Caiman crocodilus']] = pres ~ bioclim_10 + bioclim_11 + bioclim_15 + bioclim_16 + I(bioclim_16^2) + bioclim_17 #Caiman crocodilus
+modelo[['Caiman latirostris']] = pres ~ bioclim_10 + bioclim_11 + I(bioclim_11^2) + bioclim_16 + I(bioclim_16^2) #Caiman latirostris
+modelo[['Caiman yacare']] = pres ~ bioclim_10 + bioclim_11 + I(bioclim_11^2) + bioclim_16 + I(bioclim_16^2) + bioclim_17 + I(bioclim_17^2) #Caiman yacare
+modelo[['Melanosuchus niger']] = pres ~ bioclim_11 + bioclim_15 + bioclim_16 #Melanosuchus niger
+modelo[['Myocastor coypus']] = pres ~ bioclim_10 + bioclim_11 + I(bioclim_11^2) + bioclim_16 #Myocastor coypus
+modelo[['Lagostomus maximus']] = pres ~bioclim_10 + bioclim_11 + I(bioclim_11^2) + bioclim_16 #Lagostomus maximus
+
 for (i in 1:length(splist)){
+
     especie = splist[i] #selecting the species
     sp.file <- read.csv(paste(spOccFolder,especie,".csv",sep=""),header=TRUE) ### read sp occurrence
     sp.occ <- sp.file[,2:3] ## select lat-long columns
@@ -70,11 +82,12 @@ for (i in 1:length(splist)){
     ##juntando dados das variaveis climaticas nos pontos de ocorrencia, coordenadas de ocorrencia e o vetor (coluna na tabela) para presenca/ausencia
     presencesData = data.frame(cbind(sp.occ,pres,presencesVars))
     presencesData = presencesData[complete.cases(presencesData),]
+    presencesData = presencesData[complete.cases(presencesData),]
 
     ##criando pontos de background
-    background1 <- randomPoints(mask=predictors[[1]], n=5000, p=presencesData[,c("latitude","longitude")], excludep=TRUE)
+    background1 <- randomPoints(mask=predictors[[1]], n=1000, p=presencesData[,c("latitude","longitude")], excludep=TRUE) #10*nrow(presencesData)
     background2 <- round(background1, digits=4)
-    background3 <- background2[!duplicated(background2),]
+    background3 <- background2[!duplicated(background2),]10*
     background4 <- background3[complete.cases(background3),]
     background <- data.frame(background4)
     colnames(background) <- c("longitude", "latitude")
@@ -87,12 +100,14 @@ for (i in 1:length(splist)){
 
     ##juntando dados das variaveis climaticas nos pontos de ocorrencia, coordenadas de ocorrencia e o vetor (coluna na tabela) para presenca/ausencia    
     backgroundData = data.frame(cbind(background,pres,backgroundVars))
+    backgroundData = backgroundData[complete.cases(backgroundData),]    
     
     ##planilha de dados final
     dataSet = data.frame(rbind(presencesData,backgroundData))
 
     ##avaliando o modelo
-    V <- numeric()#abrir un vector vacío 
+    projecaoSuitability = list()
+    evaluation = list()
     
     for (j in 1:10){
         tryCatch({# bootstrapping with 10 replications
@@ -109,55 +124,54 @@ for (i in 1:length(splist)){
             PresBackTrain = PresBackTrainRaw
 
             ##criando e rodando o modelo
-            model = pres ~ bioclim_10 + bioclim_11 + bioclim_15 + bioclim_16 + I(bioclim_16^2) + bioclim_17 #Caiman crocodilus
-            model = pres ~ bioclim_10 + bioclim_11 + I(bioclim_11^2) + bioclim_16 + I(bioclim_16^2) #Caiman latirostris
-            model = pres ~ bioclim_10 + bioclim_11 + I(bioclim_11^2) + bioclim_16 + I(bioclim_16^2) + bioclim_17 + I(bioclim_17^2) #Caiman yacare
-            model = pres ~ bioclim_11 + bioclim_15 + bioclim_16 #Melanosuchus niger
-            model = pres ~ bioclim_10 + bioclim_11 + I(bioclim_11^2) + bioclim_16 #Myocastor coypus
-            model = pres ~bioclim_10 + bioclim_11 + I(bioclim_11^2) + bioclim_16 #Lagostomus maximus
-
-            GLM <- glm(model, family=binomial(link=logit), data=PresBackTrain)
+            modelGLM = modelo[[especie]]
+            
+            GLM <- glm(modelGLM, family=binomial(link=logit), data=PresBackTrain)
+            projecaoSuitability = append(projecaoSuitability, predict(predictors, GLM, type='response'))
             
             ##pegando a porcao dos dados separados para a avaliacao (validacao) do modelo
-            
             presencesTest = presencesData[rand==1,]
             presencesTest <- presencesTest[,c('longitude','latitude')]
             backgroundTest = backgroundData[rand==1,]
             backgroundTest = backgroundTest[,c('longitude','latitude')]
             
             ##rodando a avaliacao do modelo
-            evaluation = evaluate(p=presencesTest,a=backgroundTest,m=RF,x=predictors)
+            evaluation = append(evaluation, evaluate(p=presencesTest,a=backgroundTest,m=GLM,x=predictors,type='response'))
 
-            #registrando o valor de AUC em um objeto
-            V[j]<-evaluation@"auc" #sacamos el valor de auc (fíjate que es una @ en lugar de $ para mirar dentro de los slots)y guardamos en vector
         }, error=function(e){cat("ERROR :",conditionMessage(e),"\n")}
    )}  
 
-    #registrando a media de AUC
-    auc = mean(V, na.rm=TRUE)#media de los vectores de las iternaciones de j
-
     ##PROJETANDO o nicho no espaco atraves do modelo ajustado##
-    projecaoSuitability <- predict(predictors, RF)
-
+    projecaoSuitabilityStack = stack(projecaoSuitability)
+    projecaoSuitabilityMean = mean(projecaoSuitabilityStack)
+#    projecaoSuitability <- predict(predictors, GLM, type='response')
+    
     ##gravando um raster com o mapa de projecao gerado pelo modelo
-    writeRaster(projecaoSuitability,filename=paste(projectFolder,"Random Forest/",splist[especie],"/",splist[especie],".asc", sep=""),overwrite=TRUE)
+    writeRaster(projecaoSuitabilityMean,filename=paste(projectFolder,"GLM/",splist[especie],"/",splist[especie],".asc", sep=""),overwrite=TRUE)
 
     ##criando um mapa binario
-    threshold <- threshold(evaluation,'spec_sens')
-    bin <- projecaoSuitability > threshold #apply threshold to transform logistic output into binary maps
+    thresholdValues = NULL
+    aucValues = NULL
+    for (i in 1:length(evaluation)){
+        thresholdValues <- append(thresholdValues, threshold(evaluation[[i]],'spec_sens'))
+        aucValues = append(aucValues, evaluation[[i]]@auc)
+    }
+    aucMean = mean(aucValues)
+    thresholdMean = mean(thresholdValues)
+    bin <- projecaoSuitabilityMean > thresholdMean #apply threshold to transform logistic output into binary maps
 
     #salvando um raster com o mapa binario
-    writeRaster(bin,filename=paste(projectFolder,"Random Forest/",splist[i],"/",splist[especie],"BINARIO.asc",sep=""),overwrite=T)
+    writeRaster(bin,filename=paste(projectFolder,"GLM/",splist[i],"/",splist[especie],"BINARIO.asc",sep=""),overwrite=T)
 
     ##calculando o TSS a partir do mapa binario (usando minha propria funcao TSS)
-    tss = TSSfunction(binaryMap=bin, spOccPoints=presencesData[,c('longitude','latitude')])
+    tss = TSSfunction(binaryMap=bin>0, spOccPoints=presencesData[,c('longitude','latitude')])
     
     #registrando o valor de AUC medio em uma tabela
     index=index+1
-    resultsEvaluationRF[index, "algorithm"] = 'Random Forest'
-    resultsEvaluationRF[index, "species"] = especie
-    resultsEvaluationRF[index, "auc"] = evaluation@auc
-    resultsEvaluationRF[index, "tss"] = tss
+    resultsEvaluationGLM[index, "algorithm"] = 'GLM'
+    resultsEvaluationGLM[index, "species"] = especie
+    resultsEvaluationGLM[index, "auc"] = aucMean
+    resultsEvaluationGLM[index, "tss"] = tss
 
     ##PROJECAO PARA O PASSADO##
 
@@ -176,16 +190,16 @@ for (i in 1:length(splist)){
         predictorsProjection = files.crop.sub.projection #preditoras para o tempo do fossil
 
         ##PROJETANDO o nicho no espaco atraves do modelo ajustado##
-        projecaoSuitabilityPassado <- predict(predictorsProjection, RF)
+        projecaoSuitabilityPassado <- predict(predictorsProjection, GLM, type='response')
 
         ##salvando um raster com a projecao do modelo para o tempo do fossil
-        writeRaster(projecaoSuitabilityPassado,filename=paste(projectFolder,"Random Forest/Passado/",splist[especie],"/",splist[especie],'-',sp.fossil$kyr," K years BP.asc", sep=""),overwrite=TRUE)
+        writeRaster(projecaoSuitabilityPassado,filename=paste(projectFolder,"GLM/Passado/",splist[especie],"/",splist[especie],'-',sp.fossil$kyr," K years BP.asc", sep=""),overwrite=TRUE)
 
         ##criando um mapa binario para a projecao do modelo (empregando o threshold que ja foi criado apos a avaliacao do modelo)
         bin <- projecaoSuitabilityPassado > threshold#apply threshold to transform logistic output into binary maps
         
         ##salvando um raster com a projecao do modelo para o tempo do fossil
-        writeRaster(bin,filename=paste(projectFolder,"Random Forest/Passado/",splist[especie],"/",splist[especie],'-',sp.fossil$kyr,"K years BP - BINARIO.asc",sep=""),overwrite=TRUE)
+        writeRaster(bin,filename=paste(projectFolder,"GLM/Passado/",splist[especie],"/",splist[especie],'-',sp.fossil$kyr,"K years BP - BINARIO.asc",sep=""),overwrite=TRUE)
 
         ##criando um objeto com as coordenadas do registro fossil
         fossilPoints = sp.fossil
@@ -193,17 +207,17 @@ for (i in 1:length(splist)){
 
         ##obtendo a projecao de qualidade de habitat especificamente para o ponto do fossil
         ##fossilPointsVars = extract(predictorsProjection,fossilPoints)
-        ##predict(RF, fossilPointsVars)
-        fossilPoints.RF = extract(projecaoSuitabilityPassado,fossilPoints,method='bilinear') 
-        fossilPointsSuitability = rbind(fossilPointsSuitability,data.frame(algorithm='Random Forest',species=especie,kyr=sp.fossil$kyr,suitability=fossilPoints.RF))
+        ##predict(GLM, fossilPointsVars)
+        fossilPoints.GLM = extract(projecaoSuitabilityPassado,fossilPoints,method='bilinear') 
+        fossilPointsSuitability = rbind(fossilPointsSuitability,data.frame(algorithm='GLM',species=especie,kyr=sp.fossil$kyr,suitability=fossilPoints.GLM))
     }
 }
 
 #salvando a tabela de dados da avaliacao dos modelos
-write.table(resultsEvaluationRF,file=paste(projectFolder,"Random Forest/","AUC&TSS.csv",sep=""), row.names=FALSE, col.names=TRUE, quote=FALSE, sep=",")
+write.table(resultsEvaluationGLM,file=paste(projectFolder,"GLM/","AUC&TSS.csv",sep=""), row.names=FALSE, col.names=TRUE, quote=FALSE, sep=",")
 
-write.table(fossilPointsSuitability,file=paste(projectFolder,"Random Forest/","suitabilityNoPontoFossil.csv",sep=","))
+write.table(fossilPointsSuitability,file=paste(projectFolder,"GLM/","suitabilityNoPontoFossil.csv",sep=","))
 
 #fechando e informando o tempo de processamento
 msgm= proc.time() - ptm
-print(paste('Tempo gasto para rodar RANDOM FOREST: ', msgm[3]/60,' minutos',sep=''))
+print(paste('Tempo gasto para rodar GLM: ', msgm[3]/60,' minutos',sep=''))

@@ -74,7 +74,7 @@ for (i in 1:length(vetor_de_nomes)) {
 occ.sps <- list.files(paste(spOccFolder,sep=''),pattern="csv")
 splist <-unlist(lapply(occ.sps, FUN = strsplit, split=("\\.csv")))
 ##fosseis
-occ.sps.fosseis = read.csv(paste(spOccFolder,"fosseis.csv",sep=''),header=T)
+occ.sps.fosseis = read.csv(paste(spOccFolder,'/fosseis/',"fosseis.csv",sep=''),header=T)
 splist.fosseis = lapply(occ.sps.fosseis[,1],as.character)
 
 ###inspeção visual exploratoria
@@ -646,9 +646,8 @@ for (i in 1:length(splist)){
 
             ##CRIANDO E RODANDO O MODELO##                
             #model <- pres ~ bioclim_10 + I(bioclim_10^2) + bioclim_11 + I(bioclim_11^2) + bioclim_16 + I(bioclim_16^2) + bioclim_17 + I(bioclim_17^2)
-            model <- pres ~ bioclim_11 + bioclim_17  #melhor modelo
-            GLM <- glm(model, family=binomial(link=logit), data=presausTrain)
-
+            model <- pres ~ bioclim_11 + bioclim_17#melhor modelo
+            GLM <- glm(model, family=binomial(link=logit), data=presausTrainRaw)
             
             #porcentajepres = round(0.25*nrow(presencias)) #seleccionar un porcentajes de filas de un data.frame
             #presencias.evaluacion<-presencias[sample(nrow(presencias), porcentajepres), ] #seleccionar ese porcentaje de filas aleatorias.
@@ -662,7 +661,7 @@ for (i in 1:length(splist)){
             pseudoausencias.evaluacion = cbind(pseudoausencias.evaluacion$longitude,pseudoausencias.evaluacion$latitude)
 
             ##RODANDO A AVALIACAO DO MODELO##
-            evaluacion=evaluate(presencias.evaluacion, pseudoausencias.evaluacion, GLM, predictors)
+            evaluacion=evaluate(presencias.evaluacion, pseudoausencias.evaluacion, GLM, predictors,type='response')
 
             #registrando o valor de AUC em um objeto
             V[j]<-evaluacion@"auc" #sacamos el valor de auc (fíjate que es una @ en lugar de $ para mirar dentro de los slots)y guardamos en vector
@@ -729,11 +728,11 @@ for (i in 1:length(splist)){
         predictorsProjection = files.crop.sub.projection #preditoras para o tempo do fossil
 
         ##PROJETANDO o nicho no espaco atraves do modelo ajustado##
-        projecaoSuitabilityPassado <- predict(predictorsProjection, GLM,type='response') #PASSADO
+        projecaoSuitabilityPassado <- predict(predictorsProjection,GLM,type='response') #PASSADO
 
         #criando um objeto com as coordenadas do registro fossil
         fossilPoints = sp.fossil
-        fossilPoints = cbind(fossilPoints$longitude, fossilPoints$latitude)
+        fossilPoints = cbind(fossilPoints$longitude,fossilPoints$latitude)
 
         #obtendo a projecao de qualidade de habitat especificamente para o ponto do fossil
         fossilPointsVars = extract(predictorsProjection,fossilPoints)

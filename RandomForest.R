@@ -72,7 +72,7 @@ for (i in 1:length(splist)){
     presencesData = presencesData[complete.cases(presencesData),]
 
     ##criando pontos de background
-    background1 <- randomPoints(mask=predictors[[1]], n=5000, p=presencesData[,c("latitude","longitude")], excludep=TRUE)
+    background1 <- randomPoints(mask=predictors[[1]], n=10*nrow(presencesData), p=presencesData[,c("latitude","longitude")], excludep=TRUE)
     background2 <- round(background1, digits=4)
     background3 <- background2[!duplicated(background2),]
     background4 <- background3[complete.cases(background3),]
