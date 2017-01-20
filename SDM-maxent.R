@@ -184,13 +184,13 @@ for (i in 1:length(splist)){
         predictorsProjection = files.crop.sub.projection #preditoras para o tempo do fossil
 
         ##PROJETANDO o nicho no espaco atraves do modelo ajustado##
-        projecaoSuitabilityPassado <- predict(predictorsProjection, MX)
+        projecaoSuitabilityPassado <- predict(predictorsProjection, MX.projection)
 
         ##salvando um raster com a projecao do modelo para o tempo do fossil
         writeRaster(projecaoSuitabilityPassado,filename=paste(projectFolder,"Maxent/Passado/",splist[i],"/",splist[i],'-',sp.fossil$kyr," K years BP.asc", sep=""),overwrite=TRUE)
 
         ##criando um mapa binario para a projecao do modelo (empregando o threshold que ja foi criado apos a avaliacao do modelo)
-        bin <- projecaoSuitabilityPassado > threshold#apply threshold to transform logistic output into binary maps
+        bin <- projecaoSuitabilityPassado > thresholdMean#apply threshold to transform logistic output into binary maps
         
         ##salvando um raster com a projecao do modelo para o tempo do fossil
         writeRaster(bin,filename=paste(projectFolder,"Maxent/Passado/",splist[i],"/",splist[i],'-',sp.fossil$kyr,"K years BP - BINARIO.asc",sep=""),overwrite=TRUE)
@@ -204,13 +204,14 @@ for (i in 1:length(splist)){
         ##predict(MX, fossilPointsVars)
         fossilPoints.MX = extract(projecaoSuitabilityPassado,fossilPoints,method='bilinear') 
         fossilPointsSuitability = rbind(fossilPointsSuitability,data.frame(algorithm='Maxent',species=especie,kyr=sp.fossil$kyr,suitability=fossilPoints.MX))
+        
     }
 }
 
 #salvando a tabela de dados da avaliacao dos modelos
-write.table(resultsEvaluationMX,file=paste(projectFolder,"Maxnent/","AUC&TSS.csv",sep=""), row.names=FALSE, col.names=TRUE, quote=FALSE, sep=",")
+write.table(resultsEvaluationMX,file=paste(projectFolder,"Maxent/","AUC&TSS.csv",sep=""), row.names=FALSE, col.names=TRUE, quote=FALSE, sep=",")
 
-write.table(fossilPointsSuitability,file=paste(projectFolder,"Maxent/","suitabilityNoPontoFossil.csv",sep=","))
+write.table(fossilPointsSuitability,file=paste(projectFolder,"Maxent/","suitabilityNoPontoFossil.csv",sep=""))
 
 #fechando e informando o tempo de processamento
 msgm= proc.time() - ptm
