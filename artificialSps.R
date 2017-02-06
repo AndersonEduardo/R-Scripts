@@ -12,7 +12,7 @@ source("/home/anderson/R/R-Scripts/TSSmaxent.R")
 ###Parametros necessarios###
 envVarFolder = "/home/anderson/PosDoc/dados_ambientais/dados_projeto" #pasta com as variaveis ambientais
 caminhosCamadasTemp = list.files(path=envVarFolder, full.names=T) #lista com os caminhos das camadas no sistema (comp.)
-projectFolder = "/home/anderson/Documentos/Minha produção bibliográfica/Sps artificiais/" #pasta do projeto
+projectFolder = "/home/anderson/Documentos/Projetos/Sps artificiais/" #pasta do projeto
 AmSulShape = readShapePoly("/home/anderson/PosDoc/Am_Sul/borders.shp") #shape da America do Sul
 ############################
 
@@ -50,21 +50,21 @@ Npass = 1 #numero de pontos a serem amostrados para camadas do passado (pensando
 Npres = 1 #c(10,100,200,400,800) #numero de pontos a serem amostrados para camadas do presente
 envVarFolder = "/home/anderson/PosDoc/dados_ambientais/dados_projeto" #pasta com as variaveis ambientais
 caminhosCamadasTemp = list.files(path=envVarFolder, full.names=T) #lista com os caminhos das camadas no sistema (comp.)
-projectFolder = "/home/anderson/Documentos/Minha produção bibliográfica/Sps artificiais/" #pasta do projeto
-mainSampleFolder = '/home/anderson/Documentos/Minha produção bibliográfica/Sps artificiais/Amostras/' #caminho para pasta onde a planilha com os pontos amostrados sera salva
+projectFolder = "/home/anderson/Documentos/Projetos/Sps artificiais/" #pasta do projeto
+mainSampleFolder = '/home/anderson/Documentos/Projetos/Sps artificiais/Amostras/' #caminho para pasta onde a planilha com os pontos amostrados sera salva
 AmSulShape = readShapePoly("/home/anderson/PosDoc/Am_Sul/borders.shp") #shape da America do Sul
-biomodFolder = '/home/anderson/Documentos/Minha produção bibliográfica/Sps artificiais/biomod/' #pasta para resultados do maxent
+biomodFolder = '/home/anderson/Documentos/Projetos/Sps artificiais/biomod/' #pasta para resultados do maxent
 spsTypes = c('spHW', 'spHD', 'spCD') #nomes das especies
 
 ############################
-for(g in 1:10){
-    for (h in 1:length(spsTypes)){
+for(g in 1:10){ #loop para replicar a 'amostragem de pontos fosseis'
+    for (h in 1:length(spsTypes)){ #loop sobre os 'tipos de especies'
         nicheRealFolder = paste(projectFolder,'NichoReal/',spsTypes[h],sep='') #pasta com os mapas de nicho real da sp
         nicheRealPath = list.files(path=nicheRealFolder, full.names=T, pattern='.asc') #lista com os enderecos dos mapas de distribuicao da sp
-        for (j in 1:length(Npres)){
-            for (k in 1:length(Npass)){
+        for (j in 1:length(Npres)){ #loop sobre os cenarios de amostragem para o presente
+            for (k in 1:length(Npass)){ #loop sobre os cenarios de amostragem para o passado
                 amostra = data.frame()
-                for (i in 1:length(nicheRealPath[1:24])){
+                for (i in 1:length(nicheRealPath[1:24])){ #loop sobre o numero de camadas de tempo a serem amostradas
                     realNicheMap = raster(nicheRealPath[i]) #abrindo o mapa de occ da sp
                     ##nameScenario = names(realNicheMap)
                     if (names(realNicheMap) != 'X000'){ #verificando se e o mapa da ocorrencia no presente
@@ -84,7 +84,7 @@ for(g in 1:10){
                     amostra = rbind(amostra,amostra_i)
                 }
                 ##
-                setwd(paste(projectFolder,'Amostras/',spsTypes[h],'/',sep='')) #mudando a pasta de trabalho para os outputs do biomod
+                setwd(paste(projectFolder,'Amostras/',spsTypes[h],'/',sep='')) #mudando a pasta de trabalho para os outputs
                 names(amostra) = c('lon','lat',"bioclim_01","bioclim_04","bioclim_10","bioclim_11","bioclim_12","bioclim_15","bioclim_16","bioclim_17")
                 write.csv(amostra,file=paste('occurrences_',g,'.csv',sep=''),row.names=FALSE)#salvando a planilha com os dados da amostra
             }
@@ -94,17 +94,17 @@ for(g in 1:10){
 
 ##Background points
 for (g in 1:10){ #loop para replicar a 'amostragem de pontos fosseis'
-    for (i in 1:length(spsTypes)){
+    for (i in 1:length(spsTypes)){  #loop sobre os 'tipos de especies'
         backgroundPoints = data.frame()
         nicheRealFolder = paste(projectFolder,'NichoReal/',spsTypes[i],sep='') #pasta com os mapas de nicho real da sp
         nicheRealPath = list.files(path=nicheRealFolder, full.names=TRUE, pattern='.asc') #lista com os enderecos dos mapas de distribuicao da sp
-        for (j in 1:length(nicheRealPath[1:24])){
+        for (j in 1:length(nicheRealPath[1:24])){ #loop sobre o numero de camadas de tempo a serem amostradas
             predictors = stack(list.files(path=paste(caminhosCamadasTemp[j],sep=''),pattern='asc',full.names=TRUE)) #carregando as variaveis ambientais
             #predictors = mask(predictors,AmSulShape) #recortando as variaveis ambientais #ARRUMAR: RETIRAR, P FICAR MAIS RAPIDO
             
             #pooledOccPoints = read.csv(paste(mainSampleFolder,spsTypes[i],'/occurrences_',g,'.csv',sep=''),header=TRUE) #abrindo .csv de occ #ARRUMAR: RETIRAR ESTA LINHA (E MELHOR GERAR BACKGROUND CONSIDERANDO TUDO, E DEPOIS ELIMINAR)
             #backgroundPoints_i<- randomPoints(mask=predictors[[1]],n=200,p=pooledOccPoints[,c("lon","lat")], excludep=TRUE) #sorteando coordenadas #ARRUMAR: RETIRAR O ARGUMENTO 'P' (VIDE COMENTARIO NA LINHA ANTERIOR)
-            backgroundPoints_i<- randomPoints(mask=predictors[[1]],n=200, excludep=TRUE)
+            backgroundPoints_i<- randomPoints(mask=predictors[[1]],n=1000, excludep=TRUE) # 1000 pontos de fundo
             colnames(backgroundPoints_i) <- c("lon", "lat")
             
             ##extraindo dados da variavel climatica nos pontos de background
@@ -122,55 +122,58 @@ for (g in 1:10){ #loop para replicar a 'amostragem de pontos fosseis'
     }
 }
 
-###TERCEIRA PARTE: SDM usando de pontos de ocorrencia em diferentes camadas de tempo (atual a 120 kyr BP)###
+###TERCEIRA PARTE: SDM usando de pontos de ocorrencia em diferentes camadas de tempo (do atual ate 120 kyr BP)###
 
 #######################################################
 ####################### MAXENT ########################
 #######################################################
 
 options(java.parameters = "-Xmx7g") ###set available memmory to java
-projectFolder = "/home/anderson/Documentos/Minha produção bibliográfica/Sps artificiais/" #pasta do projeto
+projectFolder = "/home/anderson/Documentos/Projetos/Sps artificiais/" #pasta do projeto
 envVarFolder = "/home/anderson/PosDoc/dados_ambientais/dados_projeto" #pasta com as variaveis ambientais
 envVarPaths = list.files(path=envVarFolder, full.names=T) #lista com os caminhos das camadas no sistema (comp.)
 AmSulShape = readShapePoly("/home/anderson/PosDoc/Am_Sul/borders.shp") #shape da America do Sul
-mainSampleFolder = '/home/anderson/Documentos/Minha produção bibliográfica/Sps artificiais/Amostras/' #caminho para pasta onde a planilha 
-maxentFolder = '/home/anderson/Documentos/Minha produção bibliográfica/Sps artificiais/Maxent/' #pasta para resultados do maxent
+mainSampleFolder = '/home/anderson/Documentos/Projetos/Sps artificiais/Amostras/' #caminho para pasta onde a planilha 
+maxentFolder = '/home/anderson/Documentos/Projetos/Sps artificiais/Maxent/' #pasta para resultados do maxent
 spsTypes = c('spHW', 'spHD', 'spCD') #nomes das especies
 
 for (i in 1:length(spsTypes)){
-    occPoints = read.csv(paste(mainSampleFolder,spsTypes[i],'/ptsPres1ptsPass1.csv',sep=''),header=TRUE) #abrindo pontos de ocorrencia
-    backgroundPoints = read.csv(paste(mainSampleFolder,spsTypes[i],'/background.csv',sep=''),header=TRUE) #abrindo pontos de background
-    names(backgroundPoints) = names(occPoints) #certificando que os nomes das colunas estão iguais (cuidado aqui...)
-    dataSet = data.frame(cbind(rbind(occPoints,backgroundPoints),pres=c(rep(1,nrow(occPoints)),rep(0,nrow(backgroundPoints))))) #planilha de dados no formato SWD
-    ##
-    me = dismo::maxent(
-                    x=dataSet[,c("bioclim_01","bioclim_04","bioclim_10","bioclim_11","bioclim_12","bioclim_15","bioclim_16","bioclim_17")],
-                    p=dataSet$pres,
-                    path=paste(maxentFolder,spsTypes[i],sep=''),
-                    args=c('responsecurves=TRUE',
-                           'jackknife=TRUE'
-                           'randomseed=true',
-                           'randomtestpoints=25',
-                           'replicates=3',
-                           'replicatetype=subsample',
-                           'writebackgroundpredictions=TRUE',
-                           'linear=TRUE',
-                           'quadratic=TRUE',
-                           'product=FALSE',
-                           'threshold=FALSE',
-                           'hinge=FALSE',
-                           'maximumiterations=1000',
-                           'threads=2'
-                           ))
-    ##
-    TSS_i= TSSmaxent(paste(maxentFolder,spsTypes[i],sep=''))
-    ##
-    for (j in 1:length(envVarPaths[1:24])){
-        predictors = stack(list.files(path=envVarPaths[j],full.names=T, pattern='.asc')) #predictors com todas as variaveis (presente)
-        predictors = mask(predictors,AmSulShape) #recortando as variaveis ambientais
-        crs = CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0') #ajustando CRS
-        proj = dismo::predict(me,predictors,crs=crs) #realzando projetacoes
-        writeRaster(mean(proj),paste(maxentFolder,spsTypes[i],'/projections/projection-',j-1,'kyrBP.asc',sep=''))
+    for (j in 1:10){ #loop sobre o numero de replicas
+        
+        occPoints = read.csv(paste(mainSampleFolder,spsTypes[i],'/occurrences_',j,'.csv',sep=''),header=TRUE) #abrindo pontos de ocorrencia
+        backgroundPoints = read.csv(paste(mainSampleFolder,spsTypes[i],'/background_',j,'.csv',sep=''),header=TRUE) #abrindo pontos de background
+        names(backgroundPoints) = names(occPoints) #certificando que os nomes das colunas estão iguais (cuidado aqui...)
+        dataSet = data.frame(cbind(rbind(occPoints,backgroundPoints),pres=c(rep(1,nrow(occPoints)),rep(0,nrow(backgroundPoints))))) #planilha de dados no formato SWD
+
+        me = dismo::maxent(
+                        x=dataSet[,c("bioclim_01","bioclim_04","bioclim_10","bioclim_11","bioclim_12","bioclim_15","bioclim_16","bioclim_17")],
+                        p=dataSet$pres,
+                        path=paste(maxentFolder,spsTypes[i],sep=''),
+                        args=c('responsecurves=TRUE',
+                               'jackknife=TRUE',
+                               'randomseed=true',
+                               'randomtestpoints=25',
+                               'replicates=10',
+                               'replicatetype=subsample',
+                               'writebackgroundpredictions=TRUE',
+                               'linear=TRUE',
+                               'quadratic=TRUE',
+                               'product=FALSE',
+                               'threshold=FALSE',
+                               'hinge=FALSE',
+                               'maximumiterations=1000',
+                               'threads=2'
+                               ))
+
+        TSS_i = TSSmaxent(paste(maxentFolder,spsTypes[i],sep=''))
+
+        for (k in 1:length(envVarPaths[1:24])){
+            predictors = stack(list.files(path=envVarPaths[k],full.names=T, pattern='.asc')) #predictors com todas as variaveis (presente)
+            predictors = mask(predictors,AmSulShape) #recortando as variaveis ambientais
+            crs = CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0') #ajustando CRS
+            proj = dismo::predict(me,predictors,crs=crs) #realizando projetacoes (para cada replica)
+            writeRaster(mean(proj),paste(maxentFolder,spsTypes[i],'/projections/projection-',k-1,'kyrBP.asc',sep=''),overwrite=TRUE) #salvando a projecao media
+        }
     }
 }
 #######################################################
@@ -182,12 +185,12 @@ for (i in 1:length(spsTypes)){
 #######################################################
     
 options(java.parameters = "-Xmx7g") ###set available memmory to java
-projectFolder = "/home/anderson/Documentos/Minha produção bibliográfica/Sps artificiais/" #pasta do projeto
+projectFolder = "/home/anderson/Documentos/Projetos/Sps artificiais/" #pasta do projeto
 envVarFolder = "/home/anderson/PosDoc/dados_ambientais/dados_projeto" #pasta com as variaveis ambientais
 envVarPaths = list.files(path=envVarFolder, full.names=T) #lista com os caminhos das camadas no sistema (comp.)
 AmSulShape = readShapePoly("/home/anderson/PosDoc/Am_Sul/borders.shp") #shape da America do Sul
-mainSampleFolder = '/home/anderson/Documentos/Minha produção bibliográfica/Sps artificiais/Amostras/' #caminho para pasta onde a planilha spsTypes = c('spHW', 'spHD', 'spCD') #nomes das especies
-GLMfolder = '/home/anderson/Documentos/Minha produção bibliográfica/Sps artificiais/GLM/' #pasta para resultados do maxent
+mainSampleFolder = '/home/anderson/Documentos/Projetos/Sps artificiais/Amostras/' #caminho para pasta onde a planilha spsTypes = c('spHW', 'spHD', 'spCD') #nomes das especies
+GLMfolder = '/home/anderson/Documentos/Projetos/Sps artificiais/GLM/' #pasta para resultados do maxent
 spsTypes = c('spHW', 'spHD', 'spCD') #nomes das especies
                                         #
 model1 = pres ~ bioclim_01 + bioclim_04 + bioclim_10 + bioclim_11 + bioclim_12 + bioclim_15 + bioclim_16 + bioclim_17 
@@ -285,12 +288,12 @@ for (i in 1:length(spsTypes)){
 library(biomod2)
 
 options(java.parameters = "-Xmx7g") ###set available memmory to java
-projectFolder = "/home/anderson/Documentos/Minha produção bibliográfica/Sps artificiais/" #pasta do projeto
+projectFolder = "/home/anderson/Documentos/Projetos/Sps artificiais/" #pasta do projeto
 envVarFolder = "/home/anderson/PosDoc/dados_ambientais/dados_projeto" #pasta com as variaveis ambientais
 envVarPaths = list.files(path=envVarFolder, full.names=T) #lista com os caminhos das camadas no sistema (comp.)
 AmSulShape = readShapePoly("/home/anderson/PosDoc/Am_Sul/borders.shp") #shape da America do Sul
-mainSampleFolder = '/home/anderson/Documentos/Minha produção bibliográfica/Sps artificiais/Amostras/' #caminho para pasta onde a planilha 
-biomodFolder = '/home/anderson/Documentos/Minha produção bibliográfica/Sps artificiais/biomod/' #pasta para resultados do maxent
+mainSampleFolder = '/home/anderson/Documentos/Projetos/Sps artificiais/Amostras/' #caminho para pasta onde a planilha 
+biomodFolder = '/home/anderson/Documentos/Projetos/Sps artificiais/biomod/' #pasta para resultados do maxent
 spsTypes = c('spHW', 'spHD', 'spCD') #nomes das especies
 
 for (g in 1:10){
@@ -387,7 +390,7 @@ for (g in 1:10){
 
 ###QUARTA PARTE: comparando projecao do SDM e a distribuicao espacial real do nicho da sp###
 
-projectFolder = "/home/anderson/Documentos/Minha produção bibliográfica/Sps artificiais/" #pasta do projeto
+projectFolder = "/home/anderson/Documentos/Projetos/Sps artificiais/" #pasta do projeto
 spsTypes = c('spHW', 'spHD', 'spCD') #nomes das especies
 scenarioModel = c('8varLinearModel','8varQuadModel','2varLinearModel','2varQuadModel')
 ##
@@ -452,7 +455,7 @@ CDdataD = data.frame(rbind(data.frame(indexD=outputData$spCD8varQuadModel$Schoen
 CDdataH = data.frame(rbind(data.frame(indexH=outputData$spCD8varQuadModel$Hellinger_distances,model='8var.&quadratic'),data.frame(indexH=outputData$spCD8varLinearModel$Hellinger_distances,model='8var.&linear'),data.frame(indexH=outputData$spCD2varQuadModel$Hellinger_distances,model='2var.&quadratic'),data.frame(indexH=outputData$spCD2varLinearModel$Hellinger_distances,model='2var.&linear')))
 
 
-pdf(file='/home/anderson/Documentos/Minha produção bibliográfica/Sps artificiais/GLM/boxplots.pdf')
+pdf(file='/home/anderson/Documentos/Projetos/Sps artificiais/GLM/boxplots.pdf')
 par(mfrow=c(2,3))
 ##
 boxplot(indexD~model,data=HWdataD,ylim=c(0.3,1.0),main='"Hot & Wet" species')
@@ -477,7 +480,7 @@ dev.off()
 
 ##Schoeners' D ao longo do tempo##
 
-pdf(file='/home/anderson/Documentos/Minha produção bibliográfica/Sps artificiais/GLM/DxTime.pdf')
+pdf(file='/home/anderson/Documentos/Projetos/Sps artificiais/GLM/DxTime.pdf')
 par(mfrow=c( 1,3))
 ##HW species
 plot(outputData$spHW8varQuadModel$Schoeners_D[1:23]~outputData$spHW8varQuadModel$kyrBP[1:23],t='b',pch=20,cex=1.5,ylim=c(0,1),col='black',ylab="Schoeners' D",xlab='kyr BP',main='Hot & Wet species')
@@ -501,7 +504,7 @@ dev.off()
 
 
 ##Distancia de Hellinger ao longo do tempo
-pdf(file='/home/anderson/Documentos/Minha produção bibliográfica/Sps artificiais/GLM/HellingerXtime.pdf')
+pdf(file='/home/anderson/Documentos/Projetos/Sps artificiais/GLM/HellingerXtime.pdf')
 par(mfrow=c( 1,3))
 ##HW species
 plot(outputData$spHW8varQuadModel$Hellinger_distances[1:23]~outputData$spHW8varQuadModel$kyrBP[1:23],t='b',pch=20,cex=1.5,ylim=c(0,1),col='black',ylab="Hellinger distance",xlab='kyr BP',main='Hot & Wet species')
@@ -525,23 +528,23 @@ dev.off()
 
 ##distribuicao presente, inter e maximo glacial
 
-HWpresentReal = "/home/anderson/Documentos/Minha produção bibliográfica/Sps artificiais/NichoReal/spHW/000.asc"
-HWpresentSDM8VQ = "/home/anderson/Documentos/Minha produção bibliográfica/Sps artificiais/GLM/spHW/8varQuadModel/Projections/000.asc"
-HWpresentSDM8VL = "/home/anderson/Documentos/Minha produção bibliográfica/Sps artificiais/GLM/spHW/8varLinearModel/Projections/000.asc"
-HWpresentSDM2VQ = "/home/anderson/Documentos/Minha produção bibliográfica/Sps artificiais/GLM/spHW/2varQuadModel/Projections/000.asc"
-HWpresentSDM2VL = "/home/anderson/Documentos/Minha produção bibliográfica/Sps artificiais/GLM/spHW/2varLinearModel/Projections/000.asc"
+HWpresentReal = "/home/anderson/Documentos/Projetos/Sps artificiais/NichoReal/spHW/000.asc"
+HWpresentSDM8VQ = "/home/anderson/Documentos/Projetos/Sps artificiais/GLM/spHW/8varQuadModel/Projections/000.asc"
+HWpresentSDM8VL = "/home/anderson/Documentos/Projetos/Sps artificiais/GLM/spHW/8varLinearModel/Projections/000.asc"
+HWpresentSDM2VQ = "/home/anderson/Documentos/Projetos/Sps artificiais/GLM/spHW/2varQuadModel/Projections/000.asc"
+HWpresentSDM2VL = "/home/anderson/Documentos/Projetos/Sps artificiais/GLM/spHW/2varLinearModel/Projections/000.asc"
 #
-HDpresentReal = "/home/anderson/Documentos/Minha produção bibliográfica/Sps artificiais/NichoReal/spHD/000.asc"
-HDpresentSDM8VQ = "/home/anderson/Documentos/Minha produção bibliográfica/Sps artificiais/GLM/spHD/8varQuadModel/Projections/000.asc"
-HDpresentSDM8VL = "/home/anderson/Documentos/Minha produção bibliográfica/Sps artificiais/GLM/spHD/8varLinearModel/Projections/000.asc"
-HDpresentSDM2VQ = "/home/anderson/Documentos/Minha produção bibliográfica/Sps artificiais/GLM/spHD/2varQuadModel/Projections/000.asc"
-HDpresentSDM2VL = "/home/anderson/Documentos/Minha produção bibliográfica/Sps artificiais/GLM/spHD/2varLinearModel/Projections/000.asc"
+HDpresentReal = "/home/anderson/Documentos/Projetos/Sps artificiais/NichoReal/spHD/000.asc"
+HDpresentSDM8VQ = "/home/anderson/Documentos/Projetos/Sps artificiais/GLM/spHD/8varQuadModel/Projections/000.asc"
+HDpresentSDM8VL = "/home/anderson/Documentos/Projetos/Sps artificiais/GLM/spHD/8varLinearModel/Projections/000.asc"
+HDpresentSDM2VQ = "/home/anderson/Documentos/Projetos/Sps artificiais/GLM/spHD/2varQuadModel/Projections/000.asc"
+HDpresentSDM2VL = "/home/anderson/Documentos/Projetos/Sps artificiais/GLM/spHD/2varLinearModel/Projections/000.asc"
 #
-CDpresentReal = "/home/anderson/Documentos/Minha produção bibliográfica/Sps artificiais/NichoReal/spCD/000.asc"
-CDpresentSDM8VQ = "/home/anderson/Documentos/Minha produção bibliográfica/Sps artificiais/GLM/spCD/8varQuadModel/Projections/000.asc"
-CDpresentSDM8VL = "/home/anderson/Documentos/Minha produção bibliográfica/Sps artificiais/GLM/spCD/8varLinearModel/Projections/000.asc"
-CDpresentSDM2VQ = "/home/anderson/Documentos/Minha produção bibliográfica/Sps artificiais/GLM/spCD/2varQuadModel/Projections/000.asc"
-CDpresentSDM2VL = "/home/anderson/Documentos/Minha produção bibliográfica/Sps artificiais/GLM/spCD/2varLinearModel/Projections/000.asc"
+CDpresentReal = "/home/anderson/Documentos/Projetos/Sps artificiais/NichoReal/spCD/000.asc"
+CDpresentSDM8VQ = "/home/anderson/Documentos/Projetos/Sps artificiais/GLM/spCD/8varQuadModel/Projections/000.asc"
+CDpresentSDM8VL = "/home/anderson/Documentos/Projetos/Sps artificiais/GLM/spCD/8varLinearModel/Projections/000.asc"
+CDpresentSDM2VQ = "/home/anderson/Documentos/Projetos/Sps artificiais/GLM/spCD/2varQuadModel/Projections/000.asc"
+CDpresentSDM2VL = "/home/anderson/Documentos/Projetos/Sps artificiais/GLM/spCD/2varLinearModel/Projections/000.asc"
 
 speciesLayers = stack(c(HWpresentReal,HDpresentReal,CDpresentReal,
                         HWpresentSDM8VQ,HDpresentSDM8VQ,CDpresentSDM8VQ,
@@ -552,6 +555,6 @@ speciesLayers = mask(speciesLayers,AmSulShape)
 
 nomesSubgraficos = c('Hot&Wet sp','Hot&Dry sp','Cold&Dry sp','8 var./Quadratic','8 var./Quadratic','8 var./Quadratic','8 var./Linear','8 var./Linear','8 var./Linear','2 var./Quadratic','2 var./Quadratic','2 var./Quadratic','2 var./Linear','2 var./Linear','2 var./Linear')
 
-pdf(file='/home/anderson/Documentos/Minha produção bibliográfica/Sps artificiais/GLM/realXmodel.pdf')
+pdf(file='/home/anderson/Documentos/Projetos/Sps artificiais/GLM/realXmodel.pdf')
 rasterVis::levelplot(speciesLayers,scales=list(x=list(cex=0.6), y=list(cex=0.6)),between=list(x=1.8, y=0.25),par.strip.text=list(cex=0.6),layout=c(3,5), main='',names.attr=nomesSubgraficos,colorkey=list(space="right")) + layer(sp.polygons(AmSulShape))
 dev.off()
