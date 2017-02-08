@@ -39,7 +39,6 @@ TSSmaxent = function(maxentOutputFolder){
             df2 <- data.frame(trasam,tessam,tesAUC,TSS)
             df <- rbind(df,df2)
         }
-    }
-    write.csv(df,paste(maxentOutputFolder,'/TSS.csv',sep=''),row.names=FALSE)
+    }	
     return(df)
-}
+}	

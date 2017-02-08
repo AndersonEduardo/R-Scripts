@@ -5,6 +5,7 @@ library(virtualspecies)
 library(maptools)
 library(dismo)
 library(raster)
+library(phyloclim) #para funcao niche.overlap()
 source("/home/anderson/R/R-Scripts/TSSmaxent.R")
 
 ###PRIMEIRA PARTE: criando sps virtuais###
@@ -83,7 +84,7 @@ for(g in 1:10){ #loop para replicar a 'amostragem de pontos fosseis'
                     }
                     amostra = rbind(amostra,amostra_i)
                 }
-                ##
+
                 setwd(paste(projectFolder,'Amostras/',spsTypes[h],'/',sep='')) #mudando a pasta de trabalho para os outputs
                 names(amostra) = c('lon','lat',"bioclim_01","bioclim_04","bioclim_10","bioclim_11","bioclim_12","bioclim_15","bioclim_16","bioclim_17")
                 write.csv(amostra,file=paste('occurrences_',g,'.csv',sep=''),row.names=FALSE)#salvando a planilha com os dados da amostra
@@ -104,7 +105,7 @@ for (g in 1:10){ #loop para replicar a 'amostragem de pontos fosseis'
             
             #pooledOccPoints = read.csv(paste(mainSampleFolder,spsTypes[i],'/occurrences_',g,'.csv',sep=''),header=TRUE) #abrindo .csv de occ #ARRUMAR: RETIRAR ESTA LINHA (E MELHOR GERAR BACKGROUND CONSIDERANDO TUDO, E DEPOIS ELIMINAR)
             #backgroundPoints_i<- randomPoints(mask=predictors[[1]],n=200,p=pooledOccPoints[,c("lon","lat")], excludep=TRUE) #sorteando coordenadas #ARRUMAR: RETIRAR O ARGUMENTO 'P' (VIDE COMENTARIO NA LINHA ANTERIOR)
-            backgroundPoints_i<- randomPoints(mask=predictors[[1]],n=1000, excludep=TRUE) # 1000 pontos de fundo
+            backgroundPoints_i <- randomPoints(mask=predictors[[1]],n=100, excludep=TRUE) # 100 pontos de fundo por camada de tempo
             colnames(backgroundPoints_i) <- c("lon", "lat")
             
             ##extraindo dados da variavel climatica nos pontos de background
@@ -112,11 +113,11 @@ for (g in 1:10){ #loop para replicar a 'amostragem de pontos fosseis'
             backgroundPoints = data.frame(rbind(backgroundPoints,data.frame(backgroundPoints_i,ausencesVars))) #dados completos dos background points
         }
         ##'limpando' os background points
-        ##backgroundPoints1 = round(backgroundPoints, digits=4) ##ARRUMAR: RETIRAR COLUNAS DAS COORDENADAS PARA 'LIMPAR'
-        backgroundPoints1 = round(backgroundPoints[,c("bioclim_01","bioclim_04","bioclim_10","bioclim_11","bioclim_12","bioclim_15","bioclim_16","bioclim_17")], digits=4)
-        backgroundPoints2 <- backgroundPoints1[!duplicated(backgroundPoints1),]
+        backgroundPoints1 = round(backgroundPoints, digits=3) ##ARRUMAR: RETIRAR COLUNAS DAS COORDENADAS PARA 'LIMPAR'
+##        backgroundPoints1 = round(backgroundPoints[,c("bioclim_01","bioclim_04","bioclim_10","bioclim_11","bioclim_12","bioclim_15","bioclim_16","bioclim_17")], digits=4)
+        backgroundPoints2 <- backgroundPoints1[!duplicated(backgroundPoints1[,1:2]),]
         backgroundPoints3 <- backgroundPoints2[complete.cases(backgroundPoints2),]
-        backgroundPoints <- data.frame(backgroundPoints3)
+        backgroundPoints <- backgroundPoints3
         setwd(paste(projectFolder,'Amostras/',spsTypes[i],'/',sep='')) 
         write.csv(backgroundPoints,file=paste('background_',g,'.csv',sep=''),row.names=FALSE)
     }
@@ -153,7 +154,7 @@ for (i in 1:length(spsTypes)){
                                'jackknife=TRUE',
                                'randomseed=true',
                                'randomtestpoints=25',
-                               'replicates=10',
+                               'replicates=3',
                                'replicatetype=subsample',
                                'writebackgroundpredictions=TRUE',
                                'linear=TRUE',
@@ -166,13 +167,14 @@ for (i in 1:length(spsTypes)){
                                ))
 
         TSS_i = TSSmaxent(paste(maxentFolder,spsTypes[i],sep=''))
+        write.csv(TSS_i,file=paste('TSS-',spTypes[i],'-Replica-',j,sep=''))
 
         for (k in 1:length(envVarPaths[1:24])){
             predictors = stack(list.files(path=envVarPaths[k],full.names=T, pattern='.asc')) #predictors com todas as variaveis (presente)
             predictors = mask(predictors,AmSulShape) #recortando as variaveis ambientais
             crs = CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0') #ajustando CRS
             proj = dismo::predict(me,predictors,crs=crs) #realizando projetacoes (para cada replica)
-            writeRaster(mean(proj),paste(maxentFolder,spsTypes[i],'/projections/projection-',k-1,'kyrBP.asc',sep=''),overwrite=TRUE) #salvando a projecao media
+            writeRaster(mean(proj),paste(maxentFolder,spsTypes[i],'/projections/projection-Time',k-1,'kyrBP','-Replica',j,'.asc',sep=''),overwrite=TRUE) #salvando a projecao media
         }
     }
 }
@@ -393,7 +395,7 @@ for (g in 1:10){
 projectFolder = "/home/anderson/Documentos/Projetos/Sps artificiais/" #pasta do projeto
 spsTypes = c('spHW', 'spHD', 'spCD') #nomes das especies
 scenarioModel = c('8varLinearModel','8varQuadModel','2varLinearModel','2varQuadModel')
-##
+
 model1 = pres ~ bioclim_01 + bioclim_04 + bioclim_10 + bioclim_11 + bioclim_12 + bioclim_15 + bioclim_16 + bioclim_17 
 model2 = pres ~ bioclim_01 + I(bioclim_01^2) + bioclim_04 + I(bioclim_04^2) + bioclim_10 + I(bioclim_10^2) + bioclim_11 + I(bioclim_11^2) + bioclim_12 + I(bioclim_12^2) + bioclim_15 + I(bioclim_15^2) + bioclim_16 + I(bioclim_16^2) + bioclim_17 + I(bioclim_17^2)
 model3 = pres ~ bioclim_01 + bioclim_12
@@ -401,49 +403,84 @@ model4 = pres ~ bioclim_01 + I(bioclim_01^2) + bioclim_12 + I(bioclim_12^2)
 model = c(model1,model2,model3,model4)
 
 for (i in 1:length(spsTypes)){
-    for (j in 1:10){
-
-        ##CONSTRUIR LOOP PARA PEGAR A MEDIA DAS 10 REPLICAS OU PEGAR A MEDIA DAS COMPARAÇÕES (DEPOIS DE RODAR SOBRE CADA UMA DAS 10)?
-        
-        nicheRealFolder = paste(projectFolder,'NichoReal/',spsTypes[i],sep='') #pasta com os mapas de nicho real da sp
-        nicheRealPath = list.files(path=nicheRealFolder,pattern='asc',full.names=T) #lista com os enderecos dos mapas de distribuicao da sp
-        projectionsFolder = paste(projectFolder,'biomod/',spsTypes[i],'/Projections',j,sep='') #pasta com as projecoes do cenario
-        projectionsPath = list.files(path=projectionsFolder, pattern='asc',full.names=T) #caminhos para os .asc na paste do cenario
-        outputData = data.frame(kyrBP=numeric(),Schoeners_D=numeric(),Hellinger_distances=numeric())
-        for (l in 1:length(nicheRealPath[1:24])){
+    
+    nicheRealFolder = paste(projectFolder,'NichoReal/',spsTypes[i],sep='') #pasta com os mapas de nicho real da sp
+    nicheRealPath = list.files(path=nicheRealFolder,pattern='asc',full.names=T) #lista com os enderecos dos mapas de distribuicao da sp
+    projectionsFolder = paste(projectFolder,'Maxent/',spsTypes[i],'/projections',sep='') #pasta com as projecoes do cenario
+    projectionsPath = list.files(path=projectionsFolder, pattern='asc',full.names=T) #caminhos para os .asc na paste do cenario
+    outputData = data.frame(kyrBP=numeric(),Schoeners_D=numeric(),Hellinger_distances=numeric())
+    
+    for (l in 1:length(nicheRealPath[1:24])){ #loop sobre as cadamdas de tempo
+        output_i = data.frame(kyrBP=numeric(),Schoeners_D=numeric(),Hellinger_distances=numeric())
+        for (m in 1:1){ #loop sobre as replicas
+            
             realNiche = raster(nicheRealPath[l]) #nicho real
             realNiche.spgrid = as(realNiche,'SpatialGridDataFrame')
             sdmNiche = raster(projectionsPath[l]) #mapa de suitability gerado por SDM
+            ##raster(list.files(path=projectionsFolder,pattern=paste('projection-Time',l-1,'kyrBP','-Replica',m,sep='')))
             sdmNiche.spgrid = as(sdmNiche,'SpatialGridDataFrame')
             nicheOverlap = niche.overlap(c(realNiche.spgrid,sdmNiche.spgrid))
-            output_i= data.frame(cbind(kyrBP=l-1,Schoeners_D=nicheOverlap[1,2],Hellinger_distances=nicheOverlap[2,1]))
-            outputData = data.frame(rbind(outputData,output_i))
+            output_i= rbind(output_i,cbind(kyrBP=l-1,Schoeners_D=nicheOverlap[1,2],Hellinger_distances=nicheOverlap[2,1]))
+            
         }
-        names(outputData) = c('kyrBP','Schoeners_D','Hellinger_distances')  
-        write.csv(outputData, file=paste(projectionsFolder,"/NO.csv",sep=""),row.names=FALSE) #salvando os dados do cenario
+        
+        outputMeans = colMeans(output_i) #media das iteracoes (para a camada de tempo atual)
+        outputData = data.frame(rbind(outputData,output_i))
+        
     }
+    
+    names(outputData) = c('kyrBP','Schoeners_D','Hellinger_distances')  
+    write.csv(outputData, file=paste(projectionsFolder,"/NO.csv",sep=""),row.names=FALSE) #salvando os dados do cenario
+
 }
+
 
 ### QUINTA PARTE: construindo graficos dos resultados ###
 
 ###abrindo as planilhas de dados
 outputData = list()
 vetor.nomes = vector()
+##GLM
+## for (i in 1:length(spsTypes)){
+##     for (j in 1:length(model)){
+##         k = j + length(model)*(i-1)
+##         outputData[[k]] = read.csv(file=paste(projectFolder,'GLM/',spsTypes[i],'/',scenarioModel[j],'/Projections','/NO.csv',sep=""),header=TRUE)
+##         vetor.nomes = append(vetor.nomes,paste(spsTypes[i],scenarioModel[j],sep=''))
+##     }
+## }
+## names(outputData) = vetor.nomes
+
+##maxent
 for (i in 1:length(spsTypes)){
-    for (j in 1:length(model)){
-        k = j + length(model)*(i-1)
-        outputData[[k]] = read.csv(file=paste(projectFolder,'GLM/',spsTypes[i],'/',scenarioModel[j],'/Projections','/NO.csv',sep=""),header=TRUE)
-        vetor.nomes = append(vetor.nomes,paste(spsTypes[i],scenarioModel[j],sep=''))
-    }
+    outputData[[i]] = read.csv(file=paste(projectFolder,'Maxent/',spsTypes[i],'/projections/NO.csv',sep=''),header=TRUE)
+    vetor.nomes = append(vetor.nomes,paste(spsTypes[i],sep=''))
 }
 names(outputData) = vetor.nomes
 
 ###graficos
 
-##Boxplots
+##Boxplots 
 
+##GLM##
 ##HW
 HWdataD = data.frame(rbind(data.frame(indexD=outputData$spHW8varQuadModel$Schoeners_D,model='8var.&quadratic'),data.frame(indexD=outputData$spHW8varLinearModel$Schoeners_D,model='8var.&linear'),data.frame(indexD=outputData$spHW2varQuadModel$Schoeners_D,model='2var.&quadratic'),data.frame(indexD=outputData$spHW2varLinearModel$Schoeners_D,model='2var.&linear')))
+HWdataH = data.frame(rbind(data.frame(indexH=outputData$spHW8varQuadModel$Hellinger_distances,model='8var.&quadratic'),data.frame(indexH=outputData$spHW8varLinearModel$Hellinger_distances,model='8var.&linear'),data.frame(indexH=outputData$spHW2varQuadModel$Hellinger_distances,model='2var.&quadratic'),data.frame(indexH=outputData$spHW2varLinearModel$Hellinger_distances,model='2var.&linear')))
+
+##HD
+HDdataD = data.frame(rbind(data.frame(indexD=outputData$spHD8varQuadModel$Schoeners_D,model='8var.&quadratic'),data.frame(indexD=outputData$spHD8varLinearModel$Schoeners_D,model='8var.&linear'),data.frame(indexD=outputData$spHD2varQuadModel$Schoeners_D,model='2var.&quadratic'),data.frame(indexD=outputData$spHD2varLinearModel$Schoeners_D,model='2var.&linear')))
+HDdataH = data.frame(rbind(data.frame(indexH=outputData$spHD8varQuadModel$Hellinger_distances,model='8var.&quadratic'),data.frame(indexH=outputData$spHD8varLinearModel$Hellinger_distances,model='8var.&linear'),data.frame(indexH=outputData$spHD2varQuadModel$Hellinger_distances,model='2var.&quadratic'),data.frame(indexH=outputData$spHD2varLinearModel$Hellinger_distances,model='2var.&linear')))
+
+##CD
+CDdataD = data.frame(rbind(data.frame(indexD=outputData$spCD8varQuadModel$Schoeners_D,model='8var.&quadratic'),data.frame(indexD=outputData$spCD8varLinearModel$Schoeners_D,model='8var.&linear'),data.frame(indexD=outputData$spCD2varQuadModel$Schoeners_D,model='2var.&quadratic'),data.frame(indexD=outputData$spCD2varLinearModel$Schoeners_D,model='2var.&linear')))
+CDdataH = data.frame(rbind(data.frame(indexH=outputData$spCD8varQuadModel$Hellinger_distances,model='8var.&quadratic'),data.frame(indexH=outputData$spCD8varLinearModel$Hellinger_distances,model='8var.&linear'),data.frame(indexH=outputData$spCD2varQuadModel$Hellinger_distances,model='2var.&quadratic'),data.frame(indexH=outputData$spCD2varLinearModel$Hellinger_distances,model='2var.&linear')))
+
+
+##maxent##
+##HW
+HWdataD = rbind(data.frame(indexD=outputData$spHW$Schoeners_D),data.frame(indexD=outputData$spHW$Schoeners_D),data.frame(indexD=outputData$spHW$Schoeners_D),data.frame(indexD=outputData$spHW$Schoeners_D))
+
+### 8/FEV: CONNTINUAR AQUI:ARRUMAR AS LINHAS ABAIXO CONFORME A LINHA ACIMA (linha 480, para 'HWdataD')
+
 HWdataH = data.frame(rbind(data.frame(indexH=outputData$spHW8varQuadModel$Hellinger_distances,model='8var.&quadratic'),data.frame(indexH=outputData$spHW8varLinearModel$Hellinger_distances,model='8var.&linear'),data.frame(indexH=outputData$spHW2varQuadModel$Hellinger_distances,model='2var.&quadratic'),data.frame(indexH=outputData$spHW2varLinearModel$Hellinger_distances,model='2var.&linear')))
 
 ##HD
