@@ -8,8 +8,8 @@
 TSSmaxent = function(maxentOutputFolder){
     #setwd(paste(maxentOutputFolder,sep=''))
     mres <- read.csv(paste(maxentOutputFolder,"/maxentResults.csv",sep=''),h=T)
-    mres = read.csv(paste(maxentFolder,spsTypes[i],"/maxentResults.csv",sep=''),h=TRUE)
-    for (j in 0:(nrow(mres)-2)) { #loop em que cada iteracao eh para uma linha da planilha maxentResults.csv
+    #mres = read.csv(paste(maxentFolder,spsTypes[i],"/maxentResults.csv",sep=''),h=TRUE)
+    for (j in 0:(nrow(mres)-1)) { #loop em que cada iteracao eh para uma linha da planilha maxentResults.csv
         
         trasam <- mres$X.Training.samples[j+1]
         tessam <- mres$X.Test.samples[j+1]

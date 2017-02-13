@@ -137,6 +137,8 @@ AmSulShape = readShapePoly("/home/anderson/PosDoc/Am_Sul/borders.shp") #shape da
 mainSampleFolder = '/home/anderson/Documentos/Projetos/Sps artificiais/Amostras/' #caminho para pasta onde a planilha 
 maxentFolder = '/home/anderson/Documentos/Projetos/Sps artificiais/Maxent/' #pasta para resultados do maxent
 spsTypes = c('spHW', 'spHD', 'spCD') #nomes das especies
+evaluation = list()
+TSSvector = data.frame()
 
 for (i in 1:length(spsTypes)){
     for (j in 1:10){ #loop sobre o numero de replicas
@@ -152,9 +154,10 @@ for (i in 1:length(spsTypes)){
                         path=paste(maxentFolder,spsTypes[i],sep=''),
                         args=c('responsecurves=TRUE',
                                'jackknife=TRUE',
-                               'randomseed=true',
+                               'randomseed=TRUE',
                                'randomtestpoints=25',
-                               'replicates=3',
+                               'maximumbackground=5000',
+                               'replicates=1',
                                'replicatetype=subsample',
                                'writebackgroundpredictions=TRUE',
                                'linear=TRUE',
@@ -163,20 +166,41 @@ for (i in 1:length(spsTypes)){
                                'threshold=FALSE',
                                'hinge=FALSE',
                                'maximumiterations=1000',
-                               'threads=2'
+                               'convergencethreshold=1.0E-5',
+                               'threads=4'
                                ))
 
-        TSS_i = TSSmaxent(paste(maxentFolder,spsTypes[i],sep=''))
-        write.csv(TSS_i,file=paste('TSS-',spTypes[i],'-Replica-',j,sep=''))
-
+        ##rodando a avaliacao do modelo
+        TSSvector = rbind(TSSvector, TSSmaxent(paste(maxentFolder,spsTypes[i],sep='')))
+        evaluation = append(evaluation, evaluate(p=occPoints,a=backgroundPoints,model=me))
+        
         for (k in 1:length(envVarPaths[1:24])){
-            predictors = stack(list.files(path=envVarPaths[k],full.names=T, pattern='.asc')) #predictors com todas as variaveis (presente)
+            predictors = stack(list.files(path=envVarPaths[k],full.names=TRUE, pattern='.asc')) #predictors com todas as variaveis (presente)
             predictors = mask(predictors,AmSulShape) #recortando as variaveis ambientais
             crs = CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0') #ajustando CRS
             proj = dismo::predict(me,predictors,crs=crs) #realizando projetacoes (para cada replica)
             writeRaster(mean(proj),paste(maxentFolder,spsTypes[i],'/projections/projection-Time',k-1,'kyrBP','-Replica',j,'.asc',sep=''),overwrite=TRUE) #salvando a projecao media
         }
+        
     }
+    
+    ##criando um mapa binario
+    thresholdValues = NULL
+    aucValues = NULL
+    for (l in 1:length(evaluation)){
+        thresholdValues <- append(thresholdValues, threshold(evaluation[[l]],'spec_sens'))
+        aucValues = append(aucValues, evaluation[[l]]@auc)
+    }
+    aucMean = mean(aucValues)
+    thresholdMean = mean(thresholdValues)
+    TSSmean = mean(TSSvector$TSS)
+    statResults = data.frame(sp=spsTypes[i],AUCmean=aucMean,TSSmean=TSSmean,ThresholdMean=thresholdMean)
+    write.csv(statResults,file=paste(projectFolder,'Maxent/',spsTypes[i],'/StatisticsResults-',spsTypes[i],'.csv',sep=''),row.names=FALSE)
+    
+    #esvaziando o vetor para a proxima especie
+    evaluation = list()
+    TSSvector = data.frame()
+    
 }
 #######################################################
 #######################################################
@@ -411,13 +435,15 @@ for (i in 1:length(spsTypes)){
     outputData = data.frame(kyrBP=numeric(),Schoeners_D=numeric(),Hellinger_distances=numeric())
     
     for (l in 1:length(nicheRealPath[1:24])){ #loop sobre as cadamdas de tempo
-        output_i = data.frame(kyrBP=numeric(),Schoeners_D=numeric(),Hellinger_distances=numeric())
+
+        realNiche = raster(nicheRealPath[l]) #nicho real
+        realNiche.spgrid = as(realNiche,'SpatialGridDataFrame')
+        output_i = data.frame(kyrBP=numeric(),Schoeners_D=numeric(),Hellinger_distances=numeric()) #dataframe vazio para o loop abaixo
+        
         for (m in 1:1){ #loop sobre as replicas
-            
-            realNiche = raster(nicheRealPath[l]) #nicho real
-            realNiche.spgrid = as(realNiche,'SpatialGridDataFrame')
+
+            ##raster(list.files(path=projectionsFolder,pattern=paste('projection-Time',l-1,'kyrBP','-Replica',m,sep=''))) #mapa de suitability gerado por SDM
             sdmNiche = raster(projectionsPath[l]) #mapa de suitability gerado por SDM
-            ##raster(list.files(path=projectionsFolder,pattern=paste('projection-Time',l-1,'kyrBP','-Replica',m,sep='')))
             sdmNiche.spgrid = as(sdmNiche,'SpatialGridDataFrame')
             nicheOverlap = niche.overlap(c(realNiche.spgrid,sdmNiche.spgrid))
             output_i= rbind(output_i,cbind(kyrBP=l-1,Schoeners_D=nicheOverlap[1,2],Hellinger_distances=nicheOverlap[2,1]))
@@ -437,10 +463,13 @@ for (i in 1:length(spsTypes)){
 
 ### QUINTA PARTE: construindo graficos dos resultados ###
 
+spsTypes = c('spHW', 'spHD', 'spCD') #nomes das especies
 ###abrindo as planilhas de dados
 outputData = list()
 vetor.nomes = vector()
-##GLM
+projectFolder = "/home/anderson/Documentos/Projetos/Sps artificiais/" #pasta do projeto
+
+####GLM
 ## for (i in 1:length(spsTypes)){
 ##     for (j in 1:length(model)){
 ##         k = j + length(model)*(i-1)
@@ -477,21 +506,18 @@ CDdataH = data.frame(rbind(data.frame(indexH=outputData$spCD8varQuadModel$Hellin
 
 ##maxent##
 ##HW
-HWdataD = rbind(data.frame(indexD=outputData$spHW$Schoeners_D),data.frame(indexD=outputData$spHW$Schoeners_D),data.frame(indexD=outputData$spHW$Schoeners_D),data.frame(indexD=outputData$spHW$Schoeners_D))
-
-### 8/FEV: CONNTINUAR AQUI:ARRUMAR AS LINHAS ABAIXO CONFORME A LINHA ACIMA (linha 480, para 'HWdataD')
-
-HWdataH = data.frame(rbind(data.frame(indexH=outputData$spHW8varQuadModel$Hellinger_distances,model='8var.&quadratic'),data.frame(indexH=outputData$spHW8varLinearModel$Hellinger_distances,model='8var.&linear'),data.frame(indexH=outputData$spHW2varQuadModel$Hellinger_distances,model='2var.&quadratic'),data.frame(indexH=outputData$spHW2varLinearModel$Hellinger_distances,model='2var.&linear')))
+HWdataD = data.frame(kyrBP=outputData$spHW$kyrBP,indexD=outputData$spHW$Schoeners_D)
+HWdataH = data.frame(kyrBP=outputData$spHW$kyrBP,indexH=outputData$spHW$Hellinger_distances)
 
 ##HD
-HDdataD = data.frame(rbind(data.frame(indexD=outputData$spHD8varQuadModel$Schoeners_D,model='8var.&quadratic'),data.frame(indexD=outputData$spHD8varLinearModel$Schoeners_D,model='8var.&linear'),data.frame(indexD=outputData$spHD2varQuadModel$Schoeners_D,model='2var.&quadratic'),data.frame(indexD=outputData$spHD2varLinearModel$Schoeners_D,model='2var.&linear')))
-HDdataH = data.frame(rbind(data.frame(indexH=outputData$spHD8varQuadModel$Hellinger_distances,model='8var.&quadratic'),data.frame(indexH=outputData$spHD8varLinearModel$Hellinger_distances,model='8var.&linear'),data.frame(indexH=outputData$spHD2varQuadModel$Hellinger_distances,model='2var.&quadratic'),data.frame(indexH=outputData$spHD2varLinearModel$Hellinger_distances,model='2var.&linear')))
+HDdataD = data.frame(kyrBP=outputData$spHW$kyrBP,indexD=outputData$spHD$Schoeners_D)
+HDdataH = data.frame(kyrBP=outputData$spHW$kyrBP,indexH=outputData$spHD$Hellinger_distances)
 
 ##CD
-CDdataD = data.frame(rbind(data.frame(indexD=outputData$spCD8varQuadModel$Schoeners_D,model='8var.&quadratic'),data.frame(indexD=outputData$spCD8varLinearModel$Schoeners_D,model='8var.&linear'),data.frame(indexD=outputData$spCD2varQuadModel$Schoeners_D,model='2var.&quadratic'),data.frame(indexD=outputData$spCD2varLinearModel$Schoeners_D,model='2var.&linear')))
-CDdataH = data.frame(rbind(data.frame(indexH=outputData$spCD8varQuadModel$Hellinger_distances,model='8var.&quadratic'),data.frame(indexH=outputData$spCD8varLinearModel$Hellinger_distances,model='8var.&linear'),data.frame(indexH=outputData$spCD2varQuadModel$Hellinger_distances,model='2var.&quadratic'),data.frame(indexH=outputData$spCD2varLinearModel$Hellinger_distances,model='2var.&linear')))
+CDdataD = data.frame(kyrBP=outputData$spHW$kyrBP,indexD=outputData$spCD$Schoeners_D)
+CDdataH = data.frame(kyrBP=outputData$spHW$kyrBP,indexH=outputData$spCD$Hellinger_distances)
 
-
+#glm
 pdf(file='/home/anderson/Documentos/Projetos/Sps artificiais/GLM/boxplots.pdf')
 par(mfrow=c(2,3))
 ##
@@ -514,9 +540,22 @@ boxplot(indexH~model,data=CDdataH,ylim=c(0.3,1.0),main='"Cold & Dry" species')
 stripchart(indexH~model,data=CDdataH,vertical=TRUE,method="jitter",pch=20,cex=1,col=rgb(0.5,0.5,0.5,0.2),add=TRUE) 
 dev.off()
 
+#maxent
+pdf(file='/home/anderson/Documentos/Projetos/Sps artificiais/Maxent/graficos/boxplots.pdf')
+par(mfrow=c(1,2))
+#D
+Ddata = rbind(data.frame(kyrBP=HWdataD$kyrBP,indexD=HWdataD$indexD,spsType='Hot and Wet'),data.frame(kyrBP=HDdataD$kyrBP,indexD=HDdataD$indexD,spsType='Hot and Dry'),data.frame(kyrBP=CDdataD$kyrBP,indexD=CDdataD$indexD,spsType='Cold and Dry'))
+boxplot(indexD~spsType,data=Ddata,ylim=c(0,1),main="Schoeners' D")
+stripchart(indexD~spsType,data=Ddata,vertical=TRUE,method="jitter",pch=20,cex=1.5,col=rgb(0.5,0.5,0.5,0.2),add=TRUE) 
+#H
+Hdata = rbind(data.frame(kyrBP=HWdataH$kyrBP,indexH=HWdataH$indexH,spsType='Hot and Wet'),data.frame(kyrBP=HDdataH$kyrBP,indexH=HDdataH$indexH,spsType='Hot and Dry'),data.frame(kyrBP=CDdataH$kyrBP,indexH=CDdataH$indexH,spsType='Cold and Dry'))
+boxplot(indexH~spsType,data=Hdata,ylim=c(0,1),main='Hellinger')
+stripchart(indexH~spsType,data=Hdata,vertical=TRUE,method="jitter",pch=20,cex=1.5,col=rgb(0.5,0.5,0.5,0.2),add=TRUE) 
+dev.off()
 
 ##Schoeners' D ao longo do tempo##
 
+#GLM
 pdf(file='/home/anderson/Documentos/Projetos/Sps artificiais/GLM/DxTime.pdf')
 par(mfrow=c( 1,3))
 ##HW species
@@ -538,7 +577,6 @@ points(outputData$spCD2varQuadModel$Schoeners_D[1:23]~outputData$spCD2varQuadMod
 points(outputData$spCD2varLinearModel$Schoeners_D[1:23]~outputData$spCD2varLinearModel$kyrBP[1:23],t='b',ylim=c(0.5,1),pch=16,cex=1.5,col='red')
 legend('bottomright',legend=c('8 var. - quadratic','8 var. - linear','2 var. - quadratic','2 var. - linear'),pch=c(20,18,17,16),col=c('black','blue','green','red'))#
 dev.off()
-
 
 ##Distancia de Hellinger ao longo do tempo
 pdf(file='/home/anderson/Documentos/Projetos/Sps artificiais/GLM/HellingerXtime.pdf')
@@ -563,8 +601,23 @@ points(outputData$spCD2varLinearModel$Hellinger_distances[1:23]~outputData$spCD2
 legend('bottomright',legend=c('8 var. - quadratic','8 var. - linear','2 var. - quadratic','2 var. - linear'),pch=c(20,18,17,16),col=c('black','blue','green','red'))#
 dev.off()
 
+#maxent
+pdf(file='/home/anderson/Documentos/Projetos/Sps artificiais/Maxent/graficos/metricsXtime.pdf')
+par(mfrow=c(1,2))
+#D
+plot(indexD~kyrBP,data=HWdataD,type='b',ylim=c(0,1),pch=1,col='black')
+points(indexD~kyrBP,data=HDdataD,type='b',ylim=c(0,1),pch=2,col='blue')
+points(indexD~kyrBP,data=CDdataD,type='b',ylim=c(0,1),pch=3,col='red')
+#H
+plot(indexH~kyrBP,data=HWdataH,type='b',ylim=c(0,1),pch=1,col='black')
+points(indexH~kyrBP,data=HDdataH,type='b',ylim=c(0,1),pch=2,col='blue')
+points(indexH~kyrBP,data=CDdataH,type='b',ylim=c(0,1),pch=3,col='red')
+dev.off()
+
+
 ##distribuicao presente, inter e maximo glacial
 
+##GLM
 HWpresentReal = "/home/anderson/Documentos/Projetos/Sps artificiais/NichoReal/spHW/000.asc"
 HWpresentSDM8VQ = "/home/anderson/Documentos/Projetos/Sps artificiais/GLM/spHW/8varQuadModel/Projections/000.asc"
 HWpresentSDM8VL = "/home/anderson/Documentos/Projetos/Sps artificiais/GLM/spHW/8varLinearModel/Projections/000.asc"
@@ -595,3 +648,13 @@ nomesSubgraficos = c('Hot&Wet sp','Hot&Dry sp','Cold&Dry sp','8 var./Quadratic',
 pdf(file='/home/anderson/Documentos/Projetos/Sps artificiais/GLM/realXmodel.pdf')
 rasterVis::levelplot(speciesLayers,scales=list(x=list(cex=0.6), y=list(cex=0.6)),between=list(x=1.8, y=0.25),par.strip.text=list(cex=0.6),layout=c(3,5), main='',names.attr=nomesSubgraficos,colorkey=list(space="right")) + layer(sp.polygons(AmSulShape))
 dev.off()
+
+##maxent
+HWcurrentReal = raster(paste(projectFolder,'NichoReal/spHW/000.asc',sep=''))
+HWcurrentModel = raster(paste(projectFolder,'Maxent/spHW/projections/projection-0kyrBP.asc',sep=''))
+
+HDcurrentReal = raster(paste(projectFolder,'NichoReal/spHD/000.asc',sep=''))
+HDcurrentModel = raster(paste(projectFolder,'Maxent/spHD/projections/projection-0kyrBP.asc',sep=''))
+
+CDcurrentReal = raster(paste(projectFolder,'NichoReal/spCD/000.asc',sep=''))
+CDcurrentModel = raster(paste(projectFolder,'Maxent/spCD/projections/projection-0kyrBP.asc',sep=''))
