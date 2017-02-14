@@ -141,14 +141,14 @@ evaluation = list()
 TSSvector = data.frame()
 
 for (i in 1:length(spsTypes)){
-    for (j in 1:10){ #loop sobre o numero de replicas
+    for (j in 1:4){ #loop sobre o numero de replicas #10
         
         occPoints = read.csv(paste(mainSampleFolder,spsTypes[i],'/occurrences_',j,'.csv',sep=''),header=TRUE) #abrindo pontos de ocorrencia
         backgroundPoints = read.csv(paste(mainSampleFolder,spsTypes[i],'/background_',j,'.csv',sep=''),header=TRUE) #abrindo pontos de background
         names(backgroundPoints) = names(occPoints) #certificando que os nomes das colunas estão iguais (cuidado aqui...)
         dataSet = data.frame(cbind(rbind(occPoints,backgroundPoints),pres=c(rep(1,nrow(occPoints)),rep(0,nrow(backgroundPoints))))) #planilha de dados no formato SWD
 
-        me = dismo::maxent(
+        me = maxent(
                         x=dataSet[,c("bioclim_01","bioclim_04","bioclim_10","bioclim_11","bioclim_12","bioclim_15","bioclim_16","bioclim_17")],
                         p=dataSet$pres,
                         path=paste(maxentFolder,spsTypes[i],sep=''),
@@ -167,7 +167,7 @@ for (i in 1:length(spsTypes)){
                                'hinge=FALSE',
                                'maximumiterations=1000',
                                'convergencethreshold=1.0E-5',
-                               'threads=4'
+                               'threads=2'
                                ))
 
         ##rodando a avaliacao do modelo
@@ -178,7 +178,7 @@ for (i in 1:length(spsTypes)){
             predictors = stack(list.files(path=envVarPaths[k],full.names=TRUE, pattern='.asc')) #predictors com todas as variaveis (presente)
             predictors = mask(predictors,AmSulShape) #recortando as variaveis ambientais
             crs = CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0') #ajustando CRS
-            proj = dismo::predict(me,predictors,crs=crs) #realizando projetacoes (para cada replica)
+            proj = predict(me,predictors,crs=crs) #realizando projetacoes (para cada replica)
             writeRaster(mean(proj),paste(maxentFolder,spsTypes[i],'/projections/projection-Time',k-1,'kyrBP','-Replica',j,'.asc',sep=''),overwrite=TRUE) #salvando a projecao media
         }
         
@@ -440,10 +440,12 @@ for (i in 1:length(spsTypes)){
         realNiche.spgrid = as(realNiche,'SpatialGridDataFrame')
         output_i = data.frame(kyrBP=numeric(),Schoeners_D=numeric(),Hellinger_distances=numeric()) #dataframe vazio para o loop abaixo
         
-        for (m in 1:1){ #loop sobre as replicas
+        for (m in 1:4){ #loop sobre as replicas
+
+            m_jump = (l-1)*4 + m
 
             ##raster(list.files(path=projectionsFolder,pattern=paste('projection-Time',l-1,'kyrBP','-Replica',m,sep=''))) #mapa de suitability gerado por SDM
-            sdmNiche = raster(projectionsPath[l]) #mapa de suitability gerado por SDM
+            sdmNiche = raster(projectionsPath[m_jump]) #mapa de suitability gerado por SDM
             sdmNiche.spgrid = as(sdmNiche,'SpatialGridDataFrame')
             nicheOverlap = niche.overlap(c(realNiche.spgrid,sdmNiche.spgrid))
             output_i= rbind(output_i,cbind(kyrBP=l-1,Schoeners_D=nicheOverlap[1,2],Hellinger_distances=nicheOverlap[2,1]))
@@ -451,7 +453,7 @@ for (i in 1:length(spsTypes)){
         }
         
         outputMeans = colMeans(output_i) #media das iteracoes (para a camada de tempo atual)
-        outputData = data.frame(rbind(outputData,output_i))
+        outputData = data.frame(rbind(outputData,outputMeans))
         
     }
     
@@ -648,6 +650,9 @@ nomesSubgraficos = c('Hot&Wet sp','Hot&Dry sp','Cold&Dry sp','8 var./Quadratic',
 pdf(file='/home/anderson/Documentos/Projetos/Sps artificiais/GLM/realXmodel.pdf')
 rasterVis::levelplot(speciesLayers,scales=list(x=list(cex=0.6), y=list(cex=0.6)),between=list(x=1.8, y=0.25),par.strip.text=list(cex=0.6),layout=c(3,5), main='',names.attr=nomesSubgraficos,colorkey=list(space="right")) + layer(sp.polygons(AmSulShape))
 dev.off()
+
+
+##CONTIDUAR DAQUI
 
 ##maxent
 HWcurrentReal = raster(paste(projectFolder,'NichoReal/spHW/000.asc',sep=''))
