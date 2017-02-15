@@ -44,12 +44,7 @@ for (i in 1:length(caminhosCamadasTemp)){
     }
 }
 
-###SEGUNDA PARTE: amostragem de pontos de ocorrencia em diferentes camadas de tempo para fazer o pooled niche model###
-
-###Parametros necessarios###
-Npass = 1 #numero de pontos a serem amostrados para camadas do passado (pensando em pontos fosseis)
-Npres = 1 #c(10,100,200,400,800) #numero de pontos a serem amostrados para camadas do presente
-envVarFolder = "/home/anderson/PosDoc/dados_ambientais/dados_projeto" #pasta com as variaveis ambientais
+###SEGUNDA PARTE: amostragem de pontos de ocorrencia em diferentes camadas de te<down-mouse-1><mouse-1><help-echo><down-mouse-1><mouse-1><up><down><down><down><C-end><up><up><up><up><up><up><up><up><up><end><return><return><return><return><help-echo><help-echo><help-echo><down-mouse-1><mouse-1><escape><escape><escape><escape><help-echo><tool-bar><kill-buffer><tool-bar><kill-buffer><help-echo><help-echo><help-echo><help-echo><help-echo>mbientais
 caminhosCamadasTemp = list.files(path=envVarFolder, full.names=T) #lista com os caminhos das camadas no sistema (comp.)
 projectFolder = "/home/anderson/Documentos/Projetos/Sps artificiais/" #pasta do projeto
 mainSampleFolder = '/home/anderson/Documentos/Projetos/Sps artificiais/Amostras/' #caminho para pasta onde a planilha com os pontos amostrados sera salva
@@ -654,12 +649,45 @@ dev.off()
 
 ##CONTIDUAR DAQUI
 
+
+
 ##maxent
-HWcurrentReal = raster(paste(projectFolder,'NichoReal/spHW/000.asc',sep=''))
-HWcurrentModel = raster(paste(projectFolder,'Maxent/spHW/projections/projection-0kyrBP.asc',sep=''))
+threHW = read.csv(paste(projectFolder,'Maxent/spHW/StatisticsResults-spHW.csv',sep=''),header=TRUE)$ThresholdMean
+HWcurrentReal = raster(paste(projectFolder,'NichoReal/spHW/000.asc',sep='')) > 0.1
+HWcurrentModel = mean(stack(
+    c(paste(projectFolder,'Maxent/spHW/projections/projection-Time0kyrBP-Replica1.asc',sep=''),
+      paste(projectFolder,'Maxent/spHW/projections/projection-Time0kyrBP-Replica2.asc',sep=''),
+      paste(projectFolder,'Maxent/spHW/projections/projection-Time0kyrBP-Replica3.asc',sep=''),
+      paste(projectFolder,'Maxent/spHW/projections/projection-Time0kyrBP-Replica4.asc',sep='')))) > threHW
 
-HDcurrentReal = raster(paste(projectFolder,'NichoReal/spHD/000.asc',sep=''))
-HDcurrentModel = raster(paste(projectFolder,'Maxent/spHD/projections/projection-0kyrBP.asc',sep=''))
+threHD = read.csv(paste(projectFolder,'Maxent/spHD/StatisticsResults-spHD.csv',sep=''),header=TRUE)$ThresholdMean
+HDcurrentReal = raster(paste(projectFolder,'NichoReal/spHD/000.asc',sep='')) > 0.1
+HDcurrentModel = mean(stack(
+    c(paste(projectFolder,'Maxent/spHD/projections/projection-Time0kyrBP-Replica1.asc',sep=''),
+      paste(projectFolder,'Maxent/spHD/projections/projection-Time0kyrBP-Replica2.asc',sep=''),
+      paste(projectFolder,'Maxent/spHD/projections/projection-Time0kyrBP-Replica3.asc',sep=''),
+      paste(projectFolder,'Maxent/spHD/projections/projection-Time0kyrBP-Replica4.asc',sep='')))) > threHD
 
-CDcurrentReal = raster(paste(projectFolder,'NichoReal/spCD/000.asc',sep=''))
-CDcurrentModel = raster(paste(projectFolder,'Maxent/spCD/projections/projection-0kyrBP.asc',sep=''))
+threCD = read.csv(paste(projectFolder,'Maxent/spCD/StatisticsResults-spCD.csv',sep=''),header=TRUE)$ThresholdMean
+CDcurrentReal = raster(paste(projectFolder,'NichoReal/spCD/000.asc',sep='')) > 0.1
+CDcurrentModel = mean(stack(
+    c(paste(projectFolder,'Maxent/spCD/projections/projection-Time0kyrBP-Replica1.asc',sep=''),
+      paste(projectFolder,'Maxent/spCD/projections/projection-Time0kyrBP-Replica2.asc',sep=''),
+      paste(projectFolder,'Maxent/spCD/projections/projection-Time0kyrBP-Replica3.asc',sep=''),
+      paste(projectFolder,'Maxent/spCD/projections/projection-Time0kyrBP-Replica4.asc',sep='')))) > threHD
+
+library(rasterVis)
+AmSulShape = readShapePoly("/home/anderson/PosDoc/Am_Sul/borders.shp")
+
+levelplot(stack(c(HWcurrentReal*1+HWcurrentModel*2,HDcurrentReal*1+HDcurrentModel*2,CDcurrentReal*1+CDcurrentModel*2)),scales=list(x=list(cex=1), y=list(cex=1)),between=list(x=1.8, y=0.25),par.strip.text=list(cex=1),layout=c(3,1),col.regions=colorRampPalette(c("white","light green","blue","dark green")), main='',names.attr=c('Hot&Wet sp.','Hot&Dry sp.','Cold&Dry sp.'),colorkey=list(space="right",labels=list(cex=1.2))) + layer(sp.polygons(AmSulShape))
+
+par(mfrow=c(1,3))
+plot(HWcurrentReal*1+HWcurrentModel*2,legend=FALSE)
+plot(AmSulShape,add=TRUE)
+plot(HDcurrentReal*1+HDcurrentModel*2,legend=FALSE,yaxt='n')
+plot(AmSulShape,add=TRUE)
+plot(CDcurrentReal*1+CDcurrentModel*2,yaxt='n')
+plot(AmSulShape,add=TRUE)
+legend(legend=c('a','b','c'))
+
+dev.off()
