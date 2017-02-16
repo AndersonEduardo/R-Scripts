@@ -1220,7 +1220,6 @@ for (i in 1:length(splist)){
 write.table(resultados.evaluacion.MX,file=paste(projectFolder,"Maxent/","AUCmodelos.csv",sep=""), row.names=FALSE, col.names=TRUE, quote=FALSE, sep=",")
 
 write.csv(fossilPointsSuitability,file=paste(projectFolder,"Maxent/","suitabilityNoPontoFossil.csv",sep=""),row.names=F)
-
 #registrando e informando o tempo de processamento
 msgm = proc.time() - ptm
-print(paste('Tempo gasto para rodar MAXENT: ', msgm[3]/60,' minutos',sep=''))
+print(paste('Tempo gasto para rodar MAXENT: ', msgm[3]/60,' minutos'sep=''))

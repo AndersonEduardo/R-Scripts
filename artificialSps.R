@@ -1,5 +1,5 @@
 #########################################################################################
-####ALGORITMO PARA FAZER A DISTRIBUICAO REAL DAS ESPECIES EM VARIOS MOMENTOS DO TEMPO####
+####SCRIPT PARA FAZER A DISTRIBUICAO REAL DAS ESPECIES EM VARIOS MOMENTOS DO TEMPO####
 #########################################################################################
 library(virtualspecies)
 library(maptools)
@@ -44,79 +44,142 @@ for (i in 1:length(caminhosCamadasTemp)){
     }
 }
 
-###SEGUNDA PARTE: amostragem de pontos de ocorrencia em diferentes camadas de te<down-mouse-1><mouse-1><help-echo><down-mouse-1><mouse-1><up><down><down><down><C-end><up><up><up><up><up><up><up><up><up><end><return><return><return><return><help-echo><help-echo><help-echo><down-mouse-1><mouse-1><escape><escape><escape><escape><help-echo><tool-bar><kill-buffer><tool-bar><kill-buffer><help-echo><help-echo><help-echo><help-echo><help-echo>mbientais
-caminhosCamadasTemp = list.files(path=envVarFolder, full.names=T) #lista com os caminhos das camadas no sistema (comp.)
+###SEGUNDA PARTE: amostragem de pontos de ocorrencia em diferentes camadas de tempo###
+
+envVarFolder = "/home/anderson/PosDoc/dados_ambientais/dados_projeto/" #pasta com as variaveis ambientais
 projectFolder = "/home/anderson/Documentos/Projetos/Sps artificiais/" #pasta do projeto
 mainSampleFolder = '/home/anderson/Documentos/Projetos/Sps artificiais/Amostras/' #caminho para pasta onde a planilha com os pontos amostrados sera salva
 AmSulShape = readShapePoly("/home/anderson/PosDoc/Am_Sul/borders.shp") #shape da America do Sul
 biomodFolder = '/home/anderson/Documentos/Projetos/Sps artificiais/biomod/' #pasta para resultados do maxent
 spsTypes = c('spHW', 'spHD', 'spCD') #nomes das especies
+sampleSizes = c(5,15)
+Tmax = 22
+amostra = data.frame()
 
-############################
-for(g in 1:10){ #loop para replicar a 'amostragem de pontos fosseis'
-    for (h in 1:length(spsTypes)){ #loop sobre os 'tipos de especies'
-        nicheRealFolder = paste(projectFolder,'NichoReal/',spsTypes[h],sep='') #pasta com os mapas de nicho real da sp
-        nicheRealPath = list.files(path=nicheRealFolder, full.names=T, pattern='.asc') #lista com os enderecos dos mapas de distribuicao da sp
-        for (j in 1:length(Npres)){ #loop sobre os cenarios de amostragem para o presente
-            for (k in 1:length(Npass)){ #loop sobre os cenarios de amostragem para o passado
-                amostra = data.frame()
-                for (i in 1:length(nicheRealPath[1:24])){ #loop sobre o numero de camadas de tempo a serem amostradas
-                    realNicheMap = raster(nicheRealPath[i]) #abrindo o mapa de occ da sp
-                    ##nameScenario = names(realNicheMap)
-                    if (names(realNicheMap) != 'X000'){ #verificando se e o mapa da ocorrencia no presente
-                        amostra_i = sampleOccurrences(realNicheMap,Npass[k],plot=FALSE) #realizando a amostragem
-                        layers_i = stack(list.files(path=paste(envVarFolder,'/000',sep=''), pattern='asc', full.names=T)) ### stack all rasters in
-                        envVar_i = extract(layers_i, amostra_i[[1]][1:2], method='bilinear', buffer=NULL, fun=NULL, df=TRUE)
-                        amostra_i = cbind(amostra_i[[1]][1:2],envVar_i[,2:ncol(envVar_i)])
-                    }
-                    else{
-                        amostra_i = sampleOccurrences(realNicheMap,Npres[j],plot=FALSE) #realizando a amostragem
-                        scenarioName = basename(nicheRealPath[1:24][i])
-                        scenarioName = gsub('.asc','',scenarioName)
-                        layers_i = stack(list.files(path=paste(envVarFolder,'/',scenarioName,sep=''), pattern='asc', full.names=T)) ### stack all rasters in
-                        envVar_i = extract(layers_i, amostra_i[[1]][1:2], method='bilinear', buffer=NULL, fun=NULL, df=TRUE)
-                        amostra_i = cbind(amostra_i[[1]][1:2],envVar_i[,2:ncol(envVar_i)])
-                    }
-                    amostra = rbind(amostra,amostra_i)
-                }
-
-                setwd(paste(projectFolder,'Amostras/',spsTypes[h],'/',sep='')) #mudando a pasta de trabalho para os outputs
-                names(amostra) = c('lon','lat',"bioclim_01","bioclim_04","bioclim_10","bioclim_11","bioclim_12","bioclim_15","bioclim_16","bioclim_17")
-                write.csv(amostra,file=paste('occurrences_',g,'.csv',sep=''),row.names=FALSE)#salvando a planilha com os dados da amostra
-            }
-        }
-    }
-}
-
-##Background points
-for (g in 1:10){ #loop para replicar a 'amostragem de pontos fosseis'
-    for (i in 1:length(spsTypes)){  #loop sobre os 'tipos de especies'
-        backgroundPoints = data.frame()
+#ocorrencias
+for (i in 1:length(spsTypes)){ #loop sobre os 'tipos de especies'
+    for (sSize in sampleSizes){ #numero de pontos (registros, dados) na amostra
+        sampledAges = vector()
+        sampledAges = round(runif(sSize,0,Tmax)) #selecionando 'n' camadas de tempo aleatoriamente
         nicheRealFolder = paste(projectFolder,'NichoReal/',spsTypes[i],sep='') #pasta com os mapas de nicho real da sp
-        nicheRealPath = list.files(path=nicheRealFolder, full.names=TRUE, pattern='.asc') #lista com os enderecos dos mapas de distribuicao da sp
-        for (j in 1:length(nicheRealPath[1:24])){ #loop sobre o numero de camadas de tempo a serem amostradas
-            predictors = stack(list.files(path=paste(caminhosCamadasTemp[j],sep=''),pattern='asc',full.names=TRUE)) #carregando as variaveis ambientais
-            #predictors = mask(predictors,AmSulShape) #recortando as variaveis ambientais #ARRUMAR: RETIRAR, P FICAR MAIS RAPIDO
-            
-            #pooledOccPoints = read.csv(paste(mainSampleFolder,spsTypes[i],'/occurrences_',g,'.csv',sep=''),header=TRUE) #abrindo .csv de occ #ARRUMAR: RETIRAR ESTA LINHA (E MELHOR GERAR BACKGROUND CONSIDERANDO TUDO, E DEPOIS ELIMINAR)
-            #backgroundPoints_i<- randomPoints(mask=predictors[[1]],n=200,p=pooledOccPoints[,c("lon","lat")], excludep=TRUE) #sorteando coordenadas #ARRUMAR: RETIRAR O ARGUMENTO 'P' (VIDE COMENTARIO NA LINHA ANTERIOR)
-            backgroundPoints_i <- randomPoints(mask=predictors[[1]],n=100, excludep=TRUE) # 100 pontos de fundo por camada de tempo
-            colnames(backgroundPoints_i) <- c("lon", "lat")
-            
-            ##extraindo dados da variavel climatica nos pontos de background
-            ausencesVars <- extract(predictors,backgroundPoints_i,method='bilinear',buffer=NULL,fun=NULL) #extraindo variaveis ambientais nas coordenadas para cada time slice 'j'
-            backgroundPoints = data.frame(rbind(backgroundPoints,data.frame(backgroundPoints_i,ausencesVars))) #dados completos dos background points
+        nicheRealPath = list.files(path=nicheRealFolder, full.names=TRUE, pattern='.asc') #lista com os enderecos dos mapas de distribuicao da
+        for (j in 1:5){ #replicas do cenario amostral
+            for (sAge in sampledAges){ #amostrando em cada camada de tempo que consta na amostra
+                amostra_i = sampleOccurrences(x=raster(nicheRealPath[sAge+1]),n=1,plot=FALSE)$sample.points[,1:2] #amostra d ponto
+                scenarioName = basename(nicheRealPath[1:24][sAge+1]) #tempo vinculado ao cenario para variaveis ambientais
+                scenarioName = gsub('.asc','',scenarioName) #retirando do nome o '.asc'
+                layers_i = extract(
+                    x=stack(list.files(path=paste(envVarFolder,scenarioName,sep=''), pattern='asc', full.names=TRUE)),
+                    y=amostra_i) #extraindo variaveis ambientais do ponto, em sua respectiva camada de tempo
+                amostra = rbind(amostra, cbind(amostra_i,layers_i,sAge)) #juntando com os dados das outras camadas de tempo amostradas
+            }
+            names(amostra) = c('lon','lat',names(as.data.frame(layers_i)),'kyrBP') #ajustando os nomes
+            write.csv(amostra,paste(projectFolder,'Amostras/spHW/occ',sSize,'pts', j ,'rep.csv',sep=''),row.names=FALSE) #salvando
+            amostra = data.frame() #devolvendo data.frame vazio para proxima rodada
         }
-        ##'limpando' os background points
-        backgroundPoints1 = round(backgroundPoints, digits=3) ##ARRUMAR: RETIRAR COLUNAS DAS COORDENADAS PARA 'LIMPAR'
-##        backgroundPoints1 = round(backgroundPoints[,c("bioclim_01","bioclim_04","bioclim_10","bioclim_11","bioclim_12","bioclim_15","bioclim_16","bioclim_17")], digits=4)
-        backgroundPoints2 <- backgroundPoints1[!duplicated(backgroundPoints1[,1:2]),]
-        backgroundPoints3 <- backgroundPoints2[complete.cases(backgroundPoints2),]
-        backgroundPoints <- backgroundPoints3
-        setwd(paste(projectFolder,'Amostras/',spsTypes[i],'/',sep='')) 
-        write.csv(backgroundPoints,file=paste('background_',g,'.csv',sep=''),row.names=FALSE)
     }
 }
+
+#background
+for (i in 1:length(spsTypes)){ #loop sobre os 'tipos de especies'
+    for (sSize in sampleSizes){ #numero de pontos (registros, dados) na amostra
+        sampledAges = vector()
+        sampledAges = round(runif(sSize,0,Tmax)) #selecionando 'n' camadas de tempo aleatoriamente
+#        nicheRealFolder = paste(projectFolder,'NichoReal/',spsTypes[i],sep='') #pasta com os mapas de nicho real da sp
+        for (j in 1:5){ #replicas do cenario amostral
+            for (sAge in sampledAges){ #amostrando em cada camada de tempo que consta na amostra
+
+                envVarPath = list.files(path=paste(envVarFolder,list.files(path=paste(envVarFolder))[sAge+1],sep=''), full.names=TRUE, pattern='.asc') #lista com os enderecos das variaveis ambientais no tempo corresposndente a interacao 
+                
+                amostra_i = randomPoints(mask=raster(envVarPath[1]),n=1) #amostra d ponto
+                scenarioName = list.files(path=paste(envVarFolder))[sAge+1] #nome do cenario
+                layers_i = extract(
+                    x=stack(list.files(path=paste(envVarFolder,scenarioName,sep=''), pattern='asc', full.names=TRUE)),
+                    y=amostra_i) #extraindo variaveis ambientais do ponto, em sua respectiva camada de tempo
+                amostra = rbind(amostra, cbind(amostra_i,layers_i,sAge)) #juntando com os dados das outras camadas de tempo amostradas
+            }
+            names(amostra) = c('lon','lat',names(as.data.frame(layers_i)),'kyrBP') #ajustando os nomes
+            write.csv(amostra,paste(projectFolder,'Amostras/spHW/bg',sSize,'pts', j ,'rep.csv',sep=''),row.names=FALSE) #salvando
+            amostra = data.frame() #devolvendo data.frame vazio para proxima rodada
+        }
+    }
+}
+
+
+## ###SEGUNDA PARTE: amostragem de pontos de ocorrencia em diferentes camadas de tempo
+
+## caminhosCamadasTemp = list.files(path=envVarFolder, full.names=T) #lista com os caminhos das camadas no sistema (comp.)
+## projectFolder = "/home/anderson/Documentos/Projetos/Sps artificiais/" #pasta do projeto
+## mainSampleFolder = '/home/anderson/Documentos/Projetos/Sps artificiais/Amostras/' #caminho para pasta onde a planilha com os pontos amostrados sera salva
+## AmSulShape = readShapePoly("/home/anderson/PosDoc/Am_Sul/borders.shp") #shape da America do Sul
+## biomodFolder = '/home/anderson/Documentos/Projetos/Sps artificiais/biomod/' #pasta para resultados do maxent
+## spsTypes = c('spHW', 'spHD', 'spCD') #nomes das especies
+
+## ############################
+## for(g in 1:10){ #loop para replicar a 'amostragem de pontos fosseis'
+##     for (h in 1:length(spsTypes)){ #loop sobre os 'tipos de especies'
+##         nicheRealFolder = paste(projectFolder,'NichoReal/',spsTypes[h],sep='') #pasta com os mapas de nicho real da sp
+##         nicheRealPath = list.files(path=nicheRealFolder, full.names=T, pattern='.asc') #lista com os enderecos dos mapas de distribuicao da sp
+##         for (j in 1:length(Npres)){ #loop sobre os cenarios de amostragem para o presente
+##             for (k in 1:length(Npass)){ #loop sobre os cenarios de amostragem para o passado
+##                 amostra = data.frame()
+##                 for (i in 1:length(nicheRealPath[1:24])){ #loop sobre o numero de camadas de tempo a serem amostradas
+##                     realNicheMap = raster(nicheRealPath[i]) #abrindo o mapa de occ da sp
+##                     ##nameScenario = names(realNicheMap)
+##                     if (names(realNicheMap) != 'X000'){ #verificando se e o mapa da ocorrencia no presente
+##                         amostra_i = sampleOccurrences(realNicheMap,Npass[k],plot=FALSE) #realizando a amostragem
+##                         layers_i = stack(list.files(path=paste(envVarFolder,'/000',sep=''), pattern='asc', full.names=T)) ### stack all rasters in
+##                         envVar_i = extract(layers_i, amostra_i[[1]][1:2], method='bilinear', buffer=NULL, fun=NULL, df=TRUE)
+##                         amostra_i = cbind(amostra_i[[1]][1:2],envVar_i[,2:ncol(envVar_i)])
+##                     }
+##                     else{
+##                         amostra_i = sampleOccurrences(realNicheMap,Npres[j],plot=FALSE) #realizando a amostragem
+##                         scenarioName = basename(nicheRealPath[1:24][i])
+##                         scenarioName = gsub('.asc','',scenarioName)
+##                         layers_i = stack(list.files(path=paste(envVarFolder,'/',scenarioName,sep=''), pattern='asc', full.names=T)) ### stack all rasters in
+##                         envVar_i = extract(layers_i, amostra_i[[1]][1:2], method='bilinear', buffer=NULL, fun=NULL, df=TRUE)
+##                         amostra_i = cbind(amostra_i[[1]][1:2],envVar_i[,2:ncol(envVar_i)])
+##                     }
+##                     amostra = rbind(amostra,amostra_i)
+##                 }
+
+##                 setwd(paste(projectFolder,'Amostras/',spsTypes[h],'/',sep='')) #mudando a pasta de trabalho para os outputs
+##                 names(amostra) = c('lon','lat',"bioclim_01","bioclim_04","bioclim_10","bioclim_11","bioclim_12","bioclim_15","bioclim_16","bioclim_17")
+##                 write.csv(amostra,file=paste('occurrences_',g,'.csv',sep=''),row.names=FALSE)#salvando a planilha com os dados da amostra
+##             }
+##         }
+##     }
+## }
+
+## ##Background points
+## for (g in 1:10){ #loop para replicar a 'amostragem de pontos fosseis'
+##     for (i in 1:length(spsTypes)){  #loop sobre os 'tipos de especies'
+##         backgroundPoints = data.frame()
+##         nicheRealFolder = paste(projectFolder,'NichoReal/',spsTypes[i],sep='') #pasta com os mapas de nicho real da sp
+##         nicheRealPath = list.files(path=nicheRealFolder, full.names=TRUE, pattern='.asc') #lista com os enderecos dos mapas de distribuicao da sp
+##         for (j in 1:length(nicheRealPath[1:24])){ #loop sobre o numero de camadas de tempo a serem amostradas
+##             predictors = stack(list.files(path=paste(caminhosCamadasTemp[j],sep=''),pattern='asc',full.names=TRUE)) #carregando as variaveis ambientais
+##             #predictors = mask(predictors,AmSulShape) #recortando as variaveis ambientais #ARRUMAR: RETIRAR, P FICAR MAIS RAPIDO
+            
+##             #pooledOccPoints = read.csv(paste(mainSampleFolder,spsTypes[i],'/occurrences_',g,'.csv',sep=''),header=TRUE) #abrindo .csv de occ #ARRUMAR: RETIRAR ESTA LINHA (E MELHOR GERAR BACKGROUND CONSIDERANDO TUDO, E DEPOIS ELIMINAR)
+##             #backgroundPoints_i<- randomPoints(mask=predictors[[1]],n=200,p=pooledOccPoints[,c("lon","lat")], excludep=TRUE) #sorteando coordenadas #ARRUMAR: RETIRAR O ARGUMENTO 'P' (VIDE COMENTARIO NA LINHA ANTERIOR)
+##             backgroundPoints_i <- randomPoints(mask=predictors[[1]],n=100, excludep=TRUE) # 100 pontos de fundo por camada de tempo
+##             colnames(backgroundPoints_i) <- c("lon", "lat")
+            
+##             ##extraindo dados da variavel climatica nos pontos de background
+##             ausencesVars <- extract(predictors,backgroundPoints_i,method='bilinear',buffer=NULL,fun=NULL) #extraindo variaveis ambientais nas coordenadas para cada time slice 'j'
+##             backgroundPoints = data.frame(rbind(backgroundPoints,data.frame(backgroundPoints_i,ausencesVars))) #dados completos dos background points
+##         }
+##         ##'limpando' os background points
+##         backgroundPoints1 = round(backgroundPoints, digits=3) ##ARRUMAR: RETIRAR COLUNAS DAS COORDENADAS PARA 'LIMPAR'
+## ##        backgroundPoints1 = round(backgroundPoints[,c("bioclim_01","bioclim_04","bioclim_10","bioclim_11","bioclim_12","bioclim_15","bioclim_16","bioclim_17")], digits=4)
+##         backgroundPoints2 <- backgroundPoints1[!duplicated(backgroundPoints1[,1:2]),]
+##         backgroundPoints3 <- backgroundPoints2[complete.cases(backgroundPoints2),]
+##         backgroundPoints <- backgroundPoints3
+##         setwd(paste(projectFolder,'Amostras/',spsTypes[i],'/',sep='')) 
+##         write.csv(backgroundPoints,file=paste('background_',g,'.csv',sep=''),row.names=FALSE)
+##     }
+##}                                       
 
 ###TERCEIRA PARTE: SDM usando de pontos de ocorrencia em diferentes camadas de tempo (do atual ate 120 kyr BP)###
 
@@ -538,15 +601,15 @@ stripchart(indexH~model,data=CDdataH,vertical=TRUE,method="jitter",pch=20,cex=1,
 dev.off()
 
 #maxent
-pdf(file='/home/anderson/Documentos/Projetos/Sps artificiais/Maxent/graficos/boxplots.pdf')
+jpeg(file='/home/anderson/Documentos/Projetos/Sps artificiais/Maxent/graficos/boxplots.jpg',width=900,height=600)
 par(mfrow=c(1,2))
 #D
 Ddata = rbind(data.frame(kyrBP=HWdataD$kyrBP,indexD=HWdataD$indexD,spsType='Hot and Wet'),data.frame(kyrBP=HDdataD$kyrBP,indexD=HDdataD$indexD,spsType='Hot and Dry'),data.frame(kyrBP=CDdataD$kyrBP,indexD=CDdataD$indexD,spsType='Cold and Dry'))
-boxplot(indexD~spsType,data=Ddata,ylim=c(0,1),main="Schoeners' D")
+boxplot(indexD~spsType,data=Ddata,ylim=c(0.2,1),names=c('H&W','H&D','C&D'),main="Schoeners' D",cex.main=2,cex.lab=1.5,cex.axis=1.5,lwd=3)
 stripchart(indexD~spsType,data=Ddata,vertical=TRUE,method="jitter",pch=20,cex=1.5,col=rgb(0.5,0.5,0.5,0.2),add=TRUE) 
 #H
 Hdata = rbind(data.frame(kyrBP=HWdataH$kyrBP,indexH=HWdataH$indexH,spsType='Hot and Wet'),data.frame(kyrBP=HDdataH$kyrBP,indexH=HDdataH$indexH,spsType='Hot and Dry'),data.frame(kyrBP=CDdataH$kyrBP,indexH=CDdataH$indexH,spsType='Cold and Dry'))
-boxplot(indexH~spsType,data=Hdata,ylim=c(0,1),main='Hellinger')
+boxplot(indexH~spsType,data=Hdata,ylim=c(0.2,1),names=c('H&W','H&D','C&D'),main='Hellinger',cex.main=2,cex.lab=1.5,cex.axis=1.5,lwd=3)
 stripchart(indexH~spsType,data=Hdata,vertical=TRUE,method="jitter",pch=20,cex=1.5,col=rgb(0.5,0.5,0.5,0.2),add=TRUE) 
 dev.off()
 
@@ -599,16 +662,18 @@ legend('bottomright',legend=c('8 var. - quadratic','8 var. - linear','2 var. - q
 dev.off()
 
 #maxent
-pdf(file='/home/anderson/Documentos/Projetos/Sps artificiais/Maxent/graficos/metricsXtime.pdf')
+jpeg(file='/home/anderson/Documentos/Projetos/Sps artificiais/Maxent/graficos/metricsXtime.jpg',width=1100,height=750)
 par(mfrow=c(1,2))
 #D
-plot(indexD~kyrBP,data=HWdataD,type='b',ylim=c(0,1),pch=1,col='black')
-points(indexD~kyrBP,data=HDdataD,type='b',ylim=c(0,1),pch=2,col='blue')
-points(indexD~kyrBP,data=CDdataD,type='b',ylim=c(0,1),pch=3,col='red')
+plot(indexD~kyrBP,data=HWdataD,type='b',ylim=c(0,1),pch=1,col='black',cex.lab=1.9,cex.axis=1.5,lwd=2,cex=2)
+points(indexD~kyrBP,data=HDdataD,type='b',ylim=c(0,1),pch=2,col='blue',cex.lab=1.9,cex.axis=1.5,lwd=2,cex=2)
+points(indexD~kyrBP,data=CDdataD,type='b',ylim=c(0,1),pch=3,col='red',cex.lab=1.9,cex.axis=1.5,lwd=2,cex=2)
+legend(x=19,y=1,legend=c('H&W','H&D','C&D'),pch=20,col=c('black','blue','red'),cex=1.5)
 #H
-plot(indexH~kyrBP,data=HWdataH,type='b',ylim=c(0,1),pch=1,col='black')
-points(indexH~kyrBP,data=HDdataH,type='b',ylim=c(0,1),pch=2,col='blue')
-points(indexH~kyrBP,data=CDdataH,type='b',ylim=c(0,1),pch=3,col='red')
+plot(indexH~kyrBP,data=HWdataH,type='b',ylim=c(0,1),pch=1,col='black',cex.lab=1.9,cex.axis=1.5,lwd=2,cex=2)
+points(indexH~kyrBP,data=HDdataH,type='b',ylim=c(0,1),pch=2,col='blue',cex.lab=1.9,cex.axis=1.5,lwd=2,cex=2)
+points(indexH~kyrBP,data=CDdataH,type='b',ylim=c(0,1),pch=3,col='red',cex.lab=1.9,cex.axis=1.5,lwd=2,cex=2)
+legend(x=19,y=1,legend=c('H&W','H&D','C&D'),pch=20,col=c('black','blue','red'),cex=1.5)
 dev.off()
 
 
@@ -647,10 +712,6 @@ rasterVis::levelplot(speciesLayers,scales=list(x=list(cex=0.6), y=list(cex=0.6))
 dev.off()
 
 
-##CONTIDUAR DAQUI
-
-
-
 ##maxent
 threHW = read.csv(paste(projectFolder,'Maxent/spHW/StatisticsResults-spHW.csv',sep=''),header=TRUE)$ThresholdMean
 HWcurrentReal = raster(paste(projectFolder,'NichoReal/spHW/000.asc',sep='')) > 0.1
@@ -674,20 +735,23 @@ CDcurrentModel = mean(stack(
     c(paste(projectFolder,'Maxent/spCD/projections/projection-Time0kyrBP-Replica1.asc',sep=''),
       paste(projectFolder,'Maxent/spCD/projections/projection-Time0kyrBP-Replica2.asc',sep=''),
       paste(projectFolder,'Maxent/spCD/projections/projection-Time0kyrBP-Replica3.asc',sep=''),
-      paste(projectFolder,'Maxent/spCD/projections/projection-Time0kyrBP-Replica4.asc',sep='')))) > threHD
+      paste(projectFolder,'Maxent/spCD/projections/projection-Time0kyrBP-Replica4.asc',sep='')))) > threCD
 
 library(rasterVis)
 AmSulShape = readShapePoly("/home/anderson/PosDoc/Am_Sul/borders.shp")
 
-levelplot(stack(c(HWcurrentReal*1+HWcurrentModel*2,HDcurrentReal*1+HDcurrentModel*2,CDcurrentReal*1+CDcurrentModel*2)),scales=list(x=list(cex=1), y=list(cex=1)),between=list(x=1.8, y=0.25),par.strip.text=list(cex=1),layout=c(3,1),col.regions=colorRampPalette(c("white","light green","blue","dark green")), main='',names.attr=c('Hot&Wet sp.','Hot&Dry sp.','Cold&Dry sp.'),colorkey=list(space="right",labels=list(cex=1.2))) + layer(sp.polygons(AmSulShape))
+## levelplot(stack(c(HWcurrentReal*1+HWcurrentModel*2,HDcurrentReal*1+HDcurrentModel*2,CDcurrentReal*1+CDcurrentModel*2)),scales=list(x=list(cex=1), y=list(cex=1)),between=list(x=1.8, y=0.25),par.strip.text=list(cex=1),layout=c(3,1),col.regions=colorRampPalette(c("white","light green","blue","dark green")), main='',names.attr=c('Hot&Wet sp.','Hot&Dry sp.','Cold&Dry sp.'),colorkey=list(space="right",labels=list(cex=1.2))) + layer(sp.polygons(AmSulShape))
 
+jpeg(filename=paste(projectFolder,'Maxent/graficos/sobreposicoes.jpg',sep=''), width = 1024, height = 650)
 par(mfrow=c(1,3))
-plot(HWcurrentReal*1+HWcurrentModel*2,legend=FALSE)
+plot(HWcurrentReal*1+HWcurrentModel*2,main='Hot&Wet',col=c('white','green','blue','darkgreen'),legend=FALSE,cex.axis=1.5,cex.main=3)
 plot(AmSulShape,add=TRUE)
-plot(HDcurrentReal*1+HDcurrentModel*2,legend=FALSE,yaxt='n')
+grid()
+plot(HDcurrentReal*1+HDcurrentModel*2,main='Hot&Dry',legend=FALSE,col=c('white','green','blue','darkgreen'),yaxt='n',cex.axis=1.5,cex.main=3)
 plot(AmSulShape,add=TRUE)
-plot(CDcurrentReal*1+CDcurrentModel*2,yaxt='n')
+grid()
+plot(CDcurrentReal*1+CDcurrentModel*2,main='Cold&Dry',legend=FALSE,col=c('white','green','blue','darkgreen'),yaxt='n',cex.axis=1.5,cex.main=3)
 plot(AmSulShape,add=TRUE)
-legend(legend=c('a','b','c'))
-
+grid()
+legend(x='bottomright',legend=c('Real','Modelo','Sobreposição'),col=c('green','blue','darkgreen'),pch=20,cex=2.2,pt.cex=8)
 dev.off()
