@@ -74,7 +74,7 @@ for (i in 1:length(spsTypes)){ #loop sobre os 'tipos de especies'
                 amostra = rbind(amostra, cbind(amostra_i,layers_i,sAge)) #juntando com os dados das outras camadas de tempo amostradas
             }
             names(amostra) = c('lon','lat',names(as.data.frame(layers_i)),'kyrBP') #ajustando os nomes
-            write.csv(amostra,paste(projectFolder,'Amostras/spHW/occ',sSize,'pts', j ,'rep.csv',sep=''),row.names=FALSE) #salvando
+            write.csv(amostra,paste(projectFolder,'Amostras/',spsTypes[i],'/occ',sSize,'pts', j ,'rep.csv',sep=''),row.names=FALSE) #salvando
             amostra = data.frame() #devolvendo data.frame vazio para proxima rodada
         }
     }
@@ -99,12 +99,11 @@ for (i in 1:length(spsTypes)){ #loop sobre os 'tipos de especies'
                 amostra = rbind(amostra, cbind(amostra_i,layers_i,sAge)) #juntando com os dados das outras camadas de tempo amostradas
             }
             names(amostra) = c('lon','lat',names(as.data.frame(layers_i)),'kyrBP') #ajustando os nomes
-            write.csv(amostra,paste(projectFolder,'Amostras/spHW/bg',sSize,'pts', j ,'rep.csv',sep=''),row.names=FALSE) #salvando
+            write.csv(amostra,paste(projectFolder,'Amostras/',spsTypes[i],'/bg',sSize,'pts', j ,'rep.csv',sep=''),row.names=FALSE) #salvando
             amostra = data.frame() #devolvendo data.frame vazio para proxima rodada
         }
     }
 }
-
 
 ## ###SEGUNDA PARTE: amostragem de pontos de ocorrencia em diferentes camadas de tempo
 
