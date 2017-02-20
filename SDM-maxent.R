@@ -8,7 +8,9 @@ library(dismo)
 Sys.setenv(JAVA_HOME='/usr/lib/jvm/java-7-openjdk-amd64') # for 64-bit version
 #Windows#Sys.setenv(JAVA_HOME='C:\\Program Files\\Java\\jre1.8.0_91') # for 64-bit version
 library(rJava)
-source("/home/anderson/R/R-Scripts/TSSfunction.R")
+#source("/home/anderson/R/R-Scripts/TSSfunction.R")
+
+source("/home/anderson/R/R-Scripts/.R") 
 
 ###PRIMEIRA PARTE: planilha de presencas, backgrownd e variaveis ambientais
 
