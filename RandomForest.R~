@@ -1,0 +1,81 @@
+##########################################################################
+######################SDM WITH RANDOM FOREST##############################
+library(biomod2)
+library(maptools)
+library(dismo)
+
+###PRIMEIRA PARTE: planilha de presencas, backgrownd e variaveis ambientais
+
+##definindo as pastas de trabalho
+envVarFolder = "/home/anderson/PosDoc/dados_ambientais/"
+spOccFolder = "/home/anderson/PosDoc/dados_ocorrencia/PO_unique/"
+projectFolder = "/home/anderson/PosDoc/teste/"
+
+##abrindo as variaveis climaticas
+##abrindo shape da America do Sul
+AmSulShape = readShapePoly("/home/anderson/PosDoc/Am_Sul/borders.shp")
+
+##abrindo e cortando camadas de variaveis ambientais para o presente
+filesRaw <- stack(list.files(path=paste(envVarFolder,"dados_projeto/000",sep=''), pattern='asc', full.names=TRUE)) 
+files = mask(filesRaw,AmSulShape) #cortando para Am. do Sul
+
+##abrindo e cortando camads de variaveis ambientais para projecao
+##filesProjectionRaw <- stack(list.files(path=paste(envVarFolder,"dados_projeto/021",sep=''), pattern='asc', full.names=T)) ###abrindo camandas para projecao (passado, futuro, outro local, etc)
+##filesProjection = mask(filesProjectionRaw,AmSulShape) #cortando para Am. do Sul
+
+##testando correcaloes
+## test<-getValues(files)
+## cor.matrix <- as.data.frame(cor(test, use="complete.obs"))
+#write.csv(cor.matrix,'cor_matrix.csv')
+
+##remove highly correlated variables Bio1,Bio3,Bio9,Bio13,Bio14
+files.crop.sub <- dropLayer(files, c(1,2,5,6)) #### remove selected layers
+##files.crop.sub.projection <- dropLayer(filesProjection, c(1,2,5,6))
+
+##definindo os objetos para as variaveis preditoras
+predictors <- files.crop.sub
+##predictorsProjection = files.crop.sub.projection
+
+##Criando objeto com a lista de especies
+occ.sps <- list.files(paste(spOccFolder,sep=''),pattern="csv")
+splist <-unlist(lapply(occ.sps, FUN = strsplit, split=("\\.csv")))
+##fosseis
+occ.sps.fosseis = read.csv(paste(spOccFolder,"fosseis/fosseis.csv",sep=''),header=TRUE)
+splist.fosseis = lapply(occ.sps.fosseis[,1],as.character)
+
+###SEGUNDA PARTE: rodando SDMs para as especies (e fazendo projecoes)
+
+for (i in 1:length(splist)){
+    especie = splist[i] #selecting the species
+    sp.file <- read.csv(paste(spOccFolder,especie,".csv",sep=""),header=TRUE) ### read sp occurrence
+    sp.occ <- sp.file[,2:3] ## select lat-long columns
+    
+    ##extraindo dados da variavel climatica nos pontos de ocorrencia
+    presencesVars <- extract(predictors, sp.occ, method='bilinear', buffer=NULL, fun=NULL)
+
+    ##criando um vetor de presenca para usar em uma coluna de presenca/ausencia na tabela final
+    pres = rep(1, nrow(presencesVars))
+
+    ##juntando dados das variaveis climaticas nos pontos de ocorrencia, coordenadas de ocorrencia e o vetor (coluna na tabela) para presenca/ausencia
+    presencesData = data.frame(cbind(presencesVars,pres,sp.occ))
+    presencesData = presencesData[complete.cases(presencesData),]
+
+    ##criando ausencias para o background
+    background1 <- randomPoints(mask=predictors[[1]], n=5000, p=presencesData[,c("latitude","longitude")], excludep=TRUE)
+    background2 <- round(background1, digits=4)
+    background3 <- background2[!duplicated(background2),]
+    background4 <- background3[complete.cases(background3),]
+    background <- data.frame(background4)
+    colnames(background) <- c("longitude", "latitude")
+
+    ##extraindo dados da variavel climatica nos pontos de background
+    ausencesVars <- extract(predictors, background, method='bilinear', buffer=NULL, fun=NULL)
+
+    ##criando um vetor de ausencias para usar em uma coluna de presenca/ausencia na tabela final
+    pres = rep(0, nrow(ausencesVars))
+
+    ##juntando dados das variaveis climaticas nos pontos de ocorrencia, coordenadas de ocorrencia e o vetor (coluna na tabela) para presenca/ausencia    
+    ausencesData = data.frame(cbind(ausencesVars,pres,background))
+    
+    ##planilha de dados final
+    dataSet = data.frame(rbind(presencesData,ausencesData))
