@@ -52,7 +52,7 @@ mainSampleFolder = '/home/anderson/Documentos/Projetos/Sps artificiais/Amostras/
 AmSulShape = readShapePoly("/home/anderson/PosDoc/Am_Sul/borders.shp") #shape da America do Sul
 biomodFolder = '/home/anderson/Documentos/Projetos/Sps artificiais/biomod/' #pasta para resultados do maxent
 spsTypes = c('spHW', 'spHD', 'spCD') #nomes das especies
-sampleSizes = c(25,35,45,55,65,75,85,95)
+sampleSizes = c(5,15,25,35,45,55,65,75,85,95)
 Tmax = 22
 amostra = data.frame()
 
@@ -180,7 +180,6 @@ for (i in 1:length(spsTypes)){ #loop sobre os 'tipos de especies'
 ##     }
 ##}                                       
 
-
 ###TERCEIRA PARTE: SDM usando de pontos de ocorrencia em diferentes camadas de tempo (do atual ate 120 kyr BP)###
 
 #######################################################
@@ -265,7 +264,6 @@ for (i in 1:length(spsTypes)){
 #######################################################
 #######################################################
 #######################################################
-
 
 #######################################################
 ####################### GLM ###########################
@@ -480,6 +478,7 @@ for (g in 1:10){
 projectFolder = "/home/anderson/Documentos/Projetos/Sps artificiais/" #pasta do projeto
 spsTypes = c('spHW', 'spHD', 'spCD') #nomes das especies
 scenarioModel = c('8varLinearModel','8varQuadModel','2varLinearModel','2varQuadModel')
+sampleSizes = c(5,15,25,35,45,55,65,75,85,95) #aqui, deve ser igual ao usasado nas partes anteriores do script
 
 model1 = pres ~ bioclim_01 + bioclim_04 + bioclim_10 + bioclim_11 + bioclim_12 + bioclim_15 + bioclim_16 + bioclim_17 
 model2 = pres ~ bioclim_01 + I(bioclim_01^2) + bioclim_04 + I(bioclim_04^2) + bioclim_10 + I(bioclim_10^2) + bioclim_11 + I(bioclim_11^2) + bioclim_12 + I(bioclim_12^2) + bioclim_15 + I(bioclim_15^2) + bioclim_16 + I(bioclim_16^2) + bioclim_17 + I(bioclim_17^2)
@@ -493,34 +492,36 @@ for (i in 1:length(spsTypes)){
     nicheRealPath = list.files(path=nicheRealFolder,pattern='asc',full.names=T) #lista com os enderecos dos mapas de distribuicao da sp
     projectionsFolder = paste(projectFolder,'Maxent/',spsTypes[i],'/projections',sep='') #pasta com as projecoes do cenario
     projectionsPath = list.files(path=projectionsFolder, pattern='asc',full.names=T) #caminhos para os .asc na paste do cenario
-    outputData = data.frame(kyrBP=numeric(),Schoeners_D=numeric(),Hellinger_distances=numeric())
+    outputData = data.frame(kyrBP=numeric(),sampleSize=numeric(),Schoeners_D=numeric(),Hellinger_distances=numeric())
     
     for (l in 1:length(nicheRealPath[1:24])){ #loop sobre as cadamdas de tempo
 
         realNiche = raster(nicheRealPath[l]) #nicho real
         realNiche.spgrid = as(realNiche,'SpatialGridDataFrame')
-        output_i = data.frame(kyrBP=numeric(),Schoeners_D=numeric(),Hellinger_distances=numeric()) #dataframe vazio para o loop abaixo
         
-        for (m in 1:4){ #loop sobre as replicas
+        for (m in sampleSizes){ #loop sobre os tamnhos amostrais
 
-            m_jump = (l-1)*4 + m
-
-            ##raster(list.files(path=projectionsFolder,pattern=paste('projection-Time',l-1,'kyrBP','-Replica',m,sep=''))) #mapa de suitability gerado por SDM
-            sdmNiche = raster(projectionsPath[m_jump]) #mapa de suitability gerado por SDM
-            sdmNiche.spgrid = as(sdmNiche,'SpatialGridDataFrame')
-            nicheOverlap = niche.overlap(c(realNiche.spgrid,sdmNiche.spgrid))
-            output_i= rbind(output_i,cbind(kyrBP=l-1,Schoeners_D=nicheOverlap[1,2],Hellinger_distances=nicheOverlap[2,1]))
+            timeSampleData =  stack(list.files(path=projectionsFolder, pattern=glob2rx(paste('*Time',l-1,'*Sample',m,'.asc',sep='')),full.names=TRUE))
+            output_i = data.frame(kyrBP=numeric(),sapleSize=numeric(),Schoeners_D=numeric(),Hellinger_distances=numeric()) #dataframe vazio para o loop abaixo
+            
+            for(n in 1:5){
+              
+                sdmNiche = timeSampleData[[n]] #mapa de suitability gerado por SDM
+                sdmNiche.spgrid = as(sdmNiche,'SpatialGridDataFrame')
+                nicheOverlap = niche.overlap(c(realNiche.spgrid,sdmNiche.spgrid))
+                output_i= rbind(output_i,cbind(kyrBP=l-1,sampleSize=m,Schoeners_D=nicheOverlap[1,2],Hellinger_distances=nicheOverlap[2,1]))
+                
+            }
+        
+            outputMeans = colMeans(output_i) #media das iteracoes (para a camada de tempo atual)
+            outputData = data.frame(rbind(outputData,outputMeans))
             
         }
-        
-        outputMeans = colMeans(output_i) #media das iteracoes (para a camada de tempo atual)
-        outputData = data.frame(rbind(outputData,outputMeans))
-        
     }
     
-    names(outputData) = c('kyrBP','Schoeners_D','Hellinger_distances')  
+    names(outputData) = c('kyrBP','sampleSize','Schoeners_D','Hellinger_distances')  
     write.csv(outputData, file=paste(projectionsFolder,"/NO.csv",sep=""),row.names=FALSE) #salvando os dados do cenario
-
+    
 }
 
 
