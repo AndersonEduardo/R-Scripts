@@ -209,7 +209,8 @@ for (i in 1:length(spsTypes)){
             dataSet = data.frame(cbind(rbind(occPoints,backgroundPoints),pres=c(rep(1,nrow(occPoints)),rep(0,nrow(backgroundPoints))))) #planilha de dados no formato SWD
             
             me = maxent(
-                x=dataSet[,c("bioclim_01","bioclim_04","bioclim_10","bioclim_11","bioclim_12","bioclim_15","bioclim_16","bioclim_17")],
+                ##x=dataSet[,c("bioclim_01","bioclim_04","bioclim_10","bioclim_11","bioclim_12","bioclim_15","bioclim_16","bioclim_17")],
+                x=dataSet[,c("bioclim_01","bioclim_12")],
                 p=dataSet$pres,
                 path=paste(maxentFolder,spsTypes[i],sep=''),
                 args=c('responsecurves=TRUE',
@@ -231,11 +232,12 @@ for (i in 1:length(spsTypes)){
                        ))
             
             ##rodando a avaliacao do modelo
-            TSSvector = rbind(TSSvector, TSSmaxent(paste(maxentFolder,spsTypes[i],sep='')))
+            TSSvector = rbind(TSSvector, TSSmaxent(paste(maxentFolder,spsTypes[i],'/',sep='')))
             evaluation = append(evaluation, evaluate(p=occPoints,a=backgroundPoints,model=me))
         
             for (l in 1:length(envVarPaths[1:24])){
                 predictors = stack(list.files(path=envVarPaths[l],full.names=TRUE, pattern='.asc')) #predictors com todas as variaveis (presente)
+                predictors = predictors[[c('bioclim_01','bioclim_12')]]
                 predictors = mask(predictors,AmSulShape) #recortando as variaveis ambientais
                 crs = CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0') #ajustando CRS
                 proj = predict(me,predictors,crs=crs) #realizando projetacoes (para cada replica)
@@ -680,6 +682,23 @@ points(indexH~kyrBP,data=CDdataH,type='b',ylim=c(0,1),pch=3,col='red',cex.lab=1.
 legend(x=19,y=1,legend=c('H&W','H&D','C&D'),pch=20,col=c('black','blue','red'),cex=1.5)
 dev.off()
 
+##metricas X tamanho amostral
+
+#maxent
+jpeg(file='/home/anderson/Documentos/Projetos/Sps artificiais/Maxent/graficos/metricsXtime.jpg',width=1100,height=750)
+par(mfrow=c(1,2))
+#D
+plot(outputData$spHW$Schoeners_D~outputData$spHW$sampleSize,type='p',ylim=c(0,1),pch=1,col='black',cex.lab=1.9,cex.axis=1.5,lwd=2,cex=2)
+points(outputData$spHD$Schoeners_D~outputData$spHD$sampleSize,data=HDdataD,type='p',ylim=c(0,1),pch=2,col='blue',cex.lab=1.9,cex.axis=1.5,lwd=2,cex=2)
+points(outputData$spCD$Schoeners_D~outputData$spCD$sampleSize,data=CDdataD,type='p',ylim=c(0,1),pch=3,col='red',cex.lab=1.9,cex.axis=1.5,lwd=2,cex=2)
+legend(x=6,y=1,legend=c('H&W','H&D','C&D'),pch=20,col=c('black','blue','red'),cex=1.5)
+#H
+plot(outputData$spHW$Hellinger_distances~outputData$spHW$sampleSize,type='p',ylim=c(0,1),pch=1,col='black',cex.lab=1.9,cex.axis=1.5,lwd=2,cex=2)
+points(outputData$spHD$Hellinger_distances~outputData$spHD$sampleSize,data=HDdataD,type='p',ylim=c(0,1),pch=2,col='blue',cex.lab=1.9,cex.axis=1.5,lwd=2,cex=2)
+points(outputData$spCD$Hellinger_distances~outputData$spCD$sampleSize,data=CDdataD,type='p',ylim=c(0,1),pch=3,col='red',cex.lab=1.9,cex.axis=1.5,lwd=2,cex=2)
+legend(x=6,y=1,legend=c('H&W','H&D','C&D'),pch=20,col=c('black','blue','red'),cex=1.5)
+dev.off()
+
 
 ##distribuicao presente, inter e maximo glacial
 
@@ -719,43 +738,129 @@ dev.off()
 ##maxent
 threHW = read.csv(paste(projectFolder,'Maxent/spHW/StatisticsResults-spHW.csv',sep=''),header=TRUE)$ThresholdMean
 HWcurrentReal = raster(paste(projectFolder,'NichoReal/spHW/000.asc',sep='')) > 0.1
-HWcurrentModel = mean(stack(
-    c(paste(projectFolder,'Maxent/spHW/projections/projection-Time0kyrBP-Replica1.asc',sep=''),
-      paste(projectFolder,'Maxent/spHW/projections/projection-Time0kyrBP-Replica2.asc',sep=''),
-      paste(projectFolder,'Maxent/spHW/projections/projection-Time0kyrBP-Replica3.asc',sep=''),
-      paste(projectFolder,'Maxent/spHW/projections/projection-Time0kyrBP-Replica4.asc',sep='')))) > threHW
+HWModel_0kyrSample5 =  mean( stack(list.files(path=paste(projectFolder,'Maxent/spHW/projections/',sep=''), pattern=glob2rx(paste('*Time0*Sample',5,'.asc',sep='')),full.names=TRUE)) ) > threHW
+HWModel_0kyrSample45 =  mean( stack(list.files(path=paste(projectFolder,'Maxent/spHW/projections/',sep=''), pattern=glob2rx(paste('*Time0*Sample',45,'.asc',sep='')),full.names=TRUE)) ) > threHW
+HWModel_0kyrSample95 =  mean( stack(list.files(path=paste(projectFolder,'Maxent/spHW/projections/',sep=''), pattern=glob2rx(paste('*Time0*Sample',95,'.asc',sep='')),full.names=TRUE)) ) > threHW
+HWModel_22kyrSample5 =  mean( stack(list.files(path=paste(projectFolder,'Maxent/spHW/projections/',sep=''), pattern=glob2rx(paste('*Time22*Sample',5,'.asc',sep='')),full.names=TRUE)) ) > threHW
+HWModel_22kyrSample45 =  mean( stack(list.files(path=paste(projectFolder,'Maxent/spHW/projections/',sep=''), pattern=glob2rx(paste('*Time22*Sample',45,'.asc',sep='')),full.names=TRUE)) ) > threHW
+HWModel_22kyrSample95 =  mean( stack(list.files(path=paste(projectFolder,'Maxent/spHW/projections/',sep=''), pattern=glob2rx(paste('*Time22*Sample',95,'.asc',sep='')),full.names=TRUE)) ) > threHW
 
 threHD = read.csv(paste(projectFolder,'Maxent/spHD/StatisticsResults-spHD.csv',sep=''),header=TRUE)$ThresholdMean
 HDcurrentReal = raster(paste(projectFolder,'NichoReal/spHD/000.asc',sep='')) > 0.1
-HDcurrentModel = mean(stack(
-    c(paste(projectFolder,'Maxent/spHD/projections/projection-Time0kyrBP-Replica1.asc',sep=''),
-      paste(projectFolder,'Maxent/spHD/projections/projection-Time0kyrBP-Replica2.asc',sep=''),
-      paste(projectFolder,'Maxent/spHD/projections/projection-Time0kyrBP-Replica3.asc',sep=''),
-      paste(projectFolder,'Maxent/spHD/projections/projection-Time0kyrBP-Replica4.asc',sep='')))) > threHD
+HDModel_0kyrSample5 =  mean( stack(list.files(path=paste(projectFolder,'Maxent/spHD/projections/',sep=''), pattern=glob2rx(paste('*Time0*Sample',5,'.asc',sep='')),full.names=TRUE)) ) > threHD
+HDModel_0kyrSample45 =  mean( stack(list.files(path=paste(projectFolder,'Maxent/spHD/projections/',sep=''), pattern=glob2rx(paste('*Time0*Sample',45,'.asc',sep='')),full.names=TRUE)) ) > threHD
+HDModel_0kyrSample95 =  mean( stack(list.files(path=paste(projectFolder,'Maxent/spHD/projections/',sep=''), pattern=glob2rx(paste('*Time0*Sample',95,'.asc',sep='')),full.names=TRUE)) ) > threHD
+HDModel_22kyrSample5 =  mean( stack(list.files(path=paste(projectFolder,'Maxent/spHD/projections/',sep=''), pattern=glob2rx(paste('*Time22*Sample',5,'.asc',sep='')),full.names=TRUE)) ) > threHD
+HDModel_22kyrSample45 =  mean( stack(list.files(path=paste(projectFolder,'Maxent/spHD/projections/',sep=''), pattern=glob2rx(paste('*Time22*Sample',45,'.asc',sep='')),full.names=TRUE)) ) > threHD
+HDModel_22kyrSample95 =  mean( stack(list.files(path=paste(projectFolder,'Maxent/spHD/projections/',sep=''), pattern=glob2rx(paste('*Time22*Sample',95,'.asc',sep='')),full.names=TRUE)) ) > threHD
 
 threCD = read.csv(paste(projectFolder,'Maxent/spCD/StatisticsResults-spCD.csv',sep=''),header=TRUE)$ThresholdMean
 CDcurrentReal = raster(paste(projectFolder,'NichoReal/spCD/000.asc',sep='')) > 0.1
-CDcurrentModel = mean(stack(
-    c(paste(projectFolder,'Maxent/spCD/projections/projection-Time0kyrBP-Replica1.asc',sep=''),
-      paste(projectFolder,'Maxent/spCD/projections/projection-Time0kyrBP-Replica2.asc',sep=''),
-      paste(projectFolder,'Maxent/spCD/projections/projection-Time0kyrBP-Replica3.asc',sep=''),
-      paste(projectFolder,'Maxent/spCD/projections/projection-Time0kyrBP-Replica4.asc',sep='')))) > threCD
+CDModel_0kyrSample5 =  mean( stack(list.files(path=paste(projectFolder,'Maxent/spCD/projections/',sep=''), pattern=glob2rx(paste('*Time0*Sample',5,'.asc',sep='')),full.names=TRUE)) ) > threCD
+CDModel_0kyrSample45 =  mean( stack(list.files(path=paste(projectFolder,'Maxent/spCD/projections/',sep=''), pattern=glob2rx(paste('*Time0*Sample',45,'.asc',sep='')),full.names=TRUE)) ) > threCD
+CDModel_0kyrSample95 =  mean( stack(list.files(path=paste(projectFolder,'Maxent/spCD/projections/',sep=''), pattern=glob2rx(paste('*Time0*Sample',95,'.asc',sep='')),full.names=TRUE)) ) > threCD
+CDModel_22kyrSample5 =  mean( stack(list.files(path=paste(projectFolder,'Maxent/spCD/projections/',sep=''), pattern=glob2rx(paste('*Time22*Sample',5,'.asc',sep='')),full.names=TRUE)) ) > threCD
+CDModel_22kyrSample45 =  mean( stack(list.files(path=paste(projectFolder,'Maxent/spCD/projections/',sep=''), pattern=glob2rx(paste('*Time22*Sample',45,'.asc',sep='')),full.names=TRUE)) ) > threCD
+CDModel_22kyrSample95 =  mean( stack(list.files(path=paste(projectFolder,'Maxent/spCD/projections/',sep=''), pattern=glob2rx(paste('*Time22*Sample',95,'.asc',sep='')),full.names=TRUE)) ) > threCD
 
 library(rasterVis)
 AmSulShape = readShapePoly("/home/anderson/PosDoc/Am_Sul/borders.shp")
 
 ## levelplot(stack(c(HWcurrentReal*1+HWcurrentModel*2,HDcurrentReal*1+HDcurrentModel*2,CDcurrentReal*1+CDcurrentModel*2)),scales=list(x=list(cex=1), y=list(cex=1)),between=list(x=1.8, y=0.25),par.strip.text=list(cex=1),layout=c(3,1),col.regions=colorRampPalette(c("white","light green","blue","dark green")), main='',names.attr=c('Hot&Wet sp.','Hot&Dry sp.','Cold&Dry sp.'),colorkey=list(space="right",labels=list(cex=1.2))) + layer(sp.polygons(AmSulShape))
 
-jpeg(filename=paste(projectFolder,'Maxent/graficos/sobreposicoes.jpg',sep=''), width = 1024, height = 650)
-par(mfrow=c(1,3))
-plot(HWcurrentReal*1+HWcurrentModel*2,main='Hot&Wet',col=c('white','green','blue','darkgreen'),legend=FALSE,cex.axis=1.5,cex.main=3)
+##sobreposicoes spHW
+jpeg(filename=paste(projectFolder,'Maxent/graficos/sobreposicoesHW.jpg',sep=''), width = 1100 , height = 1100) 
+par(mfrow=c(2,3),oma=c(0,0,5,0))
+plot(HWcurrentReal*1+HWModel_0kyrSample5*2,main='(A)',col=c('white','green','blue','darkgreen'),legend=FALSE,cex.axis=2,cex.main=4)
 plot(AmSulShape,add=TRUE)
+text(-50,-45,'Time: 0 kyr BP',cex=2)
+text(-50,-50,'Sample: 5 records',cex=2)
 grid()
-plot(HDcurrentReal*1+HDcurrentModel*2,main='Hot&Dry',legend=FALSE,col=c('white','green','blue','darkgreen'),yaxt='n',cex.axis=1.5,cex.main=3)
+plot(HWcurrentReal*1+HWModel_0kyrSample45*2,main='(B)',col=c('white','green','blue','darkgreen'),legend=FALSE,cex.axis=2,cex.main=4)
 plot(AmSulShape,add=TRUE)
+text(-50,-45,'Time: 0 kyr BP',cex=2)
+text(-50,-50,'Sample: 45 records',cex=2)
 grid()
-plot(CDcurrentReal*1+CDcurrentModel*2,main='Cold&Dry',legend=FALSE,col=c('white','green','blue','darkgreen'),yaxt='n',cex.axis=1.5,cex.main=3)
+plot(HWcurrentReal*1+HWModel_0kyrSample95*2,main='(C)',col=c('white','green','blue','darkgreen'),legend=FALSE,cex.axis=2,cex.main=4)
 plot(AmSulShape,add=TRUE)
+text(-50,-45,'Time: 0 kyr BP',cex=2)
+text(-50,-50,'Sample: 95 records',cex=2)
 grid()
-legend(x='bottomright',legend=c('Real','Modelo','Sobreposição'),col=c('green','blue','darkgreen'),pch=20,cex=2.2,pt.cex=8)
+plot(HWcurrentReal*1+HWModel_22kyrSample5*2,main='(D)',col=c('white','green','blue','darkgreen'),legend=FALSE,cex.axis=2,cex.main=4)
+plot(AmSulShape,add=TRUE)
+text(-50,-45,'Time: 22 kyr BP',cex=2)
+text(-50,-50,'Sample: 5 records',cex=2)
+grid()
+plot(HWcurrentReal*1+HWModel_22kyrSample45*2,main='(E)',col=c('white','green','blue','darkgreen'),legend=FALSE,cex.axis=1.7,cex.main=4)
+plot(AmSulShape,add=TRUE)
+text(-50,-45,'Time: 22 kyr BP',cex=2)
+text(-50,-50,'Sample: 45 records',cex=2)
+grid()
+plot(HWcurrentReal*1+HWModel_22kyrSample95*2,main='(F)',col=c('white','green','blue','darkgreen'),legend=FALSE,cex.axis=1.7,cex.main=4)
+plot(AmSulShape,add=TRUE)
+text(-50,-45,'Time: 22 kyr BP',cex=2)
+text(-50,-50,'Sample: 95 records',cex=2)
+grid()
+mtext('Hot & Wet sp.',outer=TRUE,cex=4)
 dev.off()
+
+##sobreposicoes spHD
+jpeg(filename=paste(projectFolder,'Maxent/graficos/sobreposicoesHD.jpg',sep=''), width = 1100 , height = 1100) 
+par(mfrow=c(2,3),oma=c(0,0,5,0))
+plot(HDcurrentReal*1+HDModel_0kyrSample5*2,main='(A)',col=c('white','green','blue','darkgreen'),legend=FALSE,cex.axis=2,cex.main=4)
+plot(AmSulShape,add=TRUE)
+grid()
+plot(HDcurrentReal*1+HDModel_0kyrSample45*2,main='(B)',col=c('white','green','blue','darkgreen'),legend=FALSE,cex.axis=2,cex.main=4)
+plot(AmSulShape,add=TRUE)
+grid()
+plot(HDcurrentReal*1+HDModel_0kyrSample95*2,main='(C)',col=c('white','green','blue','darkgreen'),legend=FALSE,cex.axis=2,cex.main=4)
+plot(AmSulShape,add=TRUE)
+grid()
+plot(HDcurrentReal*1+HDModel_22kyrSample5*2,main='(D)',col=c('white','green','blue','darkgreen'),legend=FALSE,cex.axis=2,cex.main=4)
+plot(AmSulShape,add=TRUE)
+grid()
+plot(HDcurrentReal*1+HDModel_22kyrSample45*2,main='(E)',col=c('white','green','blue','darkgreen'),legend=FALSE,cex.axis=1.7,cex.main=4)
+plot(AmSulShape,add=TRUE)
+grid()
+plot(HDcurrentReal*1+HDModel_22kyrSample95*2,main='(F)',col=c('white','green','blue','darkgreen'),legend=FALSE,cex.axis=1.7,cex.main=4)
+plot(AmSulShape,add=TRUE)
+grid()
+mtext('Hot & Dry sp.',outer=TRUE,cex=4)
+dev.off()
+
+##sobreposicoes spCD
+jpeg(filename=paste(projectFolder,'Maxent/graficos/sobreposicoesCD.jpg',sep=''), width = 1100 , height = 1100) 
+par(mfrow=c(2,3),oma=c(0,0,5,0))
+plot(CDcurrentReal*1+CDModel_0kyrSample5*2,main='(A)',col=c('white','green','blue','darkgreen'),legend=FALSE,cex.axis=2,cex.main=4)
+plot(AmSulShape,add=TRUE)
+text(-50,-45,'Time: 0 kyr BP',cex=2)
+text(-50,-50,'Sample: 5 records',cex=2)
+grid()
+plot(CDcurrentReal*1+CDModel_0kyrSample45*2,main='(B)',col=c('white','green','blue','darkgreen'),legend=FALSE,cex.axis=2,cex.main=4)
+plot(AmSulShape,add=TRUE)
+text(-50,-45,'Time: 0 kyr BP',cex=2)
+text(-50,-50,'Sample: 45 records',cex=2)
+grid()
+plot(CDcurrentReal*1+CDModel_0kyrSample95*2,main='(C)',col=c('white','green','blue','darkgreen'),legend=FALSE,cex.axis=2,cex.main=4)
+plot(AmSulShape,add=TRUE)
+text(-50,-45,'Time: 0 kyr BP',cex=2)
+text(-50,-50,'Sample: 95 records',cex=2)
+grid()
+plot(CDcurrentReal*1+CDModel_22kyrSample5*2,main='(D)',col=c('white','green','blue','darkgreen'),legend=FALSE,cex.axis=2,cex.main=4)
+plot(AmSulShape,add=TRUE)
+text(-50,-45,'Time: 22 kyr BP',cex=2)
+text(-50,-50,'Sample: 5 records',cex=2)
+grid()
+plot(CDcurrentReal*1+CDModel_22kyrSample45*2,main='(E)',col=c('white','green','blue','darkgreen'),legend=FALSE,cex.axis=1.7,cex.main=4)
+plot(AmSulShape,add=TRUE)
+text(-50,-45,'Time: 22 kyr BP',cex=2)
+text(-50,-50,'Sample: 45 records',cex=2)
+grid()
+plot(CDcurrentReal*1+CDModel_22kyrSample95*2,main='(F)',col=c('white','green','blue','darkgreen'),legend=FALSE,cex.axis=1.7,cex.main=4)
+plot(AmSulShape,add=TRUE)
+text(-50,-45,'Time: 22 kyr BP',cex=2)
+text(-50,-50,'Sample: 95 records',cex=2)
+grid()
+mtext('Cold & Dry sp.',outer=TRUE,cex=4)
+dev.off()
+

@@ -14,7 +14,7 @@ TSSmaxent = function(maxentOutputFolder){
         trasam <- mres$X.Training.samples
         tessam <- mres$X.Test.samples
         tesAUC <- mres$Test.AUC
-        threshold <- mres$X10.percentile.training.presence.logistic.threshold[j] #change here the threshold
+        threshold <- mres$X10.percentile.training.presence.logistic.threshold #change here the threshold
 
         spred <- read.csv(paste(maxentOutputFolder,"species_samplePredictions.csv",sep=""),h=T)
         spred <- spred[which(spred[,3]=="test"),]
