@@ -491,10 +491,10 @@ model = c(model1,model2,model3,model4)
 for (i in 1:length(spsTypes)){
     
     nicheRealFolder = paste(projectFolder,'NichoReal/',spsTypes[i],sep='') #pasta com os mapas de nicho real da sp
-    nicheRealPath = list.files(path=nicheRealFolder,pattern='asc',full.names=T) #lista com os enderecos dos mapas de distribuicao da sp
+    nicheRealPath = list.files(path=nicheRealFolder,pattern='asc',full.names=TRUE) #lista com os enderecos dos mapas de distribuicao da sp
     projectionsFolder = paste(projectFolder,'Maxent/',spsTypes[i],'/projections',sep='') #pasta com as projecoes do cenario
     projectionsPath = list.files(path=projectionsFolder, pattern='asc',full.names=T) #caminhos para os .asc na paste do cenario
-    outputData = data.frame(kyrBP=numeric(),sampleSize=numeric(),Schoeners_D=numeric(),Hellinger_distances=numeric())
+    outputData = data.frame(kyrBP=numeric(),sampleSize=numeric(),Schoeners_D=numeric(),Warren_I=numeric())
     
     for (l in 1:length(nicheRealPath[1:24])){ #loop sobre as cadamdas de tempo
 
@@ -504,14 +504,14 @@ for (i in 1:length(spsTypes)){
         for (m in sampleSizes){ #loop sobre os tamnhos amostrais
 
             timeSampleData =  stack(list.files(path=projectionsFolder, pattern=glob2rx(paste('*Time',l-1,'*Sample',m,'.asc',sep='')),full.names=TRUE))
-            output_i = data.frame(kyrBP=numeric(),sapleSize=numeric(),Schoeners_D=numeric(),Hellinger_distances=numeric()) #dataframe vazio para o loop abaixo
+            output_i = data.frame(kyrBP=numeric(),sapleSize=numeric(),Schoeners_D=numeric(),Warren_I=numeric()) #dataframe vazio para o loop abaixo
             
             for(n in 1:5){
               
                 sdmNiche = timeSampleData[[n]] #mapa de suitability gerado por SDM
                 sdmNiche.spgrid = as(sdmNiche,'SpatialGridDataFrame')
                 nicheOverlap = niche.overlap(c(realNiche.spgrid,sdmNiche.spgrid))
-                output_i= rbind(output_i,cbind(kyrBP=l-1,sampleSize=m,Schoeners_D=nicheOverlap[1,2],Hellinger_distances=nicheOverlap[2,1]))
+                output_i= rbind(output_i,cbind(kyrBP=l-1,sampleSize=m,Schoeners_D=nicheOverlap[1,2],Warren_I=nicheOverlap[2,1]))
                 
             }
         
@@ -521,7 +521,7 @@ for (i in 1:length(spsTypes)){
         }
     }
     
-    names(outputData) = c('kyrBP','sampleSize','Schoeners_D','Hellinger_distances')  
+    names(outputData) = c('kyrBP','sampleSize','Schoeners_D','Warren_I')  
     write.csv(outputData, file=paste(projectionsFolder,"/NO.csv",sep=""),row.names=FALSE) #salvando os dados do cenario
     
 }
@@ -615,7 +615,7 @@ boxplot(indexD~spsType,data=Ddata,ylim=c(0.2,1),names=c('H&W','H&D','C&D'),main=
 stripchart(indexD~spsType,data=Ddata,vertical=TRUE,method="jitter",pch=20,cex=1.5,col=rgb(0.5,0.5,0.5,0.2),add=TRUE) 
 #H
 Hdata = rbind(data.frame(kyrBP=HWdataH$kyrBP,indexH=HWdataH$indexH,spsType='Hot and Wet'),data.frame(kyrBP=HDdataH$kyrBP,indexH=HDdataH$indexH,spsType='Hot and Dry'),data.frame(kyrBP=CDdataH$kyrBP,indexH=CDdataH$indexH,spsType='Cold and Dry'))
-boxplot(indexH~spsType,data=Hdata,ylim=c(0.2,1),names=c('H&W','H&D','C&D'),main='Hellinger',cex.main=2,cex.lab=1.5,cex.axis=1.5,lwd=3)
+boxplot(indexH~spsType,data=Hdata,ylim=c(0.2,1),names=c('H&W','H&D','C&D'),main="Warren's I",cex.main=2,cex.lab=1.5,cex.axis=1.5,lwd=3)
 stripchart(indexH~spsType,data=Hdata,vertical=TRUE,method="jitter",pch=20,cex=1.5,col=rgb(0.5,0.5,0.5,0.2),add=TRUE) 
 dev.off()
 
@@ -685,7 +685,7 @@ dev.off()
 ##metricas X tamanho amostral
 
 #maxent
-jpeg(file='/home/anderson/Documentos/Projetos/Sps artificiais/Maxent/graficos/metricsXtime.jpg',width=1100,height=750)
+jpeg(file='/home/anderson/Documentos/Projetos/Sps artificiais/Maxent/graficos/metricsXsampleSize.jpg',width=1100,height=750)
 par(mfrow=c(1,2))
 #D
 plot(outputData$spHW$Schoeners_D~outputData$spHW$sampleSize,type='p',ylim=c(0,1),pch=1,col='black',cex.lab=1.9,cex.axis=1.5,lwd=2,cex=2)
@@ -809,28 +809,40 @@ jpeg(filename=paste(projectFolder,'Maxent/graficos/sobreposicoesHD.jpg',sep=''),
 par(mfrow=c(2,3),oma=c(0,0,5,0))
 plot(HDcurrentReal*1+HDModel_0kyrSample5*2,main='(A)',col=c('white','green','blue','darkgreen'),legend=FALSE,cex.axis=2,cex.main=4)
 plot(AmSulShape,add=TRUE)
+text(-50,-45,'Time: 0 kyr BP',cex=2)
+text(-50,-50,'Sample: 5 records',cex=2)
 grid()
 plot(HDcurrentReal*1+HDModel_0kyrSample45*2,main='(B)',col=c('white','green','blue','darkgreen'),legend=FALSE,cex.axis=2,cex.main=4)
 plot(AmSulShape,add=TRUE)
+text(-50,-45,'Time: 0 kyr BP',cex=2)
+text(-50,-50,'Sample: 45 records',cex=2)
 grid()
 plot(HDcurrentReal*1+HDModel_0kyrSample95*2,main='(C)',col=c('white','green','blue','darkgreen'),legend=FALSE,cex.axis=2,cex.main=4)
 plot(AmSulShape,add=TRUE)
+text(-50,-45,'Time: 0 kyr BP',cex=2)
+text(-50,-50,'Sample: 95 records',cex=2)
 grid()
 plot(HDcurrentReal*1+HDModel_22kyrSample5*2,main='(D)',col=c('white','green','blue','darkgreen'),legend=FALSE,cex.axis=2,cex.main=4)
 plot(AmSulShape,add=TRUE)
+text(-50,-45,'Time: 22 kyr BP',cex=2)
+text(-50,-50,'Sample: 5 records',cex=2)
 grid()
 plot(HDcurrentReal*1+HDModel_22kyrSample45*2,main='(E)',col=c('white','green','blue','darkgreen'),legend=FALSE,cex.axis=1.7,cex.main=4)
 plot(AmSulShape,add=TRUE)
+text(-50,-45,'Time: 22 kyr BP',cex=2)
+text(-50,-50,'Sample: 45 records',cex=2)
 grid()
 plot(HDcurrentReal*1+HDModel_22kyrSample95*2,main='(F)',col=c('white','green','blue','darkgreen'),legend=FALSE,cex.axis=1.7,cex.main=4)
 plot(AmSulShape,add=TRUE)
+text(-50,-45,'Time: 22 kyr BP',cex=2)
+text(-50,-50,'Sample: 95 records',cex=2)
 grid()
 mtext('Hot & Dry sp.',outer=TRUE,cex=4)
 dev.off()
 
 ##sobreposicoes spCD
 jpeg(filename=paste(projectFolder,'Maxent/graficos/sobreposicoesCD.jpg',sep=''), width = 1100 , height = 1100) 
-par(mfrow=c(2,3),oma=c(0,0,5,0))
+par(mfrow=c(2,3)) 
 plot(CDcurrentReal*1+CDModel_0kyrSample5*2,main='(A)',col=c('white','green','blue','darkgreen'),legend=FALSE,cex.axis=2,cex.main=4)
 plot(AmSulShape,add=TRUE)
 text(-50,-45,'Time: 0 kyr BP',cex=2)
@@ -860,7 +872,7 @@ plot(CDcurrentReal*1+CDModel_22kyrSample95*2,main='(F)',col=c('white','green','b
 plot(AmSulShape,add=TRUE)
 text(-50,-45,'Time: 22 kyr BP',cex=2)
 text(-50,-50,'Sample: 95 records',cex=2)
+legend("bottomright", inset=c(-1,0),legend=c('Virtual species','Maxent projection','Overlap'),pch=20,col=c('blue','green','dark green'),cex=2)
 grid()
 mtext('Cold & Dry sp.',outer=TRUE,cex=4)
 dev.off()
-
