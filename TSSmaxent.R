@@ -23,13 +23,14 @@ TSSmaxent = function(maxentOutputFolder){
         for (j in 1:(nrow(mres)-1)) { #loop em que cada iteracao eh para uma linha da planilha maxentResults.csv
             trasam <- mres$X.Training.samples[j]
             tessam <- mres$X.Test.samples[j]
-            tesAUC <- mres$Test.AUC[j]
+#            tesAUC <- mres$Test.AUC[j]
             threshold <- mres$X10.percentile.training.presence.logistic.threshold[j] #change here the threshold
             
             spred <- read.csv(paste(maxentOutputFolder,"species_",j-1,"_samplePredictions.csv",sep=""),h=T)
             spred <- spred[which(spred[,3]=="test"),]
             bgpred <- read.csv(paste(maxentOutputFolder,"species_",j-1,"_backgroundPredictions.csv",sep=""),h=T)
         }
+		tesAUC <- mres$Test.AUC[nrow(mres)]	
     }
         
     a <- nrow(spred[which(spred[,6]>threshold),])

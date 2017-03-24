@@ -40,7 +40,7 @@ for (i in 1:length(caminhosCamadasTemp)){
     
     for(j in 1:dim(auxVector)[3]){
         projection(auxVector[[j]]) = CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0') #ajustando CRS
-        writeRaster(auxVector[[j]], filename=paste(projectFolder,'NichoReal/',names(auxVector[[j]]),'/',nameScenario,'.asc',sep=""), overwrite=T,prj=T) #salvando o raster do mapa da sp
+        writeRaster(auxVector[[j]], filename=paste(projectFolder,'NichoReal/',names(auxVector[[j]]),'/',nameScenario,'.asc',sep=""), overwrite=TRUE,prj=TRUE) #salvando o raster do mapa da sp
     }
 }
 
@@ -52,9 +52,12 @@ mainSampleFolder = '/home/anderson/Documentos/Projetos/Sps artificiais/Amostras/
 AmSulShape = readShapePoly("/home/anderson/PosDoc/Am_Sul/borders.shp") #shape da America do Sul
 biomodFolder = '/home/anderson/Documentos/Projetos/Sps artificiais/biomod/' #pasta para resultados do maxent
 spsTypes = c('spHW', 'spHD', 'spCD') #nomes das especies
-sampleSizes = c(5,15,25,35,45,55,65,75,85,95)
-Tmax = 22
-amostra = data.frame()
+sampleSizes = c(5,15,25,35,45,55,65,75,85,95) #tamanhos das amostras
+NumRep = 10 #numero de replicas (de cada cenario amostral)
+Tmax = 22 #idade maxima (no passado)
+bgPoints = 1000 #numero de pontos de background
+sampleData = data.frame()
+
 
 #ocorrencias
 for (i in 1:length(spsTypes)){ #loop sobre os 'tipos de especies'
@@ -63,47 +66,49 @@ for (i in 1:length(spsTypes)){ #loop sobre os 'tipos de especies'
         sampledAges = round(runif(sSize,0,Tmax)) #selecionando 'n' camadas de tempo aleatoriamente
         nicheRealFolder = paste(projectFolder,'NichoReal/',spsTypes[i],sep='') #pasta com os mapas de nicho real da sp
         nicheRealPath = list.files(path=nicheRealFolder, full.names=TRUE, pattern='.asc') #lista com os enderecos dos mapas de distribuicao da
-        for (j in 1:5){ #replicas do cenario amostral
+        for (j in 1:NumRep){ #replicas do cenario amostral
             for (sAge in sampledAges){ #amostrando em cada camada de tempo que consta na amostra
-                amostra_i = sampleOccurrences(x=raster(nicheRealPath[sAge+1]),n=1,plot=FALSE)$sample.points[,1:2] #amostra d ponto
+                sampleData_i = sampleOccurrences(x=raster(nicheRealPath[sAge+1]),n=1,plot=FALSE)$sample.points[,1:2] #amostra d ponto
                 scenarioName = basename(nicheRealPath[1:24][sAge+1]) #tempo vinculado ao cenario para variaveis ambientais
                 scenarioName = gsub('.asc','',scenarioName) #retirando do nome o '.asc'
                 layers_i = extract(
                     x=stack(list.files(path=paste(envVarFolder,scenarioName,sep=''), pattern='asc', full.names=TRUE)),
-                    y=amostra_i) #extraindo variaveis ambientais do ponto, em sua respectiva camada de tempo
-                amostra = rbind(amostra, cbind(amostra_i,layers_i,sAge)) #juntando com os dados das outras camadas de tempo amostradas
+                    y=sampleData_i) #extraindo variaveis ambientais do ponto, em sua respectiva camada de tempo
+                sampleData = rbind(sampleData, cbind(sampleData_i,layers_i,sAge)) #juntando com os dados das outras camadas de tempo amostradas
             }
-            names(amostra) = c('lon','lat',names(as.data.frame(layers_i)),'kyrBP') #ajustando os nomes
-            write.csv(amostra,paste(projectFolder,'Amostras/',spsTypes[i],'/occ',sSize,'pts', j ,'rep.csv',sep=''),row.names=FALSE) #salvando
-            amostra = data.frame() #devolvendo data.frame vazio para proxima rodada
+            names(sampleData) = c('lon','lat',names(as.data.frame(layers_i)),'kyrBP') #ajustando os nomes
+            write.csv(sampleData,paste(projectFolder,'Amostras/',spsTypes[i],'/occ',sSize,'pts', j ,'rep.csv',sep=''),row.names=FALSE) #salvando
+            sampleData = data.frame() #devolvendo data.frame vazio para proxima rodada
         }
     }
 }
 
-#background
+#background points
 for (i in 1:length(spsTypes)){ #loop sobre os 'tipos de especies'
-    for (sSize in sampleSizes){ #numero de pontos (registros, dados) na amostra
+    for (sSize in sampleSizes){ #numero de pontos de ocoorrencia (que parearah com a amostra de background dessa  iteracao)
         sampledAges = vector()
-        sampledAges = round(runif(sSize,0,Tmax)) #selecionando 'n' camadas de tempo aleatoriamente
+        sampledAges = round(runif(bgPoints,0,Tmax)) #selecionando 'n' camadas de tempo aleatoriamente ('n' = bgPoints)
 #        nicheRealFolder = paste(projectFolder,'NichoReal/',spsTypes[i],sep='') #pasta com os mapas de nicho real da sp
-        for (j in 1:5){ #replicas do cenario amostral
+        for (j in 1:NumRep){ #replicas do cenario amostral
             for (sAge in sampledAges){ #amostrando em cada camada de tempo que consta na amostra
 
                 envVarPath = list.files(path=paste(envVarFolder,list.files(path=paste(envVarFolder))[sAge+1],sep=''), full.names=TRUE, pattern='.asc') #lista com os enderecos das variaveis ambientais no tempo corresposndente a interacao 
                 
-                amostra_i = randomPoints(mask=raster(envVarPath[1]),n=1) #amostra d ponto
+                sampleData_i = randomPoints(mask=raster(envVarPath[1],crs=CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0')),n=1) #amostra do ponto
                 scenarioName = list.files(path=paste(envVarFolder))[sAge+1] #nome do cenario
                 layers_i = extract(
                     x=stack(list.files(path=paste(envVarFolder,scenarioName,sep=''), pattern='asc', full.names=TRUE)),
-                    y=amostra_i) #extraindo variaveis ambientais do ponto, em sua respectiva camada de tempo
-                amostra = rbind(amostra, cbind(amostra_i,layers_i,sAge)) #juntando com os dados das outras camadas de tempo amostradas
+                    y=sampleData_i) #extraindo variaveis ambientais do ponto, em sua respectiva camada de tempo
+                sampleData = rbind(sampleData, cbind(sampleData_i,layers_i,sAge)) #juntando com os dados das outras camadas de tempo amostradas
             }
-            names(amostra) = c('lon','lat',names(as.data.frame(layers_i)),'kyrBP') #ajustando os nomes
-            write.csv(amostra,paste(projectFolder,'Amostras/',spsTypes[i],'/bg',sSize,'pts', j ,'rep.csv',sep=''),row.names=FALSE) #salvando
-            amostra = data.frame() #devolvendo data.frame vazio para proxima rodada
+            names(sampleData) = c('lon','lat',names(as.data.frame(layers_i)),'kyrBP') #ajustando os nomes
+            write.csv(sampleData,paste(projectFolder,'Amostras/',spsTypes[i],'/bg',sSize,'pts', j ,'rep.csv',sep=''),row.names=FALSE) #salvando
+            sampleData = data.frame() #devolvendo data.frame vazio para proxima rodada
         }
     }
 }
+
+
 
 
 ###TERCEIRA PARTE: SDM usando de pontos de ocorrencia em diferentes camadas de tempo (do atual ate 120 kyr BP)###
@@ -127,7 +132,7 @@ sampleSizes = c(5,15,25,35,45,55,65,75,85,95)
 
 for (i in 1:length(spsTypes)){
     for (j in sampleSizes){
-        for (k in 1:5){ #loop sobre o numero de replicas #10
+        for (k in 1:NumRep){ #loop sobre o numero de replicas 
         
             occPoints = read.csv(paste(mainSampleFolder,spsTypes[i],'/occ',j,'pts',k,'rep.csv',sep=''),header=TRUE) #abrindo pontos de ocorrencia
             backgroundPoints = read.csv(paste(mainSampleFolder,spsTypes[i],'/bg',j,'pts',k,'rep.csv',sep=''),header=TRUE) #abrindo pontos de background
@@ -144,7 +149,7 @@ for (i in 1:length(spsTypes)){
                        'randomseed=TRUE',
                        'randomtestpoints=25',
                        'maximumbackground=5000',
-                       'replicates=1',
+                       'replicates=10',
                        'replicatetype=subsample',
                        'writebackgroundpredictions=TRUE',
                        'linear=TRUE',
@@ -159,8 +164,16 @@ for (i in 1:length(spsTypes)){
             
             ##rodando a avaliacao do modelo
             TSSvector = rbind(TSSvector, TSSmaxent(paste(maxentFolder,spsTypes[i],'/',sep='')))
-            evaluation = append(evaluation, evaluate(p=occPoints,a=backgroundPoints,model=me))
-        
+            threshold = as.data.frame(read.csv(paste(maxentFolder,spsTypes[i],'/maxentResults.csv',sep=''),header=TRUE))$X10.percentile.training.presence.logistic.threshold[11] #threshold 10 percentile training occ
+            output = rbind(sp=spsTypes[i],sampleSize=j,replicate=k,AUC=TSSvector$testAUC,TSS=TSSvector$TSS,threshold=threshold,numbrTimeSlices=length(unique(occPoints$kyrBP)),medianSampledAges=median(unique(occPoints$kyrBP)),smallerAgeSampled=min(unique(occPoints$kyrBP)),largerAgeSampled=max(unique(occPoints$kyrBP)))
+            write.csv(output,file=paste(projectFolder,'Maxent/',spsTypes[i],'/StatisticsResults-',spsTypes[i],'.csv',sep=''),row.names=FALSE)
+
+
+            ##CONTINAR VERIFICANDO E ARRUMANDO DAQUI##
+            ##acrescentar maxent com ausencias reais mesmo??
+            
+
+            
             for (l in 1:length(envVarPaths[1:24])){
                 predictors = stack(list.files(path=envVarPaths[l],full.names=TRUE, pattern='.asc')) #predictors com todas as variaveis (presente)
                 predictors = predictors[[c('bioclim_01','bioclim_12')]]
@@ -172,17 +185,17 @@ for (i in 1:length(spsTypes)){
         }
 
         ##criando um mapa binario
-        thresholdValues = NULL
-        aucValues = NULL
-        for (m in 1:length(evaluation)){
-            thresholdValues <- append(thresholdValues, threshold(evaluation[[m]],'spec_sens'))
-            aucValues = append(aucValues, evaluation[[m]]@auc)
-        }
-        aucMean = mean(aucValues)
-        thresholdMean = mean(thresholdValues)
-        TSSmean = mean(TSSvector$TSS)
-        statResults = data.frame(sp=spsTypes[i],AUCmean=aucMean,TSSmean=TSSmean,ThresholdMean=thresholdMean)
-        write.csv(statResults,file=paste(projectFolder,'Maxent/',spsTypes[i],'/StatisticsResults-',spsTypes[i],'.csv',sep=''),row.names=FALSE)
+        ## thresholdValues = NULL
+        ## aucValues = NULL
+        ## for (m in 1:length(evaluation)){
+        ##     thresholdValues <- append(thresholdValues, threshold(evaluation[[m]],'spec_sens'))
+        ##     aucValues = append(aucValues, evaluation[[m]]@auc)
+        ## }
+        ## aucMean = mean(aucValues)
+        ## thresholdMean = mean(thresholdValues)
+        ## TSSmean = mean(TSSvector$TSS)
+        ## statResults = data.frame(sp=spsTypes[i],AUCmean=aucMean,TSSmean=TSSmean,ThresholdMean=thresholdMean)
+        ## write.csv(statResults,file=paste(projectFolder,'Maxent/',spsTypes[i],'/StatisticsResults-',spsTypes[i],'.csv',sep=''),row.names=FALSE)
         
         ##esvaziando o vetor para a proxima especie
         evaluation = list()
