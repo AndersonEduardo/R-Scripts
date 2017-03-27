@@ -7,6 +7,7 @@ library(dismo)
 library(raster)
 library(phyloclim) #para funcao niche.overlap()
 source("/home/anderson/R/R-Scripts/TSSmaxent.R")
+source("/home/anderson/R/R-Scripts/AUCrand.R")
 
 ###PRIMEIRA PARTE: criando sps virtuais###
 
@@ -129,6 +130,7 @@ source("/home/anderson/R/R-Scripts/TSSmaxent.R")
 evaluation = list()
 TSSvector = data.frame()
 sampleSizes = c(5,15,25,35,45,55,65,75,85,95)
+NumRep = 10 #numero de replicas (de cada cenario amostral)
 
 for (i in 1:length(spsTypes)){
     for (j in sampleSizes){
@@ -161,18 +163,14 @@ for (i in 1:length(spsTypes)){
                        'convergencethreshold=1.0E-5',
                        'threads=2'
                        ))
-            
+
             ##rodando a avaliacao do modelo
-            TSSvector = rbind(TSSvector, TSSmaxent(paste(maxentFolder,spsTypes[i],'/',sep='')))
-            threshold = as.data.frame(read.csv(paste(maxentFolder,spsTypes[i],'/maxentResults.csv',sep=''),header=TRUE))$X10.percentile.training.presence.logistic.threshold[11] #threshold 10 percentile training occ
-            output = rbind(sp=spsTypes[i],sampleSize=j,replicate=k,AUC=TSSvector$testAUC,TSS=TSSvector$TSS,threshold=threshold,numbrTimeSlices=length(unique(occPoints$kyrBP)),medianSampledAges=median(unique(occPoints$kyrBP)),smallerAgeSampled=min(unique(occPoints$kyrBP)),largerAgeSampled=max(unique(occPoints$kyrBP)))
+            TSSvector = TSSmaxent(paste(maxentFolder,spsTypes[i],'/',sep=''))
+            threshold = as.data.frame(read.csv(paste(maxentFolder,spsTypes[i],'/maxentResults.csv',sep=''),header=TRUE))$X10.percentile.training.presence.logistic.threshold[11] #threshold 10 percentile training occ         
+            AUCrandVector = AUCrand(x=dataSet[,c("bioclim_01","bioclim_12")], p=dataSet$pres, path=paste(maxentFolder,spsTypes[i],sep=''), args=c('randomseed=TRUE','randomtestpoints=25','maximumbackground=5000','replicates=10','replicatetype=subsample','writebackgroundpredictions=TRUE','linear=TRUE','quadratic=TRUE','product=FALSE','threshold=FALSE','hinge=FALSE','maximumiterations=1000','convergencethreshold=1.0E-5','threads=2'))
+            pValue = sum(TSSvector$tesAUC >= as.numeric(AUCrandVector)) / length(AUCrandVector)
+            output = data.frame(cbind(sp=spsTypes[i],sampleSize=j,replicate=k,AUC=TSSvector$tesAUC,p_value=pValue,TSS=TSSvector$TSS,threshold=threshold,numbrTimeSlices=length(unique(occPoints$kyrBP)),medianSampledAges=median(unique(occPoints$kyrBP)),smallerAgeSampled=min(unique(occPoints$kyrBP)),largerAgeSampled=max(unique(occPoints$kyrBP))))
             write.csv(output,file=paste(projectFolder,'Maxent/',spsTypes[i],'/StatisticsResults-',spsTypes[i],'.csv',sep=''),row.names=FALSE)
-
-
-            ##CONTINAR VERIFICANDO E ARRUMANDO DAQUI##
-            ##acrescentar maxent com ausencias reais mesmo??
-            
-
             
             for (l in 1:length(envVarPaths[1:24])){
                 predictors = stack(list.files(path=envVarPaths[l],full.names=TRUE, pattern='.asc')) #predictors com todas as variaveis (presente)
@@ -207,6 +205,31 @@ for (i in 1:length(spsTypes)){
 #######################################################
 
 ###QUARTA PARTE: comparando projecao do SDM e a distribuicao espacial real do nicho da sp###
+
+####C O N T I N U A R  D A Q U I: consertar as comparacoes de nicho para o framework de Broennimann et al 2016)####
+
+###
+clim1 = na.exclude(as.data.frame(predictors,xy=TRUE)) #em que predictors e um stack com as variaveis bioclim01 e bioclim12 para 10 kyrBP
+clim2 = na.exclude(as.data.frame(predictors,xy=TRUE)) #em que predictors e um stack com as variaveis bioclim01 e bioclim12 para 10 kyrBP
+clim12 = rbind(clim1,clim2) #dados ambientais para todo o espaco estudado
+spOcc1 = occPoints #pontos de ocorrencia com dados para as variaveis ambientais
+spOcc2 = occPoints #pontos de ocorrencia com dados para as variaveis ambientais
+
+scores.clim12.MAXENT <- data.frame(dismo::predict(object=me@models[[1]], x=clim12[,-c(1,2)]))
+scores.clim1.MAXENT <- data.frame(dismo::predict(object=me@models[[1]], x=clim1[,-c(1,2)]))
+scores.clim2.MAXENT <- data.frame(dismo::predict(object=me@models[[1]], x=clim2[,-c(1,2)]))
+scores.sp1.MAXENT <- data.frame(dismo::predict(object=me@models[[1]], x=spOcc1[,c("bioclim_01","bioclim_12")]))
+scores.sp2.MAXENT <- data.frame(dismo::predict(object=me@models[[1]], x=spOcc2[,c("bioclim_01","bioclim_12")]))
+
+R=100
+
+z1<- grid.clim(scores.clim12.MAXENT,scores.clim1.MAXENT,scores.sp1.MAXENT,R)
+z2<- grid.clim(scores.clim12.MAXENT,scores.clim2.MAXENT,scores.sp2.MAXENT,R)
+a<-niche.equivalency.test(z1,z2,rep=100)# test of niche equivalency and similarity according to Warren et al. 2008
+b<-niche.similarity.test(z1,z2,rep=100)
+b2<-niche.similarity.test(z2,z1,rep=100)
+
+###
 
 projectFolder = "/home/anderson/Documentos/Projetos/Sps artificiais/" #pasta do projeto
 spsTypes = c('spHW', 'spHD', 'spCD') #nomes das especies
