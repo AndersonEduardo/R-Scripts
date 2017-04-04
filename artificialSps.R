@@ -6,7 +6,7 @@ library(maptools)
 library(dismo)
 library(raster)
 library(phyloclim) #para funcao niche.overlap()
-source("/home/anderson/R/R-Scripts/TSSmaxent.R")
+source("/home/anderson/R/R-Scripts/TSSmaxent.R")get
 source("/home/anderson/R/R-Scripts/AUCrand.R")
 
 ###PRIMEIRA PARTE: criando sps virtuais###
@@ -110,9 +110,8 @@ for (i in 1:length(spsTypes)){ #loop sobre os 'tipos de especies'
 }
 
 
-
-
 ###TERCEIRA PARTE: SDM usando de pontos de ocorrencia em diferentes camadas de tempo (do atual ate 120 kyr BP)###
+
 
 #######################################################
 ####################### MAXENT ########################
@@ -168,7 +167,7 @@ for (i in 1:length(spsTypes)){
             TSSvector = TSSmaxent(paste(maxentFolder,spsTypes[i],'/',sep=''))
             threshold = as.data.frame(read.csv(paste(maxentFolder,spsTypes[i],'/maxentResults.csv',sep=''),header=TRUE))$X10.percentile.training.presence.logistic.threshold[11] #threshold 10 percentile training occ         
             AUCrandVector = AUCrand(x=dataSet[,c("bioclim_01","bioclim_12")], p=dataSet$pres, path=paste(maxentFolder,spsTypes[i],sep=''), args=c('randomseed=TRUE','randomtestpoints=25','maximumbackground=5000','replicates=10','replicatetype=subsample','writebackgroundpredictions=TRUE','linear=TRUE','quadratic=TRUE','product=FALSE','threshold=FALSE','hinge=FALSE','maximumiterations=1000','convergencethreshold=1.0E-5','threads=2'))
-            pValue = sum(TSSvector$tesAUC >= as.numeric(AUCrandVector)) / length(AUCrandVector)
+            pValue = sum(as.numeric(AUCrandVector) >= TSSvector$tesAUC) / length(AUCrandVector)
             output = data.frame(cbind(sp=spsTypes[i],sampleSize=j,replicate=k,AUC=TSSvector$tesAUC,p_value=pValue,TSS=TSSvector$TSS,threshold=threshold,numbrTimeSlices=length(unique(occPoints$kyrBP)),medianSampledAges=median(unique(occPoints$kyrBP)),smallerAgeSampled=min(unique(occPoints$kyrBP)),largerAgeSampled=max(unique(occPoints$kyrBP))))
             write.csv(output,file=paste(projectFolder,'Maxent/',spsTypes[i],'/StatisticsResults-',spsTypes[i],'.csv',sep=''),row.names=FALSE)
             
@@ -179,7 +178,8 @@ for (i in 1:length(spsTypes)){
                 crs = CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0') #ajustando CRS
                 proj = predict(me,predictors,crs=crs) #realizando projetacoes (para cada replica)
                 writeRaster(mean(proj),paste(maxentFolder,spsTypes[i],'/projections/projection-Time',l-1,'kyrBP','-Replica',k,'-Sample',j,'.asc',sep=''),overwrite=TRUE) #salvando a projecao media
-            }
+                
+            }            
         }
 
         ##criando um mapa binario
@@ -206,41 +206,36 @@ for (i in 1:length(spsTypes)){
 
 ###QUARTA PARTE: comparando projecao do SDM e a distribuicao espacial real do nicho da sp###
 
-####C O N T I N U A R  D A Q U I: consertar as comparacoes de nicho para o framework de Broennimann et al 2016)####
-
 ###
-clim1 = na.exclude(as.data.frame(predictors,xy=TRUE)) #em que predictors e um stack com as variaveis bioclim01 e bioclim12 para 10 kyrBP
-clim2 = na.exclude(as.data.frame(predictors,xy=TRUE)) #em que predictors e um stack com as variaveis bioclim01 e bioclim12 para 10 kyrBP
-clim12 = rbind(clim1,clim2) #dados ambientais para todo o espaco estudado
-spOcc1 = occPoints #pontos de ocorrencia com dados para as variaveis ambientais
-spOcc2 = occPoints #pontos de ocorrencia com dados para as variaveis ambientais
+## clim1 = na.exclude(as.data.frame(predictors1,xy=TRUE)) #em que predictors e um stack com as variaveis bioclim01 e bioclim12 para 10 kyrBP
+## clim2 = na.exclude(as.data.frame(predictors2,xy=TRUE)) #em que predictors e um stack com as variaveis bioclim01 e bioclim12 para 10 kyrBP
+## clim12 = rbind(clim1,clim2) #dados ambientais para todo o espaco estudado
+## spOcc1 = occPoints #pontos de ocorrencia com dados para as variaveis ambientais
+## spOcc2 = occPoints #pontos de ocorrencia com dados para as variaveis ambientais
 
-scores.clim12.MAXENT <- data.frame(dismo::predict(object=me@models[[1]], x=clim12[,-c(1,2)]))
-scores.clim1.MAXENT <- data.frame(dismo::predict(object=me@models[[1]], x=clim1[,-c(1,2)]))
-scores.clim2.MAXENT <- data.frame(dismo::predict(object=me@models[[1]], x=clim2[,-c(1,2)]))
-scores.sp1.MAXENT <- data.frame(dismo::predict(object=me@models[[1]], x=spOcc1[,c("bioclim_01","bioclim_12")]))
-scores.sp2.MAXENT <- data.frame(dismo::predict(object=me@models[[1]], x=spOcc2[,c("bioclim_01","bioclim_12")]))
+## scores.clim12.MAXENT <- data.frame(dismo::predict(object=me@models[[1]], x=clim12[,-c(1,2)]))
+## scores.clim1.MAXENT <- data.frame(dismo::predict(object=me@models[[1]], x=clim1[,-c(1,2)]))
+## scores.clim2.MAXENT <- data.frame(dismo::predict(object=me@models[[1]], x=clim2[,-c(1,2)]))
+## scores.sp1.MAXENT <- data.frame(dismo::predict(object=me@models[[1]], x=spOcc1[,c("bioclim_01","bioclim_12")]))
+## scores.sp2.MAXENT <- data.frame(dismo::predict(object=me@models[[1]], x=spOcc2[,c("bioclim_01","bioclim_12")]))
 
-R=100
+## R=100
 
-z1<- grid.clim(scores.clim12.MAXENT,scores.clim1.MAXENT,scores.sp1.MAXENT,R)
-z2<- grid.clim(scores.clim12.MAXENT,scores.clim2.MAXENT,scores.sp2.MAXENT,R)
-a<-niche.equivalency.test(z1,z2,rep=100)# test of niche equivalency and similarity according to Warren et al. 2008
-b<-niche.similarity.test(z1,z2,rep=100)
-b2<-niche.similarity.test(z2,z1,rep=100)
+## z1<- grid.clim(scores.clim12.MAXENT,scores.clim1.MAXENT,scores.sp1.MAXENT,R)
+## z2<- grid.clim(scores.clim12.MAXENT,scores.clim2.MAXENT,scores.sp2.MAXENT,R)
+## a<-niche.equivalency.test(z1,z2,rep=100)# test of niche equivalency and similarity according to Warren et al. 2008
+## b<-niche.similarity.test(z1,z2,rep=100)
+## b2<-niche.similarity.test(z2,z1,rep=100)
 
 ###
 
 projectFolder = "/home/anderson/Documentos/Projetos/Sps artificiais/" #pasta do projeto
+mainSampleFolder = '/home/anderson/Documentos/Projetos/Sps artificiais/Amostras/' #caminho para pasta onde a planilha com os pontos amostrados sera salva
 spsTypes = c('spHW', 'spHD', 'spCD') #nomes das especies
-scenarioModel = c('8varLinearModel','8varQuadModel','2varLinearModel','2varQuadModel')
 sampleSizes = c(5,15,25,35,45,55,65,75,85,95) #aqui, deve ser igual ao usasado nas partes anteriores do script
-
-model1 = pres ~ bioclim_01 + bioclim_04 + bioclim_10 + bioclim_11 + bioclim_12 + bioclim_15 + bioclim_16 + bioclim_17 
-model2 = pres ~ bioclim_01 + I(bioclim_01^2) + bioclim_04 + I(bioclim_04^2) + bioclim_10 + I(bioclim_10^2) + bioclim_11 + I(bioclim_11^2) + bioclim_12 + I(bioclim_12^2) + bioclim_15 + I(bioclim_15^2) + bioclim_16 + I(bioclim_16^2) + bioclim_17 + I(bioclim_17^2)
-model3 = pres ~ bioclim_01 + bioclim_12
-model4 = pres ~ bioclim_01 + I(bioclim_01^2) + bioclim_12 + I(bioclim_12^2)
-model = c(model1,model2,model3,model4)
+envVarFolder = "/home/anderson/PosDoc/dados_ambientais/dados_projeto" #pasta com as variaveis ambientais
+envVarPaths = list.files(path=envVarFolder, full.names=T) #lista com os caminhos das camadas no sistema (comp.)
+AmSulShape = readShapePoly("/home/anderson/PosDoc/Am_Sul/borders.shp") #shape da America do Sul
 
 for (i in 1:length(spsTypes)){
     
@@ -248,37 +243,186 @@ for (i in 1:length(spsTypes)){
     nicheRealPath = list.files(path=nicheRealFolder,pattern='asc',full.names=TRUE) #lista com os enderecos dos mapas de distribuicao da sp
     projectionsFolder = paste(projectFolder,'Maxent/',spsTypes[i],'/projections',sep='') #pasta com as projecoes do cenario
     projectionsPath = list.files(path=projectionsFolder, pattern='asc',full.names=T) #caminhos para os .asc na paste do cenario
-    outputData = data.frame(kyrBP=numeric(),sampleSize=numeric(),Schoeners_D=numeric(),Warren_I=numeric())
+    outputData = data.frame()
+    Ddistribution = numeric()
+    Idistribution = numeric()
     
     for (l in 1:length(nicheRealPath[1:24])){ #loop sobre as cadamdas de tempo
 
-        realNiche = raster(nicheRealPath[l]) #nicho real
-        realNiche.spgrid = as(realNiche,'SpatialGridDataFrame')
+        realNiche = nicheRealPath[l] #nicho real
+#        realNicheBin = (realNiche>0.1)*1
+#        artificialSpOcc = na.exclude(as.data.frame(realNicheBin,xy=TRUE))
+        
+#        realNicheScores = na.exclude(as.data.frame(realNiche))
+
+        predictors = stack(list.files(path=envVarPaths[l],full.names=TRUE, pattern='.asc')) #predictors com todas as variaveis (presente)
+        predictors = predictors[[c('bioclim_01','bioclim_12')]]
+        predictors = mask(predictors,AmSulShape) #recortando as variaveis ambientais
+        crs = CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0') #ajustando CRS
+
+#        artificialSpOccPredictors = extract(
+#            x=predictors,
+#            y=artificialSpOcc[artificialSpOcc$layer==1,c('x','y')]) #extraindo variaveis ambientais do ponto, em sua respectiva camada de tempo
+        
+        ##clim1 = clim2 = na.exclude(as.data.frame(predictors))       
         
         for (m in sampleSizes){ #loop sobre os tamanhos amostrais
 
-            timeSampleData =  stack(list.files(path=projectionsFolder, pattern=glob2rx(paste('*Time',l-1,'*Sample',m,'.asc',sep='')),full.names=TRUE))
-            output_i = data.frame(kyrBP=numeric(),sapleSize=numeric(),Schoeners_D=numeric(),Warren_I=numeric()) #dataframe vazio para o loop abaixo
+            timeSampleData = list.files(path=projectionsFolder, pattern=glob2rx(paste('*Time',l-1,'*Sample',m,'.asc',sep='')),full.names=TRUE)
+#            output_i = data.frame() #dataframe vazio para o loop abaixo
             
-            for(n in 1:5){ #loop sobre replicas de cada combinacao de tempo e tamanho amostral
-              
+            for(n in 1:NumRep){ #loop sobre replicas de cada combinacao de tempo e tamanho amostral
+
                 sdmNiche = timeSampleData[[n]] #mapa de suitability gerado por SDM
-                sdmNiche.spgrid = as(sdmNiche,'SpatialGridDataFrame')
-                nicheOverlap = niche.overlap(c(realNiche.spgrid,sdmNiche.spgrid))
-                output_i= rbind(output_i,cbind(kyrBP=l-1,sampleSize=m,Schoeners_D=nicheOverlap[1,2],Warren_I=nicheOverlap[2,1]))
+#                sdmNicheBin = (sdmNiche>0.1)*1
+#                sdmSpOcc = na.exclude(as.data.frame(sdmNicheBin,xy=TRUE))
+#                sdmSpOccPredictors = extract(
+#                    x=predictors,
+#                    y=sdmSpOcc[sdmSpOcc$layer==1,c('x','y')]) #extraindo variaveis ambientais do ponto, em sua respectiva camada de tempo
+
+                nicheOverlapObs = niche.overlap(c(sdmNiche,realNiche))
+                Dobs = nicheOverlapObs[1,2]
+                Iobs = nicheOverlapObs[2,1]
+
+                ##aleatorizando ocorrencias para teste de significancia
+                occPoints = read.csv(paste(mainSampleFolder,spsTypes[i],'/occ',m,'pts',n,'rep.csv',sep=''),header=TRUE) #abrindo pontos de ocorrencia
+                occPoints[occPoints==0] = NA
+                occPoints = occPoints[complete.cases(occPoints),]
+                occPoints = round(occPoints, digits=2)
+                occPoints = occPoints[!duplicated(occPoints),]                 
+                
+                backgroundPoints = read.csv(paste(mainSampleFolder,spsTypes[i],'/bg.csv',sep=''),header=TRUE) #abrindo pontos de background
+                backgroundPoints = backgroundPoints[sample(nrow(backgroundPoints),5000),]
+                backgroundPoints[backgroundPoints==0] = NA
+                backgroundPoints = backgroundPoints[complete.cases(backgroundPoints),]
+                backgroundPoints = round(backgroundPoints, digits=2)
+                backgroundPoints = backgroundPoints[!duplicated(backgroundPoints),]                 
+                
+                names(backgroundPoints) = names(occPoints) #certificando que os nomes das colunas estão iguais (cuidado aqui...)
+                dataSet = data.frame(cbind(rbind(occPoints,backgroundPoints),pres=c(rep(1,nrow(occPoints)),rep(0,nrow(backgroundPoints))))) #planilha de dados no formato SWD
+                
+                for(o in 1:100){ #replicas da distribuicao nula de D e I
+                    
+                    presMix = dataSet[sample(nrow(dataSet)),c('pres')]
+                    sampleMix = dataSet
+                    sampleMix$pres = presMix
+
+                    me = maxent(
+                        x=sampleMix[,c("bioclim_01","bioclim_12")],
+                        p=sampleMix$pres,
+                        args=c('responsecurves=TRUE',
+                               'jackknife=TRUE',
+                               'randomseed=TRUE',
+                               'randomtestpoints=25',
+                               'maximumbackground=5000',
+                               'replicates=1',
+                               'replicatetype=subsample',
+                               'writebackgroundpredictions=TRUE',
+                               'linear=TRUE',
+                               'quadratic=TRUE',
+                               'product=FALSE',
+                               'threshold=FALSE',
+                               'hinge=FALSE',
+                               'maximumiterations=1000',
+                               'convergencethreshold=1.0E-5',
+                               'threads=2'
+                               ))
+
+                    proj = predict(me,predictors,crs=crs) #realizando projetacoes (para cada replica)                    
+
+                    sdmNicheMix = as(proj,'SpatialGridDataFrame')
+                    
+                    nicheOverlap_i= niche.overlap(c(sdmNicheMix,realNiche))
+                    Ddistribution = append(Ddistribution,nicheOverlap_i[1,2])
+                    Idistribution = append(Idistribution,nicheOverlap_i[2,1])
+                    
+                }
+
+                ##DobsIndex = match(Dobs,sort(c(Ddistribution,Dobs)))
+                ##DpValue = (length(Ddistribution)-DobsIndex+1) / length(Ddistribution)
+                DpValue = sum(Ddistribution >= Dobs) / length(Ddistribution)
+
+                ##IobsIndex = match(Iobs,sort(c(Idistribution,Iobs)))
+                ##IpValue = (length(Idistribution)-IobsIndex+1) / length(Idistribution)
+                IpValue = sum(Idistribution >= Iobs) / length(Idistribution)
+
+                outputData = rbind(outputData,cbind(kyrBP=l-1,sampleSize=m,replicate=n,numbOfTimeLayers=length(unique(occPoints$kyrBP)),medianKyr=median(unique(occPoints$kyrBP)),minAge=min(unique(occPoints$kyrBP)),maxAge=max(unique(occPoints$kyrBP)),Schoeners_D=Dobs,p_value=DpValue,Hellinger_I=Iobs,p_value=IpValue))
+
+                ## sdmNicheScores = na.exclude(as.data.frame(sdmNiche))
+                ## names(sdmNicheScores) = names(realNicheScores)
+                ## scores.sp2.MAXENT = extract(x=sdmNiche,y=occPoints[,c('lon','lat')],method='bilinear',na.rm=TRUE)
+                ## z1<- grid.clim(scores.clim12.MAXENT,scores.clim1.MAXENT,scores.sp1.MAXENT,R)
+                ## z2<- grid.clim(scores.clim12.MAXENT,scores.clim2.MAXENT,scores.sp2.MAXENT,R)
+                ## nicheEquiv = niche.equivalency.test(,,rep=100)
+                ## output_i= rbind(output_i,cbind(kyrBP=l-1,sampleSize=m,Schoeners_D=nicheOverlap[1,2],Warren_I=nicheOverlap[2,1]))
+
+                ## mixedData = rbind(sdmNicheScores,realNicheScores)
+                ## mixedData = data.frame(score=mixedData[sample(nrow(mixedData)),])
+                ## sdmNicheScores_i = data.frame(score=mixedData[1:nrow(sdmNicheScores),])
+                ## realNicheScores_i = data.frame(score=mixedData[(nrow(sdmNicheScores)+1):nrow(mixedData),])
+
+                ## nicheOverlap_i = append(nicheOverlap_i, )
+                ## nicheOverlap = phyloclim::niche.overlap(c(sdmNicheScores_i,realNicheScores_i))
+
+#                pres =  data.frame(sps = c(rep(paste('artificial',spsTypes[i],sep=''),nrow(artificialSpOcc[artificialSpOcc$layer==1,])),rep(paste('sdm',spsTypes[i],sep=''),nrow(sdmSpOcc[sdmSpOcc$layer==1,]))),rbind(artificialSpOcc[artificialSpOcc$layer==1,c('x','y')],artificialSpOcc[sdmSpOcc$layer==1,c('x','y')]))
+
+              #  envVars = data.frame(rbind(artificialSpOccPredictors,sdmSpOccPredictors))
+
+ #               maxent.exe <- paste(system.file(package="dismo"),"/java/maxent.jar", sep = "")
+
+  #              nicheEqTest = niche.equivalency.test(p=pres,env=predictors,n=9,app=maxent.exe)
                 
             }
         
-            outputMeans = colMeans(output_i) #media das iteracoes (para a camada de tempo atual)
-            outputData = data.frame(rbind(outputData,outputMeans))
+#            outputMeans = colMeans(output_i) #media das iteracoes (para a camada de tempo atual)
+#            outputData = data.frame(rbind(outputData,outputMeans))
             
         }
     }
     
-    names(outputData) = c('kyrBP','sampleSize','Schoeners_D','Warren_I')  
+    names(outputData) = c('kyrBP','sampleSize','replicate','numbOfTimeLayers','numbOfTimeLayers','medianKyr','minAge','maxAge','Schoeners_D','D_p_value','Warren_I','I_p_value')  
     write.csv(outputData, file=paste(projectionsFolder,"/NO.csv",sep=""),row.names=FALSE) #salvando os dados do cenario
     
 }
+
+
+## for (i in 1:length(spsTypes)){
+    
+##     nicheRealFolder = paste(projectFolder,'NichoReal/',spsTypes[i],sep='') #pasta com os mapas de nicho real da sp
+##     nicheRealPath = list.files(path=nicheRealFolder,pattern='asc',full.names=TRUE) #lista com os enderecos dos mapas de distribuicao da sp
+##     projectionsFolder = paste(projectFolder,'Maxent/',spsTypes[i],'/projections',sep='') #pasta com as projecoes do cenario
+##     projectionsPath = list.files(path=projectionsFolder, pattern='asc',full.names=T) #caminhos para os .asc na paste do cenario
+##     outputData = data.frame(kyrBP=numeric(),sampleSize=numeric(),Schoeners_D=numeric(),Warren_I=numeric())
+    
+##     for (l in 1:length(nicheRealPath[1:24])){ #loop sobre as cadamdas de tempo
+
+##         realNiche = raster(nicheRealPath[l]) #nicho real
+##         realNiche.spgrid = as(realNiche,'SpatialGridDataFrame')
+        
+##         for (m in sampleSizes){ #loop sobre os tamanhos amostrais
+
+##             timeSampleData =  stack(list.files(path=projectionsFolder, pattern=glob2rx(paste('*Time',l-1,'*Sample',m,'.asc',sep='')),full.names=TRUE))
+##             output_i = data.frame(kyrBP=numeric(),sapleSize=numeric(),Schoeners_D=numeric(),Warren_I=numeric()) #dataframe vazio para o loop abaixo
+            
+##             for(n in 1:NumRep){ #loop sobre replicas de cada combinacao de tempo e tamanho amostral
+
+##                 sdmNiche = timeSampleData[[n]] #mapa de suitability gerado por SDM
+##                 sdmNiche.spgrid = as(sdmNiche,'SpatialGridDataFrame')
+##                 nicheOverlap = phyloclim::niche.overlap(c(realNiche.spgrid,sdmNiche.spgrid))
+##                 output_i= rbind(output_i,cbind(kyrBP=l-1,sampleSize=m,Schoeners_D=nicheOverlap[1,2],Warren_I=nicheOverlap[2,1]))
+                
+##             }
+        
+##             outputMeans = colMeans(output_i) #media das iteracoes (para a camada de tempo atual)
+##             outputData = data.frame(rbind(outputData,outputMeans))
+            
+##         }
+##     }
+    
+##     names(outputData) = c('kyrBP','sampleSize','Schoeners_D','Warren_I')  
+##     write.csv(outputData, file=paste(projectionsFolder,"/NO.csv",sep=""),row.names=FALSE) #salvando os dados do cenario
+    
+## }
 
 
 ### QUINTA PARTE: construindo graficos dos resultados ###
@@ -323,6 +467,21 @@ boxplot(indexH~spsType,data=Hdata,ylim=c(0.2,1),names=c('H&W','H&D','C&D'),main=
 stripchart(indexH~spsType,data=Hdata,vertical=TRUE,method="jitter",pch=20,cex=1.5,col=rgb(0.5,0.5,0.5,0.2),add=TRUE) 
 dev.off()
 
+##teste de sidnnficancia (comparando as especies)
+
+##kruskal-Wallis
+##indice D
+kruskal.test(indexD~spsType,data=Ddata)
+##indice I
+kruskal.test(indexH~spsType,data=Hdata)
+
+##comparacoes par a par
+##indice D
+pairwise.wilcox.test(Ddata$indexD,Ddata$spsType,p.adjust.method='bonferroni')
+##indice H
+pairwise.wilcox.test(Hdata$indexH,Hdata$spsType,p.adjust.method='bonferroni')
+
+
 ##Schoeners' D ao longo do tempo##
 
 jpeg(file='/home/anderson/Documentos/Projetos/Sps artificiais/Maxent/graficos/metricsXtime.jpg',width=1100,height=750)
@@ -338,6 +497,17 @@ points(indexH~kyrBP,data=HDdataH,type='p',ylim=c(0,1),pch=2,col='blue',cex.lab=1
 points(indexH~kyrBP,data=CDdataH,type='p',ylim=c(0,1),pch=3,col='red',cex.lab=1.9,cex.axis=1.5,lwd=2,cex=2)
 legend(x=19,y=1,legend=c('H&W','H&D','C&D'),pch=20,col=c('black','blue','red'),cex=1.5)
 dev.off()
+
+## ##testando significancia
+## ##indice D
+cor.test(HWdataD$kyrBP,HWdataD$indexD,method='spearman')
+cor.test(HDdataD$kyrBP,HDdataD$indexD,method='spearman')
+cor.test(CDdataD$kyrBP,CDdataD$indexD,method='spearman')
+## ##indice I
+## cor.test(HWdataH$kyrBP,HWdataH$indexH,method='spearman')
+## cor.test(HDdataH$kyrBP,HDdataH$indexH,method='spearman')
+## cor.test(CDdataH$kyrBP,CDdataH$indexH,method='spearman')
+
 
 ##metricas X tamanho amostral
 
@@ -355,6 +525,16 @@ points(outputData$spHD$Hellinger_distances~outputData$spHD$sampleSize,data=HDdat
 points(outputData$spCD$Hellinger_distances~outputData$spCD$sampleSize,data=CDdataD,type='p',ylim=c(0,1),pch=3,col='red',cex.lab=1.9,cex.axis=1.5,lwd=2,cex=2)
 legend(x=6,y=1,legend=c('H&W','H&D','C&D'),pch=20,col=c('black','blue','red'),cex=1.5)
 dev.off()
+
+##teste de significancia
+##indice D
+cor.test(outputData$spHW$sampleSize,outputData$spHW$Schoeners_D,method='spearman')
+cor.test(outputData$spHD$sampleSize,outputData$spHD$Schoeners_D,method='spearman')
+cor.test(outputData$spCD$sampleSize,outputData$spCD$Schoeners_D,method='spearman')
+##indice I
+cor.test(outputData$spHW$sampleSize,outputData$spHW$Hellinger_distances,method='spearman')
+cor.test(outputData$spHD$sampleSize,outputData$spHD$Hellinger_distances,method='spearman')
+cor.test(outputData$spCD$sampleSize,outputData$spCD$Hellinger_distances,method='spearman')
 
 
 ##distribuicao presente, inter e maximo glacial
