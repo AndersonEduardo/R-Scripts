@@ -137,7 +137,7 @@ dev.off()
 library(rasterVis)
 
 #definindo objeto com os nomes
-teste = 'Random Forest'
+teste = 'Maxent'
 
 #presente
 setwd(paste(projectFolder,teste,'/Raster Layers',sep='')) 
@@ -145,11 +145,13 @@ files = list.files(paste(getwd()),full.names=TRUE,pattern='.asc')
 
 ##TSS pela minha funcao
 source("/home/anderson/R/R-Scripts/TSSfunction.R")
+##TSS pela funcao do Pablo Riul
+#source("/home/anderson/R/R-Scripts/TSSmaxent.R")
 ##mapa binario
 teste = 'Maxent'
 setwd(paste(projectFolder,teste,'/Raster Layers',sep='')) 
 files = list.files(paste(getwd()),full.names=TRUE,pattern='.asc')
-files = files[c(2,4,6,8,10,12)]
+files = files[c(1,3,5,7,9,11)]
 species.layers = stack(files)
 
 rasterNames = gsub("_"," ",names(species.layers))
@@ -166,28 +168,27 @@ for (i in 1:length(rasterNames)){
     tssTable = rbind(tssTable,cbind(teste,especie,tssValue))
 }
 
-setwd("/home/anderson/PosDoc/teste/Random Forest/Passado/Raster Layers")
-raster.layer = stack(list.files(paste(getwd()),full.names=TRUE,pattern='Melanosuchus.niger'))
+raster.layer = stack(list.files(paste(projectFolder,teste,'/Passado/Raster Layers',sep=''),full.names=TRUE,pattern='Melanosuchus'))
 pontos = data.frame(lon=c(-41.553056,-37.753611), lat=c(-12.393417,-9.926944))
 
 suitability = extract(x=raster.layer,y=pontos[2,])
 
 
-#caimans
-files=c(files[1],files[3],files[5],files[9]) 
+#caimans + Melnosuchus
+files=c(files[1],files[2],files[3],files[5]) 
 #lagostomus e myocastor
-files=c(files[7],files[11]) 
+files=c(files[4],files[6]) 
 
 #passado
-setwd(paste(projectFolder,teste,'/Passado/Raster Layers',sep=''))
-filesPass = list.files(paste(getwd()),full.names=TRUE,pattern='.asc')
+#setwd(paste(projectFolder,teste,'/Passado/Raster Layers',sep=''))
+filesPass = list.files(paste(projectFolder,teste,'/Passado/Raster Layers',sep=''),full.names=TRUE,pattern='asc')
 
  #caimans (completo)
-filesPass=c(filesPass[2],filesPass[4],filesPass[6],filesPass[8],filesPass[10],filesPass[12],filesPass[14],filesPass[16],filesPass[18],filesPass[20],filesPass[22],filesPass[24],filesPass[30],filesPass[32],filesPass[34],filesPass[36] )#filesPass[33:36]) 
+filesPass=c(filesPass[1],filesPass[3],filesPass[5],filesPass[7],filesPass[9],filesPass[11],filesPass[13],filesPass[15],filesPass[17],filesPass[19],filesPass[21],filesPass[23],filesPass[29:32]) 
 #caimans (principal)
-filesPass=c(filesPass[4],filesPass[6],filesPass[12], filesPass[14],filesPass[20],filesPass[22],filesPass[32],filesPass[34]) 
+filesPass=c(filesPass[3],filesPass[5],filesPass[11],filesPass[13],filesPass[19],filesPass[21],filesPass[30],filesPass[31])
 #L. maximus e M. coypus
-filesPass=c(filesPass[26],filesPass[28],filesPass[38],filesPass[40])
+filesPass=c(filesPass[25],filesPass[27],filesPass[37],filesPass[39])
 
 #empilhando os rasters (passado e presente)
 species.layers = stack(c(files,filesPass))
@@ -217,22 +218,22 @@ setwd(paste("/home/anderson/PosDoc/teste/",teste,sep=''))
 ## Genero Caiman completo
 nomesSubgraficos = c("C. crocodilus","C. latirostris","C. yacare","M. niger","10 kyr BP","10 kyr BP","10 kyr BP","10 kyr BP","11 kyr BP","11 kyr BP","11 kyr BP","11 kyr BP","21 kyr BP","21 kyr BP","21 kyr BP","21 kyr BP","22 kyr BP","22 kyr BP","22 kyr BP","22 kyr BP")
 #pdf(file='CaimanCompleto.pdf')
-jpeg(file='CaimanCompleto.jpg', width = 1200, height = 1200)
-levelplot(species.layers,scales=list(x=list(cex=1), y=list(cex=1)),between=list(x=1.8, y=0.25),par.strip.text=list(cex=1.8),layout=c(4,5),col.regions=colorRampPalette(c("white","orange","darkred")), main='',names.attr=nomesSubgraficos,colorkey=list(space="right",labels=list(cex=1.2))) + layer(sp.polygons(AmSulShape)) + layer(panel.xyplot(-41.553056, -12.393417,pch=17,col='blue',cex=1.6),rows=c(2,3)) + layer(panel.xyplot(-37.753611,-9.926944,pch=17,col='blue',cex=1.6),rows=c(4,5))
+jpeg(file='CaimanCompletoTESTE.jpg', width = 1200, height = 1200)
+levelplot(species.layers,scales=list(x=list(cex=1), y=list(cex=1)),between=list(x=1.8, y=0.25),par.strip.text=list(cex=1.8),layout=c(4,5),col.regions=colorRampPalette(c("white","blue","yellow","green","red")), main='',names.attr=nomesSubgraficos,colorkey=list(space="right",labels=list(cex=1.2))) + layer(sp.polygons(AmSulShape)) + layer(panel.xyplot(-41.553056, -12.393417,pch=17,col='red',cex=1.6),rows=c(2,3)) + layer(panel.xyplot(-37.753611,-9.926944,pch=17,col='red',cex=1.6),rows=c(4,5))
 dev.off()
 
 ## Genero Caiman (figura principal)
 nomesSubgraficos = c("C. crocodilus","C. latirostris","C. yacare","M. niger","11 kyr BP","11 kyr BP","11 kyr BP","11 kyr BP","21 kyr BP","21 kyr BP","21 kyr BP","21 kyr BP")
 ##pdf(file='CaimanPrincipal.pdf')
-jpeg(file='CaimanPrincipal.jpg', width = 1200, height = 1200)
-levelplot(species.layers,scales=list(x=list(cex=1.3), y=list(cex=1.3)),between=list(x=1, y=0.25),par.strip.text=list(cex=2.5),layout=c(4,3),col.regions=colorRampPalette(c("white","orange","darkred")), main='', names.attr=nomesSubgraficos, colorkey=list(space="right",labels=list(cex=1.8))) + layer(sp.polygons(AmSulShape)) + layer(panel.xyplot(-41.553056, -12.393417,pch=17,col="blue",cex=2),rows=c(2)) + layer(panel.xyplot(-37.753611,-9.926944,pch=17,col="blue",cex=2),rows=c(3)) + layer(panel.xyplot(-53.283333,-33.683333,pch=17,col='blue',cex=2),rows=4)
+jpeg(file='CaimanPrincipalTESTE.jpg', width = 1200, height = 1200)
+levelplot(species.layers,scales=list(x=list(cex=1.3), y=list(cex=1.3)),between=list(x=1, y=0.25),par.strip.text=list(cex=2.5),layout=c(4,3),col.regions=colorRampPalette(c("white","blue","yellow","green","red")), main='', names.attr=nomesSubgraficos, colorkey=list(space="right",labels=list(cex=1.8))) + layer(sp.polygons(AmSulShape)) + layer(panel.xyplot(-41.553056, -12.393417,pch=17,col="red",cex=2),rows=c(2)) + layer(panel.xyplot(-37.753611,-9.926944,pch=17,col="red",cex=2),rows=c(3)) + layer(panel.xyplot(-53.283333,-33.683333,pch=17,col='red',cex=2),rows=4)
 dev.off()
 
 ## M. coypus L. maximus
 nomesSubgraficos = c("L. maximus","M. coypus","13 kyr BP","19 kyr BP","14 kyr BP","20 kyr BP")
 ##pdf(file='MyoLago.pdf')
 jpeg(file='MyoLago.jpg', width = 1200, height = 1200)
-levelplot(species.layers,scales=list(x=list(cex=1.5), y=list(cex=1.5)),between=list(x=1.8, y=0.25),par.strip.text=list(cex=2.1),layout=c(2,3),col.regions=colorRampPalette(c("white","orange","darkred")), main='', names.attr=nomesSubgraficos, colorkey=list(space="right",labels=list(cex=1.75))) + layer(sp.polygons(AmSulShape)) + layer(panel.xyplot(-55.993283,-34.270064,pch=17,col="blue",cex=2),rows=c(2:3),columns=c(1)) + layer(panel.xyplot(-41.553056,-12.393333,pch=17,col="blue",cex=2),rows=c(2:3),columns=c(2))
+levelplot(species.layers,scales=list(x=list(cex=1.5), y=list(cex=1.5)),between=list(x=1.8, y=0.25),par.strip.text=list(cex=2.1),layout=c(2,3),col.regions=colorRampPalette(c("white","blue","yellow","green","red")), main='', names.attr=nomesSubgraficos, colorkey=list(space="right",labels=list(cex=1.75))) + layer(sp.polygons(AmSulShape)) + layer(panel.xyplot(-55.993283,-34.270064,pch=17,col="red",cex=2),rows=c(2:3),columns=c(1)) + layer(panel.xyplot(-41.553056,-12.393333,pch=17,col="red",cex=2),rows=c(2:3),columns=c(2))
 dev.off()
 
 
