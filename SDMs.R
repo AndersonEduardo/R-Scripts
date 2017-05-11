@@ -137,7 +137,7 @@ dev.off()
 library(rasterVis)
 
 #definindo objeto com os nomes
-teste = 'Maxent'
+teste = 'Random Forest'
 
 #presente
 setwd(paste(projectFolder,teste,'/Raster Layers',sep='')) 
@@ -175,16 +175,16 @@ suitability = extract(x=raster.layer,y=pontos[2,])
 
 
 #caimans + Melnosuchus
-files=c(files[1],files[2],files[3],files[5]) 
+files=c(files[1],files[3],files[5],files[9]) 
 #lagostomus e myocastor
-files=c(files[4],files[6]) 
+files=c(files[7],files[11]) 
 
 #passado
 #setwd(paste(projectFolder,teste,'/Passado/Raster Layers',sep=''))
 filesPass = list.files(paste(projectFolder,teste,'/Passado/Raster Layers',sep=''),full.names=TRUE,pattern='asc')
 
  #caimans (completo)
-filesPass=c(filesPass[1],filesPass[3],filesPass[5],filesPass[7],filesPass[9],filesPass[11],filesPass[13],filesPass[15],filesPass[17],filesPass[19],filesPass[21],filesPass[23],filesPass[29:32]) 
+filesPass=c(filesPass[1],filesPass[3],filesPass[5],filesPass[7],filesPass[9],filesPass[11],filesPass[13],filesPass[15],filesPass[17],filesPass[19],filesPass[21],filesPass[23],filesPass[29],filesPass[31],filesPass[33],filesPass[35]) 
 #caimans (principal)
 filesPass=c(filesPass[3],filesPass[5],filesPass[11],filesPass[13],filesPass[19],filesPass[21],filesPass[30],filesPass[31])
 #L. maximus e M. coypus
@@ -206,11 +206,11 @@ for (i in 1:length(names(species.layers))){
     writeRaster(species.layers[[i]], filename=paste("/home/anderson/R/PosDoc/teste/",teste,'/Raster Layers Cortados/',names(species.layers)[i],".asc",sep=""), overwrite=T)
 }
 
-#ajustando os nomes dos subgraficos
-rasterNames=names(species.layers)
-names(species.layers)
-rasterNames = gsub("Caiman_latirostris_._","",names(species.layers))
-rasterNames = gsub("presente","Presente",rasterNames)
+## #ajustando os nomes dos subgraficos
+## rasterNames=names(species.layers)
+## names(species.layers)
+## rasterNames = gsub("Caiman_latirostris_._","",names(species.layers))
+## rasterNames = gsub("presente","Presente",rasterNames)
 
 ## levelplot ##
 setwd(paste("/home/anderson/PosDoc/teste/",teste,sep=''))
@@ -219,21 +219,21 @@ setwd(paste("/home/anderson/PosDoc/teste/",teste,sep=''))
 nomesSubgraficos = c("C. crocodilus","C. latirostris","C. yacare","M. niger","10 kyr BP","10 kyr BP","10 kyr BP","10 kyr BP","11 kyr BP","11 kyr BP","11 kyr BP","11 kyr BP","21 kyr BP","21 kyr BP","21 kyr BP","21 kyr BP","22 kyr BP","22 kyr BP","22 kyr BP","22 kyr BP")
 #pdf(file='CaimanCompleto.pdf')
 jpeg(file='CaimanCompletoTESTE.jpg', width = 1200, height = 1200)
-levelplot(species.layers,scales=list(x=list(cex=1), y=list(cex=1)),between=list(x=1.8, y=0.25),par.strip.text=list(cex=1.8),layout=c(4,5),col.regions=colorRampPalette(c("white","blue","yellow","green","red")), main='',names.attr=nomesSubgraficos,colorkey=list(space="right",labels=list(cex=1.2))) + layer(sp.polygons(AmSulShape)) + layer(panel.xyplot(-41.553056, -12.393417,pch=17,col='red',cex=1.6),rows=c(2,3)) + layer(panel.xyplot(-37.753611,-9.926944,pch=17,col='red',cex=1.6),rows=c(4,5))
+levelplot(species.layers,scales=list(x=list(cex=1), y=list(cex=1)),between=list(x=1.8, y=0.25),par.strip.text=list(cex=1.8),layout=c(4,5),col.regions=colorRampPalette(c("white","blue","green","yellow","red")), main='',names.attr=nomesSubgraficos,colorkey=list(space="right",labels=list(cex=1.2))) + layer(sp.polygons(AmSulShape)) + layer(panel.xyplot(-41.553056, -12.393417,pch=17,col='red',cex=1.6),rows=c(2,3)) + layer(panel.xyplot(-37.753611,-9.926944,pch=17,col='red',cex=1.6),rows=c(4,5))
 dev.off()
 
 ## Genero Caiman (figura principal)
 nomesSubgraficos = c("C. crocodilus","C. latirostris","C. yacare","M. niger","11 kyr BP","11 kyr BP","11 kyr BP","11 kyr BP","21 kyr BP","21 kyr BP","21 kyr BP","21 kyr BP")
 ##pdf(file='CaimanPrincipal.pdf')
 jpeg(file='CaimanPrincipalTESTE.jpg', width = 1200, height = 1200)
-levelplot(species.layers,scales=list(x=list(cex=1.3), y=list(cex=1.3)),between=list(x=1, y=0.25),par.strip.text=list(cex=2.5),layout=c(4,3),col.regions=colorRampPalette(c("white","blue","yellow","green","red")), main='', names.attr=nomesSubgraficos, colorkey=list(space="right",labels=list(cex=1.8))) + layer(sp.polygons(AmSulShape)) + layer(panel.xyplot(-41.553056, -12.393417,pch=17,col="red",cex=2),rows=c(2)) + layer(panel.xyplot(-37.753611,-9.926944,pch=17,col="red",cex=2),rows=c(3)) + layer(panel.xyplot(-53.283333,-33.683333,pch=17,col='red',cex=2),rows=4)
+levelplot(species.layers,scales=list(x=list(cex=1.3), y=list(cex=1.3)),between=list(x=1, y=0.25),par.strip.text=list(cex=2.5),layout=c(4,3),col.regions=colorRampPalette(c("white","blue","green","yellow","red")), main='', names.attr=nomesSubgraficos, colorkey=list(space="right",labels=list(cex=1.8))) + layer(sp.polygons(AmSulShape)) + layer(panel.xyplot(-41.553056, -12.393417,pch=17,col="red",cex=2),rows=c(2)) + layer(panel.xyplot(-37.753611,-9.926944,pch=17,col="red",cex=2),rows=c(3)) + layer(panel.xyplot(-53.283333,-33.683333,pch=17,col='red',cex=2),rows=4)
 dev.off()
 
 ## M. coypus L. maximus
 nomesSubgraficos = c("L. maximus","M. coypus","13 kyr BP","19 kyr BP","14 kyr BP","20 kyr BP")
 ##pdf(file='MyoLago.pdf')
 jpeg(file='MyoLago.jpg', width = 1200, height = 1200)
-levelplot(species.layers,scales=list(x=list(cex=1.5), y=list(cex=1.5)),between=list(x=1.8, y=0.25),par.strip.text=list(cex=2.1),layout=c(2,3),col.regions=colorRampPalette(c("white","blue","yellow","green","red")), main='', names.attr=nomesSubgraficos, colorkey=list(space="right",labels=list(cex=1.75))) + layer(sp.polygons(AmSulShape)) + layer(panel.xyplot(-55.993283,-34.270064,pch=17,col="red",cex=2),rows=c(2:3),columns=c(1)) + layer(panel.xyplot(-41.553056,-12.393333,pch=17,col="red",cex=2),rows=c(2:3),columns=c(2))
+levelplot(species.layers,scales=list(x=list(cex=1.5), y=list(cex=1.5)),between=list(x=1.8, y=0.25),par.strip.text=list(cex=2.1),layout=c(2,3),col.regions=colorRampPalette(c("white","blue","green","yellow","red")), main='', names.attr=nomesSubgraficos, colorkey=list(space="right",labels=list(cex=1.75))) + layer(sp.polygons(AmSulShape)) + layer(panel.xyplot(-55.993283,-34.270064,pch=17,col="red",cex=2),rows=c(2:3),columns=c(1)) + layer(panel.xyplot(-41.553056,-12.393333,pch=17,col="red",cex=2),rows=c(2:3),columns=c(2))
 dev.off()
 
 
@@ -1015,7 +1015,7 @@ ptm = proc.time()
 #abrindo um data.frame para armazenar os resultados de AUC
 resultados.evaluacion.MX<-data.frame(Species=character(), auc=numeric(), stringsAsFactors=FALSE)
 fila=0 #auxiliara na criacao do data.frame durante o loop
-fossilPointsSuitability = NULL #objetvo em que serao gravadas as projcoes de suitability especificamente para cada ponto de registro fossil
+fossilPointsSuitability = NULL #objeto em que serao gravadas as projcoes de suitability especificamente para cada ponto de registro fossil
 
 for (i in 1:length(splist)){
     #especie = 1 #para fazer na mao bruta
