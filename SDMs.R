@@ -137,7 +137,7 @@ dev.off()
 library(rasterVis)
 
 #definindo objeto com os nomes
-teste = 'Random Forest'
+teste = 'Maxent'
 
 #presente
 setwd(paste(projectFolder,teste,'/Raster Layers',sep='')) 
@@ -168,10 +168,62 @@ for (i in 1:length(rasterNames)){
     tssTable = rbind(tssTable,cbind(teste,especie,tssValue))
 }
 
-raster.layer = stack(list.files(paste(projectFolder,teste,'/Passado/Raster Layers',sep=''),full.names=TRUE,pattern='Melanosuchus'))
-pontos = data.frame(lon=c(-41.553056,-37.753611), lat=c(-12.393417,-9.926944))
+###tabela de suitability no pontos dos fosseis###
+##suitability no registro fossil de 11 kyr
+raster.layer.11 = stack(list.files(paste(projectFolder,teste,'/Passado/Raster Layers',sep=''),full.names=TRUE,pattern=glob2rx('*11*BP.asc')))
+crs(raster.layer.11) = '+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0'
+ponto11kyr = data.frame(lon=c(-41.553056), lat=c(-12.393417))
+suitability11kyr = extract(x=raster.layer.11,y=ponto11kyr,buffer=2000)
+#names(suitability11kyr) = '11kyr'
+#meanSuit11kyr = colMeans(as.data.frame(suitability11kyr$'11kyr'))
+output11kyr = data.frame(unlist(suitability11kyr))
+names(output11kyr) = 'suitability'
 
-suitability = extract(x=raster.layer,y=pontos[2,])
+
+##suitability no registro fossil de 21 kyr
+raster.layer.21 = stack(list.files(paste(projectFolder,teste,'/Passado/Raster Layers',sep=''),full.names=TRUE,pattern=glob2rx('*21*BP.asc')))
+crs(raster.layer.21) = '+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0'
+ponto21 = data.frame(lon = -37.753611, lat = -9.926944)
+suitability21kyr = extract(x=raster.layer.21,y=ponto11kyr,buffer=2000)
+#names(suitability21kyr) = '21kyr'
+##meanSuit21kyr = colMeans(as.data.frame(suitability21kyr$'21kyr'))
+output21kyr = data.frame(unlist(suitability21kyr))
+names(output21kyr) = 'suitability'
+
+##suitability no registro fossil de 19 e 20 kyr
+kyr19 = list.files(paste(projectFolder,teste,'/Passado/Raster Layers',sep=''),full.names=TRUE,pattern=glob2rx('*19*BP.asc'))
+kyr20 = list.files(paste(projectFolder,teste,'/Passado/Raster Layers',sep=''),full.names=TRUE,pattern=glob2rx('*20*BP.asc'))
+raster.layer.19 = stack(c(kyr19,kyr20))
+crs(raster.layer.19) = '+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0'
+ponto19 = data.frame(lon = -41.553056, lat = -12.393417)
+suitability19kyr = extract(x=raster.layer.19,y=ponto19,buffer=2000)
+#names(suitability19kyr) = '19kyr'
+#meanSuit19kyr = colMeans(as.data.frame(suitability19kyr$'19kyr'))
+output19kyr = data.frame(unlist(suitability19kyr))
+names(output19kyr) = 'suitability'
+
+##suitability no registro fossil de 13 e 14 kyr
+kyr13 = list.files(paste(projectFolder,teste,'/Passado/Raster Layers',sep=''),full.names=TRUE,pattern=glob2rx('*13*BP.asc'))
+kyr14 = list.files(paste(projectFolder,teste,'/Passado/Raster Layers',sep=''),full.names=TRUE,pattern=glob2rx('*14*BP.asc'))
+raster.layer.13 = stack(c(kyr13,kyr14))
+crs(raster.layer.13) = '+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0'
+ponto13 = data.frame(lon=-55.993283,lat=-34.270056) 
+suitability13kyr = extract(x=raster.layer.13,y=ponto13,buffer=2000)
+#names(suitability19kyr) = '19kyr'
+#meanSuit19kyr = colMeans(as.data.frame(suitability19kyr$'19kyr'))
+output13kyr = data.frame(unlist(suitability13kyr))
+names(output13kyr) = 'suitability'
+
+##tabela unificada
+suitabTable = rbind(output11kyr,output21kyr,output19kyr,output13kyr)
+write.csv(suitabTable,paste(projectFolder,teste,'/suitabilityNoPontoFossilNOVO.csv',sep=''))
+
+##inspecao grafica
+par(mfrow=c(2,1))
+barplot(meanSuit11kyr,las=2,main='11kyr BP')
+barplot(meanSuit21kyr,las=2,main = '21kyr BP ')
+
+#salvando as tabelas
 
 
 #caimans + Melnosuchus
@@ -186,7 +238,7 @@ filesPass = list.files(paste(projectFolder,teste,'/Passado/Raster Layers',sep=''
  #caimans (completo)
 filesPass=c(filesPass[1],filesPass[3],filesPass[5],filesPass[7],filesPass[9],filesPass[11],filesPass[13],filesPass[15],filesPass[17],filesPass[19],filesPass[21],filesPass[23],filesPass[29],filesPass[31],filesPass[33],filesPass[35]) 
 #caimans (principal)
-filesPass=c(filesPass[3],filesPass[5],filesPass[11],filesPass[13],filesPass[19],filesPass[21],filesPass[30],filesPass[31])
+filesPass=c(filesPass[3],filesPass[5],filesPass[11],filesPass[13],filesPass[19],filesPass[21],filesPass[31],filesPass[33])
 #L. maximus e M. coypus
 filesPass=c(filesPass[25],filesPass[27],filesPass[37],filesPass[39])
 
@@ -232,8 +284,8 @@ dev.off()
 ## M. coypus L. maximus
 nomesSubgraficos = c("L. maximus","M. coypus","13 kyr BP","19 kyr BP","14 kyr BP","20 kyr BP")
 ##pdf(file='MyoLago.pdf')
-jpeg(file='MyoLago.jpg', width = 1200, height = 1200)
-levelplot(species.layers,scales=list(x=list(cex=1.5), y=list(cex=1.5)),between=list(x=1.8, y=0.25),par.strip.text=list(cex=2.1),layout=c(2,3),col.regions=colorRampPalette(c("white","blue","green","yellow","red")), main='', names.attr=nomesSubgraficos, colorkey=list(space="right",labels=list(cex=1.75))) + layer(sp.polygons(AmSulShape)) + layer(panel.xyplot(-55.993283,-34.270064,pch=17,col="red",cex=2),rows=c(2:3),columns=c(1)) + layer(panel.xyplot(-41.553056,-12.393333,pch=17,col="red",cex=2),rows=c(2:3),columns=c(2))
+jpeg(file='MyoLagoTESTE.jpg', width = 1200, height = 1200)
+levelplot(species.layers,scales=list(x=list(cex=1.5), y=list(cex=1.5)),between=list(x=1.8, y=0.25),par.strip.text=list(cex=2.1),layout=c(2,3),col.regions=colorRampPalette(c("white","blue","green","yellow","red")), main='', names.attr=nomesSubgraficos, colorkey=list(space="right",labels=list(cex=1.75))) + layer(sp.polygons(AmSulShape)) + layer(panel.xyplot(-55.993283,-34.270064,pch=17,col="black",cex=2),rows=c(2:3),columns=c(1)) + layer(panel.xyplot(-41.553056,-12.393333,pch=17,col="red",cex=2),rows=c(2:3),columns=c(2))
 dev.off()
 
 
@@ -319,12 +371,12 @@ writeRaster(meanGLM120>threshold,paste(myOutputFolder,'/',spString,'GLM120-BINAR
 algoritmos = c('Maxent','GLM','Random Forest')
 cor.list = list()
 
-for (i in 1:16){ #OBS.: 16 e o numero de projecoes a serem comparadas (ver na pasta 'raster layers')
+for (i in 1:20){ #OBS.: 16 e o numero de projecoes a serem comparadas (ver na pasta 'raster layers')
     layersToCompare=list()
     for (j in 1:length(algoritmos)){
         setwd(paste(projectFolder,algoritmos[j],'/Passado/Raster Layers',sep='')) #apenas passado
         filesPass = list.files(paste(getwd()),full.names=TRUE,pattern='.asc')
-        filesPass=c(filesPass[1],filesPass[3],filesPass[5],filesPass[7],filesPass[9],filesPass[11],filesPass[13],filesPass[15],filesPass[17],filesPass[19],filesPass[21],filesPass[23],filesPass[25],filesPass[27],filesPass[29],filesPass[31]) #selecionando camadas e consertando a ordem das camadas
+        filesPass=c(filesPass[1],filesPass[3],filesPass[5],filesPass[7],filesPass[9],filesPass[11],filesPass[13],filesPass[15],filesPass[17],filesPass[19],filesPass[21],filesPass[23],filesPass[25],filesPass[27],filesPass[29:32],filesPass[37],filesPass[39]) #selecionando camadas e consertando a ordem das camadas
         layersToCompare = append(layersToCompare, filesPass[i])
     }
     stackToTest = stack(layersToCompare)
