@@ -163,7 +163,7 @@ for (i in 1:length(spsTypes)){ #loop sobre os 'tipos de especies'
 options(java.parameters = "-Xmx7g") ###set available memmory to java
 projectFolder = "/home/anderson/Documentos/Projetos/Sps artificiais/" #pasta do projeto
 envVarFolder = "/home/anderson/PosDoc/dados_ambientais/dados_projeto" #pasta com as variaveis ambientais
-envVarPaths = list.files(path=envVarFolder, full.names=T) #lista com os caminhos das camadas no sistema (comp.)
+envVarPaths = list.files(path=envVarFolder, full.names=TRUE) #lista com os caminhos das camadas no sistema (comp.)
 AmSulShape = readShapePoly("/home/anderson/PosDoc/Am_Sul/borders.shp") #shape da America do Sul
 mainSampleFolder = '/home/anderson/Documentos/Projetos/Sps artificiais/Amostras/' #caminho para pasta onde a planilha 
 maxentFolder = '/home/anderson/Documentos/Projetos/Sps artificiais/Maxent/' #pasta para resultados do maxent
@@ -191,7 +191,7 @@ for (i in 1:length(spsTypes)){
                 ##x=dataSet[,c("bioclim_01","bioclim_04","bioclim_10","bioclim_11","bioclim_12","bioclim_15","bioclim_16","bioclim_17")],
                 x=dataSet[,c("bioclim_01","bioclim_12")],
                 p=dataSet$pres,
-                path=paste(maxentFolder,spsTypes[i],'sampleSize',j,sep=''),
+                path=paste(maxentFolder,spsTypes[i],'/sampleSize',j,sep=''),
                 removeDuplicates = TRUE,
                 args=c('responsecurves=TRUE',
                        'jackknife=TRUE',
@@ -258,29 +258,6 @@ for (i in 1:length(spsTypes)){
 #######################################################
 
 ###QUARTA PARTE: comparando projecao do SDM e a distribuicao espacial real do nicho da sp###
-
-###
-## clim1 = na.exclude(as.data.frame(predictors1,xy=TRUE)) #em que predictors e um stack com as variaveis bioclim01 e bioclim12 para 10 kyrBP
-## clim2 = na.exclude(as.data.frame(predictors2,xy=TRUE)) #em que predictors e um stack com as variaveis bioclim01 e bioclim12 para 10 kyrBP
-## clim12 = rbind(clim1,clim2) #dados ambientais para todo o espaco estudado
-## spOcc1 = occPoints #pontos de ocorrencia com dados para as variaveis ambientais
-## spOcc2 = occPoints #pontos de ocorrencia com dados para as variaveis ambientais
-
-## scores.clim12.MAXENT <- data.frame(dismo::predict(object=me@models[[1]], x=clim12[,-c(1,2)]))
-## scores.clim1.MAXENT <- data.frame(dismo::predict(object=me@models[[1]], x=clim1[,-c(1,2)]))
-## scores.clim2.MAXENT <- data.frame(dismo::predict(object=me@models[[1]], x=clim2[,-c(1,2)]))
-## scores.sp1.MAXENT <- data.frame(dismo::predict(object=me@models[[1]], x=spOcc1[,c("bioclim_01","bioclim_12")]))
-## scores.sp2.MAXENT <- data.frame(dismo::predict(object=me@models[[1]], x=spOcc2[,c("bioclim_01","bioclim_12")]))
-
-## R=100
-
-## z1<- grid.clim(scores.clim12.MAXENT,scores.clim1.MAXENT,scores.sp1.MAXENT,R)
-## z2<- grid.clim(scores.clim12.MAXENT,scores.clim2.MAXENT,scores.sp2.MAXENT,R)
-## a<-niche.equivalency.test(z1,z2,rep=100)# test of niche equivalency and similarity according to Warren et al. 2008
-## b<-niche.similarity.test(z1,z2,rep=100)
-## b2<-niche.similarity.test(z2,z1,rep=100)
-
-###
 
 projectFolder = "/home/anderson/Documentos/Projetos/Sps artificiais/" #pasta do projeto
 mainSampleFolder = '/home/anderson/Documentos/Projetos/Sps artificiais/Amostras/' #caminho para pasta onde a planilha com os pontos amostrados sera salva
@@ -405,7 +382,7 @@ for (i in 1:length(spsTypes)){
 }
 names(outputData) = vetor.nomes
 
-###graficos
+###GRAFICOS
 
 ##Boxplots 
 
@@ -662,3 +639,173 @@ legend("bottomright", inset=c(-1,0),legend=c('Virtual species','Maxent projectio
 grid()
 mtext('Cold & Dry sp.',outer=TRUE,cex=4)
 dev.off()
+
+
+###SETIMA PARTE: transferibilidade pelo framework de xxx(2016?)###
+library(dismo)
+library(phyloclim)
+library(virtualspecies)
+
+options(java.parameters = "-Xmx7g") ###set available memmory to java
+projectFolder = "/home/anderson/Documentos/Projetos/Sps artificiais/" #pasta do projeto
+envVarFolder = "/home/anderson/PosDoc/dados_ambientais/dados_projeto" #pasta com as variaveis ambientais
+envVarPaths = list.files(path=envVarFolder, full.names=TRUE) #lista com os caminhos das camadas no sistema (comp.)
+AmSulShape = readShapePoly("/home/anderson/PosDoc/Am_Sul/borders.shp") #shape da America do Sul
+mainSampleFolder = '/home/anderson/Documentos/Projetos/Sps artificiais/Amostras/' #caminho para pasta onde a planilha 
+maxentFolder = '/home/anderson/Documentos/Projetos/Sps artificiais/Maxent/' #pasta para resultados do maxent
+spsTypes = c('spHW', 'spHD', 'spCD') #nomes das especies
+source("/home/anderson/R/R-Scripts/TSSmaxent.R")
+
+
+
+##ocorrencias
+sampleData = data.frame()
+
+for (i in 1:length(spsTypes)){ #loop sobre os 'tipos de especies'
+    for (sSize in sampleSizes){ #numero de pontos (registros, dados) na amostra
+        nicheRealFolder = paste(projectFolder,'NichoReal/',spsTypes[i],sep='') #pasta com os mapas de nicho real da sp
+        nicheRealPath = list.files(path=nicheRealFolder, full.names=TRUE, pattern='.asc') #lista com os enderecos dos mapas de distribuicao da
+        for (sAge in sampledAges){ #amostrando em cada camada de tempo que consta na amostra
+            for (j in 1:NumRep){ #replicas do cenario amostral
+                sampleData_i = sampleOccurrences(x=raster(nicheRealPath[sAge+1]),n=sSize,plot=FALSE)$sample.points[,1:2] #amostra d ponto
+                scenarioName = basename(nicheRealPath[1:24][sAge+1]) #tempo vinculado ao cenario para variaveis ambientais
+                scenarioName = gsub('.asc','',scenarioName) #retirando do nome o '.asc'
+                layers_i = extract(
+                    x=stack(list.files(path=paste(envVarFolder,'/',scenarioName,sep=''), pattern='asc', full.names=TRUE)),
+                    y=sampleData_i) #extraindo variaveis ambientais do ponto, em sua respectiva camada de tempo
+                sampleData = rbind(sampleData, cbind(sampleData_i,layers_i,sAge)) #juntando com os dados das outras camadas de tempo amostradas
+                names(sampleData) = c('lon','lat',names(as.data.frame(layers_i)),'kyrBP') #ajustando os nomes
+                write.csv(sampleData,paste(projectFolder,'Amostras/transferability/',spsTypes[i],'/',sAge,'k',sSize,'pts', j ,'rep.csv',sep=''),row.names=FALSE) #salvando
+                sampleData = data.frame() #devolvendo data.frame vazio para proxima rodada
+            }
+        }
+    }
+}
+
+##testando os modelos
+
+spOccFolder = '/home/anderson/Documentos/Projetos/Sps artificiais/Amostras/transferability/'
+##abrindo um data.frame para armazenar os resultados de AUC
+resultsEvaluationMX<-data.frame()
+index=0 #auxiliara na criacao do data.frame durante o loop
+spsTypes = c('spHW', 'spHD', 'spCD') #nomes das especies
+evaluation = list()
+TSSvector = data.frame()
+sampleSizes = c(5,15,25,35,45,55,65,75,85,95)
+NumRep = 3 #numero de replicas (de cada cenario amostral)
+sampledAges = c(0,21)
+projection(auxVector[[j]]) = CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0') #ajustando CRS
+predictors0k = stack(list.files(path=envVarPaths[1],full.names=TRUE, pattern='.asc')) #predictors com todas as variaveis (presente)
+projection(predictors0k)=CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0')
+predictors21k = stack(list.files(path=envVarPaths[22],full.names=TRUE, pattern='.asc')) #predictors com todas as variaveis (22kyr BP)
+projection(predictors21k)=CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0')
+predictors = list('0k'=predictors0k,'21k'=predictors21k)
+aucOutput = data.frame()
+    
+for (i in 1:length(spsTypes)){
+    for (j in sampledAges){
+        for (k in sampleSizes){
+            for (l in 1:NumRep){
+    
+                sp.file <- read.csv(paste(spOccFolder,spsTypes[i],'/',j,'k',k,'pts',l,"rep.csv",sep=""),header=TRUE) ### read sp occurrence
+                sp.occ <- sp.file[,c('lon','lat')] ## select lat-long columns
+    
+                ##extraindo dados da variavel climatica nos pontos de ocorrencia
+                presencesVars <- sp.file[,c('bioclim_01','bioclim_12')]
+    
+                ##criando um vetor de presenca para usar em uma coluna de presenca/ausencia na tabela final
+                pres = rep(1, nrow(presencesVars))
+    
+                ##juntando dados das variaveis climaticas nos pontos de ocorrencia, coordenadas de ocorrencia e o vetor (coluna na tabela) para presenca/ausencia
+                presencesData = data.frame(cbind(sp.occ,pres,presencesVars))
+                presencesData = presencesData[complete.cases(presencesData),]
+                presencesData = presencesData[complete.cases(presencesData),]
+    
+                ##criando pontos de background
+                background1 <- randomPoints(mask=predictors0k[[1]], n=5000, p=presencesData[,c("lon","lat")], excludep=TRUE)
+                background2 <- round(background1, digits=2)
+                background3 <- background2[!duplicated(background2),]
+                background4 <- background3[complete.cases(background3),]
+                background <- data.frame(background4)
+                colnames(background) <- c("lon", "lat")
+                
+                ##extraindo dados da variavel climatica nos pontos de background
+                
+                backgroundVars <- extract(predictors[[which(sampledAges==j)]], background, method='bilinear', buffer=NULL, fun=NULL)
+
+                ##criando um vetor de ausencias para usar em uma coluna de presenca/ausencia na tabela final
+                pres = rep(0, nrow(backgroundVars))
+    
+                ##juntando dados das variaveis climaticas nos pontos de ocorrencia, coordenadas de ocorrencia e o vetor (coluna na tabela) para presenca/ausencia    
+                backgroundData = data.frame(cbind(background,pres,backgroundVars[,c('bioclim_01','bioclim_12')]))
+                backgroundData = backgroundData[complete.cases(backgroundData),]    
+    
+                ##planilha de dados final
+                dataSet = data.frame(rbind(presencesData,backgroundData))
+
+                ##avaliando o modelo
+                projecaoSuitability = list()
+                evaluation = list()
+    
+                for (k in 1:10){
+                    tryCatch({# bootstrapping with 10 replications
+            
+                        ##reparando uma porcao dos dados de presenca e ausencia (background) para calibrar (treinar) o modelo
+                        rand = round(0.75*runif(nrow(presencesData)))
+                        presencesTrain = presencesData[rand==0,]
+                        backgroundTrain = backgroundData[rand==0,]
+            
+                        ##juntando presencas e ausencias da calibracao
+                        PresBackTrainRaw <- data.frame(rbind(presencesTrain, backgroundTrain))
+                        PresBackTrainRaw = PresBackTrainRaw[!duplicated(PresBackTrainRaw[,c('longitude','latitude')]),] #selecionar colunas de longitude e latitude
+                        PresBackTrainRaw <- PresBackTrainRaw[complete.cases(PresBackTrainRaw),]
+                        PresBackTrain = PresBackTrainRaw
+
+                        ##CRIANDO E RODANDO O MODELO (esquema do SWD - sample with data)##    
+                        MX <- maxent(x=PresBackTrain[,c('bioclim_01','bioclim_12')],p=PresBackTrain$pres,args=c(
+                                                                                           'responsecurves=true',
+                                                                                           'jackknife=true',
+                                                                                           'randomseed=true',
+                                                                                           'randomtestpoints=0',
+                                                                                           'replicates=1',
+                                                                                           'writebackgroundpredictions=true',
+                                                                                           'linear=true',
+                                                                                           'quadratic=true',
+                                                                                           'product=false',
+                                                                                           'threshold=false',
+                                                                                           'hinge=false',
+                                                                                           'maximumiterations=1000',
+                                                                                           'convergencethreshold=1.0E-5',
+                                                                                           'threads=2'))
+                        
+                        ##avaliacao INTERNA
+                        presencesTest = presencesData[rand==1,]
+                        presencesTest <- presencesTest[,c('lon','lat')]
+                        backgroundTest = backgroundData[rand==1,]
+                        backgroundTest = backgroundTest[,c('lon','lat')]
+                        
+                        ##rodando a avaliacao do modelo
+                        internalEval = evaluate(p=presencesTest,a=backgroundTest,m=MX,x=predictors[[which(sampledAges==j)]],type='response')
+
+                        ##avaliacao EXTERNA
+                        presencesDataExt = read.csv(paste(spOccFolder,splist[i],'/',sampledAges[which(sampledAges!=j)],'k',k,'pts',l,"rep.csv",sep=""),header=TRUE) ### read sp occurrence
+                        presencesDataExt = presencesDataExt[,c('lon','lat')]
+                        presencesDataExt = presencesDataExt[rand==1,]
+
+                        ##rodando a avaliacao do modelo
+                        externalEval = evaluate(p=presencesDataExt,a=backgroundTest,m=MX,x=predictors[[which(sampledAges!=j)]],type='response')
+
+                        ##salvando AUC interno e externo
+                        aucOutput = rbind(aucOutput,data.frame(sp=spsTypes[i], sample_size=k, replicate=l, AUC_int=internalEval@auc, AUC_ext=externalEval@auc,int_age=j,ext_age=sampledAges[which(sampledAges!=j)]))
+                        
+                        
+                    }, error=function(e){cat("ERROR :",conditionMessage(e),"\n")}
+                    )}
+            }
+        }
+    }
+}
+
+write.csv(aucOutput,paste(spOccFolder,'/aucOutputs.csv',sep=''),row.names = FALSE)
+
+
