@@ -223,20 +223,19 @@ par(mfrow=c(2,1))
 barplot(meanSuit11kyr,las=2,main='11kyr BP')
 barplot(meanSuit21kyr,las=2,main = '21kyr BP ')
 
-#salvando as tabelas
-
 
 #caimans + Melnosuchus
 files=c(files[1],files[3],files[5],files[9]) 
 #lagostomus e myocastor
 files=c(files[7],files[11]) 
 
-#passado
+
+##passado
 #setwd(paste(projectFolder,teste,'/Passado/Raster Layers',sep=''))
 filesPass = list.files(paste(projectFolder,teste,'/Passado/Raster Layers',sep=''),full.names=TRUE,pattern='asc')
 
  #caimans (completo)
-filesPass=c(filesPass[1],filesPass[3],filesPass[5],filesPass[7],filesPass[9],filesPass[11],filesPass[13],filesPass[15],filesPass[17],filesPass[19],filesPass[21],filesPass[23],filesPass[29],filesPass[31],filesPass[33],filesPass[35]) 
+filesPass=c(filesPass[1],filesPass[3],filesPass[5],filesPass[7],filesPass[9],filesPass[11],filesPass[13],filesPass[15],filesPass[17],filesPass[19],filesPass[21],filesPass[23],filesPass[29],filesPass[31],filesPass[33],filesPass[36]) 
 #caimans (principal)
 filesPass=c(filesPass[3],filesPass[5],filesPass[11],filesPass[13],filesPass[19],filesPass[21],filesPass[31],filesPass[33])
 #L. maximus e M. coypus
@@ -268,21 +267,21 @@ for (i in 1:length(names(species.layers))){
 setwd(paste("/home/anderson/PosDoc/teste/",teste,sep=''))
 
 ## Genero Caiman completo
-nomesSubgraficos = c("C. crocodilus","C. latirostris","C. yacare","M. niger","10 kyr BP","10 kyr BP","10 kyr BP","10 kyr BP","11 kyr BP","11 kyr BP","11 kyr BP","11 kyr BP","21 kyr BP","21 kyr BP","21 kyr BP","21 kyr BP","22 kyr BP","22 kyr BP","22 kyr BP","22 kyr BP")
+nomesSubgraficos = c("0 kyr BP","0 kyr BP","0 kyr BP","0 kyr BP","10 kyr BP","10 kyr BP","10 kyr BP","10 kyr BP","11 kyr BP","11 kyr BP","11 kyr BP","11 kyr BP","21 kyr BP","21 kyr BP","21 kyr BP","21 kyr BP","22 kyr BP","22 kyr BP","22 kyr BP","22 kyr BP") #ordem: "C. crocodilus","C. latirostris","C. yacare","M. niger"
 #pdf(file='CaimanCompleto.pdf')
 jpeg(file='CaimanCompletoTESTE.jpg', width = 1200, height = 1200)
 levelplot(species.layers,scales=list(x=list(cex=1), y=list(cex=1)),between=list(x=1.8, y=0.25),par.strip.text=list(cex=1.8),layout=c(4,5),col.regions=colorRampPalette(c("white","blue","green","yellow","red")), main='',names.attr=nomesSubgraficos,colorkey=list(space="right",labels=list(cex=1.2))) + layer(sp.polygons(AmSulShape)) + layer(panel.xyplot(-41.553056, -12.393417,pch=17,col='red',cex=1.6),rows=c(2,3)) + layer(panel.xyplot(-37.753611,-9.926944,pch=17,col='red',cex=1.6),rows=c(4,5))
 dev.off()
 
 ## Genero Caiman (figura principal)
-nomesSubgraficos = c("C. crocodilus","C. latirostris","C. yacare","M. niger","11 kyr BP","11 kyr BP","11 kyr BP","11 kyr BP","21 kyr BP","21 kyr BP","21 kyr BP","21 kyr BP")
+nomesSubgraficos = c("0 kyr BP","0 kyr BP","0 kyr BP","0 kyr BP","11 kyr BP","11 kyr BP","11 kyr BP","11 kyr BP","21 kyr BP","21 kyr BP","21 kyr BP","21 kyr BP") #ordem: "C. crocodilus","C. latirostris","C. yacare","M. niger"
 ##pdf(file='CaimanPrincipal.pdf')
 jpeg(file='CaimanPrincipalTESTE.jpg', width = 1200, height = 1200)
 levelplot(species.layers,scales=list(x=list(cex=1.3), y=list(cex=1.3)),between=list(x=1, y=0.25),par.strip.text=list(cex=2.5),layout=c(4,3),col.regions=colorRampPalette(c("white","blue","green","yellow","red")), main='', names.attr=nomesSubgraficos, colorkey=list(space="right",labels=list(cex=1.8))) + layer(sp.polygons(AmSulShape)) + layer(panel.xyplot(-41.553056, -12.393417,pch=17,col="red",cex=2),rows=c(2)) + layer(panel.xyplot(-37.753611,-9.926944,pch=17,col="red",cex=2),rows=c(3)) + layer(panel.xyplot(-53.283333,-33.683333,pch=17,col='red',cex=2),rows=4)
 dev.off()
 
 ## M. coypus L. maximus
-nomesSubgraficos = c("L. maximus","M. coypus","13 kyr BP","19 kyr BP","14 kyr BP","20 kyr BP")
+nomesSubgraficos = c("0 kyr BP","0 kyr BP","13 kyr BP","19 kyr BP","14 kyr BP","20 kyr BP") #ordem: L. maximus e M. coypus
 ##pdf(file='MyoLago.pdf')
 jpeg(file='MyoLagoTESTE.jpg', width = 1200, height = 1200)
 levelplot(species.layers,scales=list(x=list(cex=1.5), y=list(cex=1.5)),between=list(x=1.8, y=0.25),par.strip.text=list(cex=2.1),layout=c(2,3),col.regions=colorRampPalette(c("white","blue","green","yellow","red")), main='', names.attr=nomesSubgraficos, colorkey=list(space="right",labels=list(cex=1.75))) + layer(sp.polygons(AmSulShape)) + layer(panel.xyplot(-55.993283,-34.270064,pch=17,col="black",cex=2),rows=c(2:3),columns=c(1)) + layer(panel.xyplot(-41.553056,-12.393333,pch=17,col="red",cex=2),rows=c(2:3),columns=c(2))

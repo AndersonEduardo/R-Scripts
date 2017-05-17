@@ -104,7 +104,7 @@ for (i in 1:length(splist)){
     projecaoSuitability = list()
     evaluation = list()
     
-    for (j in 1:50){
+    for (j in 1:100){
         tryCatch({# bootstrapping with 10 replications
             
             ##reparando uma porcao dos dados de presenca e ausencia (background) para calibrar (treinar) o modelo
