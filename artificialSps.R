@@ -6,7 +6,7 @@ library(maptools)
 library(dismo)
 library(raster)
 library(phyloclim) #para funcao niche.overlap()
-source("/home/anderson/R/R-Scripts/TSSmaxent.R")get
+source("/home/anderson/R/R-Scripts/TSSmaxent.R")
 source("/home/anderson/R/R-Scripts/AUCrand.R")
 
 ###PRIMEIRA PARTE: criando sps virtuais###
