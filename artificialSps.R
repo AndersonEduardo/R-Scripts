@@ -743,10 +743,9 @@ for (i in 1:length(spsTypes)){
                 dataSet = data.frame(rbind(presencesData,backgroundData))
 
                 ##avaliando o modelo
-                projecaoSuitability = list()
                 evaluation = list()
     
-                for (k in 1:10){
+                for (m in 1:10){
                     tryCatch({# bootstrapping with 10 replications
             
                         ##reparando uma porcao dos dados de presenca e ausencia (background) para calibrar (treinar) o modelo
@@ -787,7 +786,7 @@ for (i in 1:length(spsTypes)){
                         internalEval = evaluate(p=presencesTest,a=backgroundTest,m=MX,x=predictors[[which(sampledAges==j)]],type='response')
 
                         ##avaliacao EXTERNA
-                        presencesDataExt = read.csv(paste(spOccFolder,splist[i],'/',sampledAges[which(sampledAges!=j)],'k',k,'pts',l,"rep.csv",sep=""),header=TRUE) ### read sp occurrence
+                        presencesDataExt = read.csv(paste(spOccFolder,spsTypes[i],'/',sampledAges[which(sampledAges!=j)],'k',k,'pts',l,"rep.csv",sep=""),header=TRUE) ### read sp occurrence
                         presencesDataExt = presencesDataExt[,c('lon','lat')]
                         presencesDataExt = presencesDataExt[rand==1,]
 
