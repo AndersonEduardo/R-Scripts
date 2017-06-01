@@ -153,7 +153,7 @@ infecIndOrdered = c(infecBarb[6],infecBarb[3]) #,infecBarb[5],infecBarb[9],infec
 camadasPresente = camadasPresente = stack(list.files(paste(projectFolder,"Projecoes",sep=""),pattern="BIN.asc",full.names=TRUE))
 mapaRiscoPresente = sum(camadasPresente*infecIndOrdered/sum(infecIndOrdered))
 plot(mapaRiscoPresente)
-writeRaster(x=mapaRiscoPresente,filename=filename=paste(projectFolder,'Mapas de risco/mapaRiscoPresente.asc',sep=''),overwrite=TRUE)
+writeRaster(x=mapaRiscoPresente,filename=paste(projectFolder,'Mapas de risco/mapaRiscoPresente.asc',sep=''),overwrite=TRUE)
 
 #futuro otimista
 camadasFuturoOtimista = stack(list.files(list.files(paste(projectFolder,"Projecoes",sep=""),pattern = "OtimistaBIN.asc",full.names=TRUE))
