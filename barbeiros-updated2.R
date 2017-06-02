@@ -1,4 +1,4 @@
-##SCRIPT PARA MODELAGEM DE DISTRIBUICAO DE ESPECIES (PRESENTE E FUTURO) USANDO MAXENT##
+##SCRIPT PARA DISTRIBUICAO DE BARBEIROS (PRESENTE E FUTURO) - APENAS VARIAVEIS CLIMATICAS##
 
 library(raster)
 library(maptools)
@@ -17,16 +17,16 @@ source("/home/anderson/R/R-Scripts/TSSmaxent.R")
 ## spOccFolder = "J:/Lucas/Modelagem barbeiros/Ocorrencias"
 ## projectFolder = "J:/Lucas/Modelagem barbeiros/"
 #anderson
-envVarFolder = "/home/anderson/PosDoc/dados_ambientais/bcmidbi_2-5m _asc_America_Sul"
+envVarFolder = "/home/anderson/Documentos/Projetos/Barbeiros_Lucas/Variaveis Climaticas"
 spOccFolder = "/home/anderson/Documentos/Projetos/Barbeiros_Lucas/Ocorrencias/"
 projectFolder = "/home/anderson/Documentos/Projetos/Barbeiros_Lucas/"
 
 ##abrindo as variaveis climaticas
 ##abrindo shape da America do Sul
-AmSulShape = readShapePoly("/home/anderson/PosDoc/Am_Sul/borders.shp")
+AmSulShape = readShapePoly("/home/anderson/PosDoc/shapefiles/Am_Sul/borders.shp")
 
 ##abrindo e cortando camadas de variaveis ambientais para o presente
-filesRaw <- stack(list.files(path=envVarFolder, pattern='.grd', full.names=TRUE)) #modificar a extensao .bil de acordo com os arquivos
+filesRaw <- stack(list.files(path=envVarFolder, pattern='.asc', full.names=TRUE)) #modificar a extensao .bil de acordo com os arquivos
 #files = mask(filesRaw,AmSulShape) #cortando para Am. do Sul
 
 ##abrindo e cortando camadas de variaveis ambientais para projecao
@@ -40,7 +40,7 @@ filesProjectionPessimistaRaw <- stack(list.files(path=paste(envVarFolder,"/futur
 ## files.crop.sub.projection.otimista = filesProjectionOtimistaRaw[[c('bio7','bio15','bio11','bio16','bio17')]] #choose selected layers
 ## files.crop.sub.projection.pessimista = filesProjectionPessimistaRaw[[c('bio7','bio15','bio11','bio16','bio17')]] #choose selected layers
 #Anderson
-files.crop.sub = filesRaw[[c('bcmidbi7','bcmidbi15','bcmidbi11','bcmidbi16','bcmidbi17')]] #choose selected layers
+files.crop.sub = filesRaw[[c('bio7','bio15','bio11','bio16','bio17')]] #choose selected layers
 files.crop.sub.projection.otimista = filesProjectionOtimistaRaw[[c('bio7','bio15','bio11','bio16','bio17')]] #choose selected layers
 files.crop.sub.projection.pessimista = filesProjectionPessimistaRaw[[c('bio7','bio15','bio11','bio16','bio17')]] #choose selected layers
 
@@ -118,11 +118,13 @@ for (i in 1:length(splist)){
 write.csv(tabRes,file=paste(projectFolder,'tabela_resultados.csv',sep=''))
 
 
-###TERCEIRA PARTE: gerarndo mapas de sobreposicao (riqueza) - SEM impacto humano###
+###TERCEIRA PARTE: gerando mapas de sobreposicao (riqueza) - SEM impacto humano###
 
 #sobrepondo distribuicoes para mapa de riqueza
 #presente
-camadasPresente = stack(list.files(paste(projectFolder,"Projecoes",sep=""),pattern="BIN.asc",full.names=TRUE))
+listaPresente = grep(list.files(paste(projectFolder,"Projecoes",sep=""),full.names=TRUE),pattern='Otimista|Pessimista',inv=T,value=T)
+listaPresenteBIN = grep(listaPresente,pattern='BIN.asc',value=TRUE)
+camadasPresente = stack(listaPresenteBIN)
 mapaRiquezaPresente = sum(camadasPresente)
 plot(mapaRiquezaPresente)
 writeRaster(x=mapaRiquezaPresente,filename=paste(projectFolder,'Mapas de riqueza/mapaRiquezaPresente.asc',sep=''),overwrite=TRUE)
@@ -150,20 +152,25 @@ infecIndOrdered = c(infecBarb[6],infecBarb[3]) #,infecBarb[5],infecBarb[9],infec
 
 #sobrepondo distribuicoes para mapa de risco
 #presente
-camadasPresente = camadasPresente = stack(list.files(paste(projectFolder,"Projecoes",sep=""),pattern="BIN.asc",full.names=TRUE))
-mapaRiscoPresente = sum(camadasPresente*infecIndOrdered/sum(infecIndOrdered))
+listaPresente = grep(list.files(paste(projectFolder,"Projecoes",sep=""),full.names=TRUE),pattern='Otimista|Pessimista',inv=T,value=T)
+listaPresenteBIN = grep(listaPresente,pattern='BIN.asc',value=TRUE)
+camadasPresente = stack(listaPresenteBIN)
+mapaRiscoPresente = sum(camadasPresente*infecIndOrdered) 
+mapaRiscoPresente = mapaRiscoPresente/maxValue(mapaRiscoPresente)
 plot(mapaRiscoPresente)
 writeRaster(x=mapaRiscoPresente,filename=paste(projectFolder,'Mapas de risco/mapaRiscoPresente.asc',sep=''),overwrite=TRUE)
 
 #futuro otimista
-camadasFuturoOtimista = stack(list.files(list.files(paste(projectFolder,"Projecoes",sep=""),pattern = "OtimistaBIN.asc",full.names=TRUE))
-mapaRiscoFuturoOtimista = sum(camadasFuturoOtimista*infecIndOrdered/sum(infecIndOrdered))
+camadasFuturoOtimista = stack(list.files(paste(projectFolder,"Projecoes",sep=""),pattern = "OtimistaBIN.asc",full.names=TRUE))
+mapaRiscoFuturoOtimista = sum(camadasFuturoOtimista*infecIndOrdered)
+mapaRiscoFuturoOtimista = mapaRiscoFuturoOtimista/maxValue(mapaRiscoFuturoOtimista)
 plot(mapaRiscoFuturoOtimista)
 writeRaster(x=mapaRiscoFuturoOtimista,filename=paste(projectFolder,'Mapas de risco/mapaRiscoFuturoOtimista.asc',sep=''),overwrite=TRUE)
 
 #futuro pessimista
-camadasFuturoPessimista = stack(list.files(list.files(paste(projectFolder,"Projecoes",sep=""),pattern = "PessimistaBIN.asc",full.names=TRUE))
-mapaRiscoFuturoPessimista = sum(camadasFuturoPessimista*infecIndOrdered/sum(infecIndOrdered))
+camadasFuturoPessimista = stack(list.files(paste(projectFolder,"Projecoes",sep=""),pattern = "PessimistaBIN.asc",full.names=TRUE))
+mapaRiscoFuturoPessimista = sum(camadasFuturoPessimista*infecIndOrdered)
+mapaRiscoFuturoPessimista = mapaRiscoFuturoPessimista/maxValue(mapaRiscoFuturoPessimista)
 plot(mapaRiscoFuturoPessimista)
 writeRaster(x=mapaRiscoFuturoPessimista,filename=paste(projectFolder,'Mapas de risco/mapaRiscoFuturoPessimista.asc',sep=''),overwrite=TRUE)
 
@@ -173,6 +180,8 @@ writeRaster(x=mapaRiscoFuturoPessimista,filename=paste(projectFolder,'Mapas de r
 #presente 
 
 #tamanho da area do quartil superior (para riqueza e risco), para comparar os cenarios
+mapaRiquezaPresente = raster(paste(projectFolder,'Mapas de riqueza/mapaRiquezaPresente.asc',sep=''))
+mapaRiscoPresente = raster(paste(projectFolder,'Mapas de risco/mapaRiscoPresente.asc',sep=''))
 hightRiqPres= mapaRiquezaPresente > quantile(mapaRiquezaPresente, 0.75,na.rm=TRUE) #raster quartil superior riqueza
 hightRiscPres = mapaRiscoPresente > quantile(mapaRiscoPresente, 0.75,na.rm=TRUE) #raster quartil superior risco
 
@@ -187,6 +196,8 @@ corPres <- as.data.frame(cor(test, use="complete.obs",method='spearman'))
 #futuro otimista 
 
 #tamanho da area do quartil superior (para riqueza e risco), para comparar os cenarios
+mapaRiquezaFuturoOtimista = raster(paste(projectFolder,'Mapas de riqueza/mapaRiquezaFuturoOtimista.asc',sep=''))
+mapaRiscoFuturoOtimista = raster(paste(projectFolder,'Mapas de risco/mapaRiscoFuturoOtimista.asc',sep=''))
 hightRiqOtim= mapaRiquezaFuturoOtimista > quantile(mapaRiquezaFuturoOtimista, 0.75,na.rm=TRUE) #raster quartil superior riqueza
 hightRiscOtim = mapaRiscoFuturoOtimista > quantile(mapaRiscoFuturoOtimista, 0.75,na.rm=TRUE) #raster quartil superior risco
 
@@ -201,6 +212,8 @@ corOtim <- as.data.frame(cor(test, use="complete.obs",method='spearman'))
 #futuro pessimista 
 
 #tamanho da area do quartil superior (para riqueza e risco), para comparar os cenarios
+mapaRiquezaFuturoPessimista = raster(paste(projectFolder,'Mapas de riqueza/mapaRiquezaFuturoPessimista.asc',sep=''))
+mapaRiscoFuturoPessimista = raster(paste(projectFolder,'Mapas de risco/mapaRiscoFuturoPessimista.asc',sep=''))
 hightRiqPess= mapaRiquezaFuturoPessimista > quantile(mapaRiquezaFuturoPessimista, 0.75,na.rm=TRUE) #raster quartil superior riqueza
 hightRiscPess = mapaRiscoFuturoPessimista > quantile(mapaRiscoFuturoPessimista, 0.75,na.rm=TRUE) #raster quartil superior risco
 
@@ -214,11 +227,34 @@ corPess <- as.data.frame(cor(test, use="complete.obs",method='spearman'))
 
 #salvando resultados em tabelas
 tab = data.frame(scenario=c('pres','fut_otim','fut_pess'),
-                 quantile75riq = c(quantile(mapaRiquezaPresente, 0.75),quantile(mapaRiquezaFuturoOtimista, 0.75),quantile(mapaRiquezaFuturoPessimista, 0.75)),
-                 quantile75risc = c(quantile(mapaRiscoPresente, 0.75),quantile(mapaRiscoFuturoOtimista, 0.75), quantile(mapaRiscoFuturoPessimista, 0.75)),
+                 quantile75riq = c(quantile(mapaRiquezaPresente, 0.75,na.rm=TRUE),quantile(mapaRiquezaFuturoOtimista, 0.75,na.rm=TRUE),quantile(mapaRiquezaFuturoPessimista, 0.75,na.rm=TRUE)),
+                 quantile75risc = c(quantile(mapaRiscoPresente, 0.75,na.rm=TRUE),quantile(mapaRiscoFuturoOtimista, 0.75,na.rm=TRUE), quantile(mapaRiscoFuturoPessimista, 0.75,na.rm=TRUE)),
                  percCellRiq = c(percCelRiqPres,percCelRiqOtim,percCelRiqPess),
                  percCellRisc = c(percCelRiscPres,percCelRiscOtim,percCelRiscPess),
                  corRiqRisc = c(corPres[1,2],corOtim[1,2],corPess[1,2])
 )
 
 write.csv(tab,paste(projectFolder,'statsRes.csv'),row.names = FALSE)
+
+
+###SEXTA PARTE: figuras dos mapas - SEM impacto humano###
+mapaRiquezaPresente = raster(paste(projectFolder,'Mapas de riqueza/mapaRiquezaPresente.asc',sep=''))
+mapaRiquezaFuturoOtimista = raster(paste(projectFolder,'Mapas de riqueza/mapaRiquezaFuturoPessimista.asc',sep=''))
+mapaRiquezaFuturoPessimista = raster(paste(projectFolder,'Mapas de riqueza/mapaRiquezaFuturoPessimista.asc',sep=''))
+mapaRiscoPresente = raster(paste(projectFolder,'Mapas de risco/mapaRiscoPresente.asc',sep=''))
+mapaRiscoFuturoOtimista = raster(paste(projectFolder,'Mapas de risco/mapaRiscoFuturoOtimista.asc',sep=''))
+mapaRiscoFuturoPessimista = raster(paste(projectFolder,'Mapas de risco/mapaRiscoFuturoPessimista.asc',sep=''))
+
+jpeg(filename=paste(projectFolder,'mapas.jpeg'),,width=1700,height=1200)
+par(mfrow=c(2,3),mar=c(5,5,5,14))
+##riqueza
+plot(mapaRiquezaPresente,main='Presente',legend=FALSE,cex.axis=2,cex.main=4);plot(AmSulShape,add=TRUE); grid()
+plot(mapaRiquezaFuturoOtimista,main='2070 otimista',legend=FALSE,cex.axis=2,cex.main=4); plot(AmSulShape,add=TRUE); grid()
+plot(mapaRiquezaFuturoPessimista,main='2070 pessimista',legend=FALSE,cex.axis=2,cex.main=4); plot(AmSulShape,add=TRUE); grid()
+plot(mapaRiquezaFuturoPessimista,legend.only=TRUE,legend.width=3,axis.args=list(cex.axis=2),legend.args=list(text='Riqueza',font=2,side=4,line=4.5,cex=2.2,cex.axis=0.2)) #legenda
+##risco
+plot(mapaRiscoPresente,legend=FALSE,cex.axis=2); plot(AmSulShape,add=TRUE); grid()
+plot(mapaRiscoFuturoOtimista,legend=FALSE,cex.axis=2,cex.lab=2); plot(AmSulShape,add=TRUE); grid()
+plot(mapaRiscoFuturoPessimista,legend=FALSE,cex.axis=2); plot(AmSulShape,add=TRUE); grid()
+plot(mapaRiscoFuturoPessimista,legend.only=TRUE,legend.width=3,axis.args=list(cex.axis=2),legend.args=list(text='Risco',font=2,side=4,line=5.7,cex=2.2,cex.axis=0.2)) #legenda
+dev.off()
