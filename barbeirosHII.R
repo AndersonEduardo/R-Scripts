@@ -263,47 +263,180 @@ plot(mapaRiscoFuturoPessimista,legend.only=TRUE,legend.width=3,axis.args=list(ce
 dev.off()
 
 
-###SETIMA PARTE: comparando areas de alta diversidade e alto risco entre as projecoes com e sem impacto humano###
+###SETIMA PARTE: comparando areas de ALTA RIQUEZA entre as projecoes com e sem impacto humano###
 
 ##presente
 mapaRiquezaPresente = raster(paste(projectFolder,'resultados nicho climatico/Mapas de riqueza/mapaRiquezaPresente.asc',sep=''))
-mapaRiscoPresente = raster(paste(projectFolder,'resultados nicho climatico/Mapas de risco/mapaRiscoPresente.asc',sep=''))
 mapaRiquezaPresenteHii = raster(paste(projectFolder,'resultados nicho climatico + impacto humano/Mapas de riqueza/mapaRiquezaPresente.asc',sep=''))
-mapaRiscoPresenteHii = raster(paste(projectFolder,'resultados nicho climatico + impacto humano/Mapas de risco/mapaRiscoPresente.asc',sep=''))
 #
 hightRiqPres= mapaRiquezaPresente > quantile(mapaRiquezaPresente, 0.75,na.rm=TRUE) #raster quartil superior riqueza
-hightRiscPres = mapaRiscoPresente > quantile(mapaRiscoPresente, 0.75,na.rm=TRUE) #raster quartil superior risco
-#
 hightRiqPresHii= mapaRiquezaPresenteHii > quantile(mapaRiquezaPresenteHii, 0.75,na.rm=TRUE) #raster quartil superior riqueza
-hightRiscPresHii = mapaRiscoPresenteHii > quantile(mapaRiscoPresenteHii, 0.75,na.rm=TRUE) #raster quartil superior risco
 
 ##futuro otimista
 mapaRiquezaFuturoOtimista = raster(paste(projectFolder,'resultados nicho climatico/Mapas de riqueza/mapaRiquezaFuturoOtimista.asc',sep=''))
-mapaRiscoFuturoOtimista = raster(paste(projectFolder,'resultados nicho climatico/Mapas de risco/mapaRiscoFuturoOtimista.asc',sep=''))
 mapaRiquezaFuturoOtimistaHii = raster(paste(projectFolder,'resultados nicho climatico + impacto humano/Mapas de riqueza/mapaRiquezaFuturoOtimista.asc',sep=''))
-mapaRiscoFuturoOtimistaHii = raster(paste(projectFolder,'resultados nicho climatico + impacto humano/Mapas de risco/mapaRiscoFuturoOtimista.asc',sep=''))
 #
 hightRiqOtim= mapaRiquezaFuturoOtimista > quantile(mapaRiquezaFuturoOtimista, 0.75,na.rm=TRUE) #raster quartil superior riqueza
-hightRiscOtim = mapaRiscoFuturoOtimista > quantile(mapaRiscoFuturoOtimista, 0.75,na.rm=TRUE) #raster quartil superior risco
-#
 hightRiqOtimHii= mapaRiquezaFuturoOtimistaHii > quantile(mapaRiquezaFuturoOtimistaHii, 0.75,na.rm=TRUE) #raster quartil superior riqueza
-hightRiscOtimHii = mapaRiscoFuturoOtimistaHii > quantile(mapaRiscoFuturoOtimistaHii, 0.75,na.rm=TRUE) #raster quartil superior risco
 
 ##futuro pessimista
 mapaRiquezaFuturoPessimista = raster(paste(projectFolder,'resultados nicho climatico/Mapas de riqueza/mapaRiquezaFuturoPessimista.asc',sep=''))
-mapaRiscoFuturoPessimista = raster(paste(projectFolder,'resultados nicho climatico/Mapas de risco/mapaRiscoFuturoPessimista.asc',sep=''))
 mapaRiquezaFuturoPessimistaHii = raster(paste(projectFolder,'resultados nicho climatico + impacto humano/Mapas de riqueza/mapaRiquezaFuturoPessimista.asc',sep=''))
-mapaRiscoFuturoPessimistaHii = raster(paste(projectFolder,'resultados nicho climatico + impacto humano/Mapas de risco/mapaRiscoFuturoPessimista.asc',sep=''))
 #
 hightRiqPess= mapaRiquezaFuturoPessimista > quantile(mapaRiquezaFuturoPessimista, 0.75,na.rm=TRUE) #raster quartil superior riqueza
-hightRiscPess = mapaRiscoFuturoPessimista > quantile(mapaRiscoFuturoPessimista, 0.75,na.rm=TRUE) #raster quartil superior risco
-#
 hightRiqPessHii= mapaRiquezaFuturoPessimistaHii > quantile(mapaRiquezaFuturoPessimistaHii, 0.75,na.rm=TRUE) #raster quartil superior riqueza
-hightRiscPessHii = mapaRiscoFuturoPessimistaHii > quantile(mapaRiscoFuturoPessimistaHii, 0.75,na.rm=TRUE) #raster quartil superior risco
+
+##unificando para contabilizar areas
+hightRiqPresUni = hightRiqPres*1 + hightRiqPresHii*2
+hightRiqOtimUni = hightRiqOtim*1 + hightRiqOtimHii*2
+hightRiqPessUni = hightRiqPess*1 + hightRiqPessHii*2
+
+##correlacao areas alta riqueza modelos com e sem HII
+##presente
+testRiqPres <- getValues(stack(hightRiqPres,hightRiqPresHii))
+corRiqPres <- as.data.frame(cor(testRiqPres, use="complete.obs",method='spearman'))
+##futuro otimista
+testRiqOtim <- getValues(stack(hightRiqOtim,hightRiqOtimHii))
+corRiqOtim <- as.data.frame(cor(testRiqOtim, use="complete.obs",method='spearman'))
+##futuro pessimista
+testRiqPess <- getValues(stack(hightRiqPess,hightRiqPessHii))
+corRiqPess <- as.data.frame(cor(testRiqPess, use="complete.obs",method='spearman'))
+
+tabSobreposicaoRiqueza = data.frame(
+    cenario = c('presente','futuroOtimista','futuroPessimista'),
+    total_celulas_nichoClim = c(freq(hightRiqPres,value=1),freq(hightRiqOtim,value=1),freq(hightRiqPess,value=1)),
+    percentual_da_AmSul = c(
+        (freq(hightRiqPres,value=1)/(ncell(hightRiqPres)-freq(hightRiqPres,value=NA)))*100,
+        (freq(hightRiqOtim,value=1)/(ncell(hightRiqPres)-freq(hightRiqPres,value=NA)))*100,
+        (freq(hightRiqPess,value=1)/(ncell(hightRiqPres)-freq(hightRiqPres,value=NA)))*100 ),
+    total_celulas_HII= c(freq(hightRiqPresHii,value=1),freq(hightRiqOtimHii,value=1),freq(hightRiqPessHii,value=1)),
+    percentual_da_AmSul = c(
+        (freq(hightRiqPresHii,value=1)/(ncell(hightRiqPresHii)-freq(hightRiqPresHii,value=NA)))*100,
+        (freq(hightRiqOtimHii,value=1)/(ncell(hightRiqPresHii)-freq(hightRiqPresHii,value=NA)))*100,
+        (freq(hightRiqPessHii,value=1)/(ncell(hightRiqPresHii)-freq(hightRiqPresHii,value=NA)))*100 ),
+    total_cels_sobrepostas = c(freq(hightRiqPresUni,value=3),freq(hightRiqOtimUni,value=3),freq(hightRiqPessUni,value=3)),
+    percentual_para_nichoClim=
+        c(( freq(hightRiqPresUni,value=3)/freq(hightRiqPres,value=1) ) * 100,
+        ( freq(hightRiqOtimUni,value=3)/freq(hightRiqOtim,value=1) ) * 100,
+        ( freq(hightRiqPessUni,value=3)/freq(hightRiqPess,value=1) ) * 100),
+    percentual_para_HII=
+        c(( freq(hightRiqPresUni,value=3)/freq(hightRiqPresHii,value=1) ) * 100,
+        ( freq(hightRiqOtimUni,value=3)/freq(hightRiqOtimHii,value=1) ) * 100,
+        ( freq(hightRiqPessUni,value=3)/freq(hightRiqPessHii,value=1) ) * 100),
+    percentual_geral=
+        c((freq(hightRiqPresUni,value=3)/(ncell(hightRiqPresUni)-freq(hightRiqPresUni,value=NA)) * 100),
+        (freq(hightRiqOtimUni,value=3)/(ncell(hightRiqOtimUni)-freq(hightRiqOtimUni,value=NA)) * 100),
+        ( freq(hightRiqPessUni,value=3)/(ncell(hightRiqPessUni)-freq(hightRiqPessUni,value=NA)) * 100)),
+    spearman = c(corRiqPres[2,1],corRiqOtim[2,1],corRiqPess[2,1])
+)
+
+write.csv(tabSobreposicaoRiqueza,paste(projectFolder,'tabSobreposicaoRiqueza.csv',sep=''),row.names=FALSE)
 
 ##mapas de sobreposicao
 
-##continuar daqui: FAZER SCRIPT PARA SOBREPOR E SALVAR AS COMPARACOES
+jpeg(filename=paste(projectFolder,'mapasSobreposicaoRiqueza.jpeg'),width=1800,height=900)
+par(mfrow=c(1,3),mar=c(5,5,5,14))
+plot(hightRiqPres*1 + hightRiqPresHii*2,col=c('white','green','red','gray'),main='Presente',legend=FALSE,cex.axis=2,cex.main=4);plot(AmSulShape,add=TRUE); grid()
+plot(hightRiqOtim*1 + hightRiqOtimHii*2,col=c('white','green','red','gray'),main='2070 otimista',legend=FALSE,cex.axis=2,cex.main=4);plot(AmSulShape,add=TRUE); grid()
+plot(hightRiqPess*1 + hightRiqPessHii*2,col=c('white','green','red','gray'),main='2017 pessimista',legend=FALSE,cex.axis=2,cex.main=4);plot(AmSulShape,add=TRUE); grid()
+legend('bottomright',legend=c('Variáveis climáticas','Var. clim. & impacto humano','Sobreposição'),pch=c(21,21,21),pt.bg=c('green','red','gray'),bty='n',cex=2.5)
+dev.off()
 
-plot(hightRiqPres*1 + hightRiqPresHii*2,col=c('white','green','red','gray'))
 
+###OITAVA PARTE: comparando areas de ALTO RISCO entre as projecoes com e sem impacto humano###
+
+##presente
+mapaRiscoPresente = raster(paste(projectFolder,'resultados nicho climatico/Mapas de risco/mapaRiscoPresente.asc',sep=''))
+mapaRiscoPresenteHii = raster(paste(projectFolder,'resultados nicho climatico + impacto humano/Mapas de risco/mapaRiscoPresente.asc',sep=''))
+#
+hightRiscPres = mapaRiscoPresente > quantile(mapaRiscoPresente, 0.75,na.rm=TRUE) #raster quartil superior risco
+hightRiscPresHii = mapaRiscoPresenteHii > quantile(mapaRiscoPresenteHii, 0.75,na.rm=TRUE) #raster quartil superior risco
+
+##futuro otimista
+mapaRiscoFuturoOtimista = raster(paste(projectFolder,'resultados nicho climatico/Mapas de risco/mapaRiscoFuturoOtimista.asc',sep=''))
+mapaRiscoFuturoOtimistaHii = raster(paste(projectFolder,'resultados nicho climatico + impacto humano/Mapas de risco/mapaRiscoFuturoOtimista.asc',sep=''))
+#
+hightRiscOtim = mapaRiscoFuturoOtimista > quantile(mapaRiscoFuturoOtimista, 0.75,na.rm=TRUE) #raster quartil superior risco
+hightRiscOtimHii = mapaRiscoFuturoOtimistaHii > quantile(mapaRiscoFuturoOtimistaHii, 0.75,na.rm=TRUE) #raster quartil superior risco
+
+##futuro pessimista
+mapaRiscoFuturoPessimista = raster(paste(projectFolder,'resultados nicho climatico/Mapas de risco/mapaRiscoFuturoPessimista.asc',sep=''))
+mapaRiscoFuturoPessimistaHii = raster(paste(projectFolder,'resultados nicho climatico + impacto humano/Mapas de risco/mapaRiscoFuturoPessimista.asc',sep=''))
+#
+hightRiscPess = mapaRiscoFuturoPessimista > quantile(mapaRiscoFuturoPessimista, 0.75,na.rm=TRUE) #raster quartil superior risco
+hightRiscPessHii = mapaRiscoFuturoPessimistaHii > quantile(mapaRiscoFuturoPessimistaHii, 0.75,na.rm=TRUE) #raster quartil superior risco
+
+##unificando para contabilizar areas
+hightRiscPresUni = hightRiscPres*1 + hightRiscPresHii*2
+hightRiscOtimUni = hightRiscOtim*1 + hightRiscOtimHii*2
+hightRiscPessUni = hightRiscPess*1 + hightRiscPessHii*2
+
+##correlacao areas alta riqueza modelos com e sem HII
+##presente
+testRiscPres <- getValues(stack(hightRiscPres,hightRiscPresHii))
+corRiscPres <- as.data.frame(cor(testRiscPres, use="complete.obs",method='spearman'))
+##futuro otimista
+testRiscOtim <- getValues(stack(hightRiscOtim,hightRiscOtimHii))
+corRiscOtim <- as.data.frame(cor(testRiscOtim, use="complete.obs",method='spearman'))
+##futuro pessimista
+testRiscPess <- getValues(stack(hightRiscPess,hightRiscPessHii))
+corRiscPess <- as.data.frame(cor(testRiscPess, use="complete.obs",method='spearman'))
+
+tabSobreposicaoRisco = data.frame(
+    cenario = c('presente','futuroOtimista','futuroPessimista'),
+    total_celulas_nichoClim = c(freq(hightRiscPres,value=1),freq(hightRiscOtim,value=1),freq(hightRiscPess,value=1)),
+    percentual_da_AmSul = c(
+        (freq(hightRiscPres,value=1)/(ncell(hightRiscPres)-freq(hightRiscPres,value=NA)))*100,
+        (freq(hightRiscOtim,value=1)/(ncell(hightRiscPres)-freq(hightRiscPres,value=NA)))*100,
+        (freq(hightRiscPess,value=1)/(ncell(hightRiscPres)-freq(hightRiscPres,value=NA)))*100 ),
+    total_celulas_HII= c(freq(hightRiscPresHii,value=1),freq(hightRiscOtimHii,value=1),freq(hightRiscPessHii,value=1)),
+    percentual_da_AmSul = c(
+        (freq(hightRiscPresHii,value=1)/(ncell(hightRiscPres)-freq(hightRiscPresHii,value=NA)))*100,
+        (freq(hightRiscOtimHii,value=1)/(ncell(hightRiscPres)-freq(hightRiscPresHii,value=NA)))*100,
+        (freq(hightRiscPessHii,value=1)/(ncell(hightRiscPres)-freq(hightRiscPresHii,value=NA)))*100 ),
+    total_cels_sobrepostas = c(freq(hightRiscPresUni,value=3),freq(hightRiscOtimUni,value=3),freq(hightRiscPessUni,value=3)),
+    percentual_para_nichoClim=
+        c(( freq(hightRiscPresUni,value=3)/freq(hightRiscPres,value=1) ) * 100,
+        ( freq(hightRiscOtimUni,value=3)/freq(hightRiscOtim,value=1) ) * 100,
+        ( freq(hightRiscPessUni,value=3)/freq(hightRiscPess,value=1) ) * 100),
+    percentual_para_HII=
+        c(( freq(hightRiscPresUni,value=3)/freq(hightRiscPresHii,value=1) ) * 100,
+        ( freq(hightRiscOtimUni,value=3)/freq(hightRiscOtimHii,value=1) ) * 100,
+        ( freq(hightRiscPessUni,value=3)/freq(hightRiscPessHii,value=1) ) * 100),
+    percentual_geral=
+        c((freq(hightRiscPresUni,value=3)/(ncell(hightRiscPresUni)-freq(hightRiscPresUni,value=NA)) * 100),
+        (freq(hightRiscOtimUni,value=3)/(ncell(hightRiscOtimUni)-freq(hightRiscOtimUni,value=NA)) * 100),
+        ( freq(hightRiscPessUni,value=3)/(ncell(hightRiscPessUni)-freq(hightRiscPessUni,value=NA)) * 100)),
+    spearman = c(corRiscPres[2,1],corRiscOtim[2,1],corRiscPess[2,1])
+)
+
+write.csv(tabSobreposicaoRisco,paste(projectFolder,'tabSobreposicaoRico.csv',sep=''),row.names=FALSE)
+
+##mapas de sobreposicao
+
+jpeg(filename=paste(projectFolder,'mapasSobreposicaoRisco.jpeg'),width=1800,height=900)
+par(mfrow=c(1,3),mar=c(5,5,5,14))
+plot(hightRiscPres*1 + hightRiscPresHii*2,col=c('white','green','red','gray'),main='Presente',legend=FALSE,cex.axis=2,cex.main=4);plot(AmSulShape,add=TRUE); grid()
+plot(hightRiscOtim*1 + hightRiscOtimHii*2,col=c('white','green','red','gray'),main='2070 otimista',legend=FALSE,cex.axis=2,cex.main=4);plot(AmSulShape,add=TRUE); grid()
+plot(hightRiscPess*1 + hightRiscPessHii*2,col=c('white','green','red','gray'),main='2017 pessimista',legend=FALSE,cex.axis=2,cex.main=4);plot(AmSulShape,add=TRUE); grid()
+legend('bottomright',legend=c('Variáveis climáticas','Var. clim. & impacto humano','Sobreposição'),pch=c(21,21,21),pt.bg=c('green','red','gray'),bty='n',cex=2.5)
+dev.off()
+
+##graficos das tendencias: percentual de cobertura da america do sul
+plot(tabSobreposicaoRisco$percentual_da_AmSul~c(1,2,2),main='Percentual de cobertura da Am. do Sul',xlab='Cenário',ylab='Percentual',pch=c(15,16,17),ylim=c(0,50),xlim=c(0.5,2.5),cex=3,col=rgb(1,0,0,0.5));grid()
+abline(lm(tabSobreposicaoRisco$percentual_da_AmSul~c(1,2,2)),col='red')
+points(tabSobreposicaoRiqueza$percentual_da_AmSul~c(1,2,2),xlabel='',ylabel='',pch=c(15,16,17),ylim=c(0,50),xlim=c(0.5,2.5),cex=3,col=rgb(0,1,0,0.5));grid()
+abline(lm(tabSobreposicaoRiqueza$percentual_da_AmSul~c(1,2,2)),col='green')
+#
+points(tabSobreposicaoRisco$percentual_da_AmSul.1~c(1,2,2),xlab='',ylab='',pch=c(15,16,17),ylim=c(0,50),xlim=c(0.5,2.5),cex=3,lwd=2,col=rgb(1,0,0,0.5));grid()
+abline(lm(tabSobreposicaoRisco$percentual_da_AmSul.1~c(1,2,2)),col='red',lty=2,lwd=2)
+points(tabSobreposicaoRiqueza$percentual_da_AmSul.1~c(1,2,2),xlab='',ylab='',pch=c(15,16,17),ylim=c(0,50),xlim=c(0.5,2.5),cex=3,lwd=2,col=rgb(0,1,0,0.5));grid()
+abline(lm(tabSobreposicaoRiqueza$percentual_da_AmSul.1~c(1,2,2)),col='green',lty=2,lwd=2)
+legend('topright',legend=c('Presente','2070 otimista','2070 pessimista','Apenas variáveis climáticas','Var. clim. & impacto humano','Riqueza','Risco'),pch=c(0,1,2,NA,NA,NA,NA),lty=c(NA,NA,NA,1,2,NA,NA),text.col=c('black','black','black','black','black','green','red'))
+
+##graficos das tendencias: correlacao
+plot(tabSobreposicaoRisco$spearman~c(1,2,2),main='Percentual de cobertura da Am. do Sul',xlab='Cenário',ylab='Percentual',pch=c(15,16,17),ylim=c(0,1),xlim=c(0.5,2.5),cex=3,col=rgb(1,0,0,0.5));grid()
+abline(lm(tabSobreposicaoRisco$spearman~c(1,2,2)),col='red')
+points(tabSobreposicaoRiqueza$spearman~c(1,2,2),xlabel='',ylabel='',pch=c(15,16,17),ylim=c(0,50),xlim=c(0.5,2.5),cex=3,col=rgb(0,1,0,0.5));grid()
+abline(lm(tabSobreposicaoRiqueza$spearman~c(1,2,2)),col='green')
+legend('topright',legend=c('Presente','2070 otimista','2070 pessimista','Riqueza','Risco'),pch=c(0,1,2,NA,NA),text.col=c('black','black','black','green','red'))
