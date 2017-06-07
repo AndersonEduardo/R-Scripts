@@ -5,6 +5,8 @@ library(raster)
 library(rgdal)
 
 ##arquivos raster dos dados
+mapaAbun = ##FAZER LA NO SCRIPT DO LUCAS!
+    
 mapaRiqueza = raster('/home/anderson/Documentos/Projetos/Barbeiros_Lucas/resultados nicho climatico/Mapas de riqueza/mapaRiquezaPresente.asc')
 mapaRisco = raster('/home/anderson/Documentos/Projetos/Barbeiros_Lucas/resultados nicho climatico/Mapas de risco/mapaRiscoPresente.asc')
 mapaRiquezaHii = raster('/home/anderson/Documentos/Projetos/Barbeiros_Lucas/resultados nicho climatico + impacto humano/Mapas de riqueza/mapaRiquezaPresente.asc')
@@ -52,313 +54,12 @@ for (i in 1:length(vetorEst)){
 ##salvando a tabela com dados das variaveis extraidas por estado
 write.csv(tabDados,file="/home/anderson/Documentos/Projetos/macroecologia_de_chagas/tabDados.csv",row.names=FALSE)
 
-
-###tirando valores das variaveis para municipios
-municipios = readOGR(dsn='/home/anderson/PosDoc/shapefiles/br_municipios/BRMUE250GC_SIR.shp',layer='BRMUE250GC_SIR')
-vetorMuni = municipios$NM_MUNICIP
-
-tabDadosMuni = data.frame()
-
-for (i in 1:length(vetorMuni)){
-    print(paste(i,'de',length(vetorMuni),'municipios...'))
-    mun_i = municipios[municipios$NM_MUNICIP == vetorMuni[i],]
-    ##riqueza
-    riqMed = mean(unlist(extract(mapaRiqueza,mun_i,na.rm=TRUE)),na.rm=TRUE)
-    riqSD = sd(unlist(extract(mapaRiqueza,mun_i,na.rm=TRUE)),na.rm=TRUE)
-    ##risco
-    riscMed = mean(unlist(extract(mapaRisco,mun_i,na.rm=TRUE)),na.rm=TRUE)
-    riscSD = sd(unlist(extract(mapaRisco,mun_i,na.rm=TRUE)),na.rm=TRUE)
-    ##riqueza HII
-    riqMedHii = mean(unlist(extract(mapaRiquezaHii,mun_i,na.rm=TRUE)),na.rm=TRUE)
-    riqSDHii = sd(unlist(extract(mapaRiquezaHii,mun_i,na.rm=TRUE)),na.rm=TRUE)
-    ##risco HII
-    riscMedHii = mean(unlist(extract(mapaRiscoHii,mun_i,na.rm=TRUE)),na.rm=TRUE)
-    riscSDHii = sd(unlist(extract(mapaRiscoHii,mun_i,na.rm=TRUE)),na.rm=TRUE)
-    ##impacto humano
-    hiiMed = mean(unlist(extract(mapaHII,mun_i,na.rm=TRUE)),na.rm=TRUE)
-    hiiSD = sd(unlist(extract(mapaHII,mun_i,na.rm=TRUE)),na.rm=TRUE)
-
-    tabDadosMuni = rbind(tabDadosMuni,data.frame(
-                              municipio = vetorMuni[i],
-                              riqMed=riqMed,
-                              riqSD=riqSD,
-                              riscMed=riscMed,
-                              riscSD=riscSD,
-                              riqMedHii=riqMedHii,
-                              riqSDHii=riqSDHii,
-                              riscMedHii=riscMedHii,
-                              riscSDHii=riscSDHii,
-                              hiiMed=hiiMed,
-                              hiiSD=hiiSD))
-}
-
-##salvando a tabela com dados das variaveis extraidas por estado
-write.csv(tabDadosMuni,file="/home/anderson/Documentos/Projetos/macroecologia_de_chagas/tabDadosMuni.csv",row.names=FALSE)
-
-##retirando o distrito federal e organizando em ordem alfabetica
-#tabDados = read.csv("/home/anderson/Documentos/Projetos/macroecologia_de_chagas/tabDados.csv",header=TRUE)
-tabDados = tabDados[!tabDados$estado=='DISTRITO FEDERAL',] #retirar o DF
-tabDados = tabDados[order(tabDados$estado),] #ordem alfabetica 
-
-##dados de doenca de chagas do ministerio da saude
-tabBarb = read.csv("/home/anderson/Documentos/Projetos/macroecologia_de_chagas/Incidencia media anual casos agudos 2000-2013.csv",header=TRUE)
-tabBarb = tabBarb[order(tabBarb$UF),]
-
-##adicionando dados de doenca de chagas do ministerio da saude na tabela de dados para cada estado
-tabDados$NumCasos = c(tabBarb$NumCasos[1:10],NA,tabBarb$NumCasos[11:13],NA,tabBarb$NumCasos[14:24])
-tabDados$MediaAno = c(tabBarb$MediaAno[1:10],NA,tabBarb$MediaAno[11:13],NA,tabBarb$MediaAno[14:24])
-tabDados$Incidencia = c(tabBarb$Incidencia[1:10],NA,tabBarb$Incidencia[11:13],NA,tabBarb$Incidencia[14:24])
-
-##adicionando dados do tamanho territorial dos estados
-##link: http://www.ibge.gov.br/home/geociencias/areaterritorial/principal.shtm
-tabArea = read.csv("/home/anderson/Documentos/Projetos/macroecologia_de_chagas/territorio_estados.csv",header=TRUE)
-tabArea = tabArea[order(tabArea$estado),] #colocando em ordem alfabetica
-tabArea = tabArea[tabArea$estado!='Distrito_Federal',] #retirando o distrito federal
-tabDados$area = tabArea$area
-
-##salvando a tabela final
-write.csv(tabDados,"/home/anderson/Documentos/Projetos/macroecologia_de_chagas/tabDadosCompleta.csv",row.names=FALSE)
-
-##abrindo tabela dedados completa
-tabDados = read.csv("/home/anderson/Documentos/Projetos/macroecologia_de_chagas/tabDadosCompleta.csv",header=TRUE)
-#tabDados = read.csv("/home/anderson/Documentos/Projetos/macroecologia_de_chagas/tabDadosCompleta2.csv",header=TRUE)
-
-##residuos: retirando o efeito dos tamanhos
-residRiq = glm(riqMed~area,family='gaussian',data=tabDados)$residuals
-residRiqSD = glm(riqSD~area,family='gaussian',data=tabDados)$residuals
-residRisc = glm(riscMed~area,family='gaussian',data=tabDados)$residuals
-residRiscSD = glm(riscMed~area,family='gaussian',data=tabDados)$residuals
-#
-residRiqHii = glm(riqMedHii~area,family='gaussian',data=tabDados)$residuals
-residRiqSDHii = glm(riqSDHii~area,family='gaussian',data=tabDados)$residuals
-residRiscHii = glm(riscMedHii~area,family='gaussian',data=tabDados)$residuals
-residRiscSDHii = glm(riscMedHii~area,family='gaussian',data=tabDados)$residuals
-#
-residHii = glm(hiiMed~area,family='gaussian',data=tabDados)$residuals
-residHiiSD = glm(hiiSD~area,family='gaussian',data=tabDados)$residuals
-
-##modelos estatisticos
-
-##variavel rpeditora: riqueza de especies
-
-##modelo1: riqueza media -> n de casos
-modRiqNum = glm(tabDados$NumCasos~residRiq,family='poisson')
-summary(modRiqNum)
-plot(tabDados$NumCasos ~ residRiq)
-abline(modRiqNum,col='red')
-
-##modelo2: desv. pad. riqueza -> n de casos
-modRiqNumSD = glm(tabDados$NumCasos~residRiqSD,family='poisson')
-summary(modRiqNumSD)
-plot(tabDados$NumCasos ~ residRiqSD)
-abline(modRiqNumSD,col='red')
-
-##modelo3: riqueza media -> incidencia
-modRiqIncid = glm(tabDados$Incidencia~residRiq,family='gaussian')
-summary(modRiqIncid)
-plot(tabDados$Incidencia ~ residRiq)
-abline(modRiqIncid,col='red')
-
-##modelo4: desv. pad. riqueza -> incidencia
-modRiqIncidSD = glm(tabDados$Incidencia~residRiqSD,family='gaussian')
-summary(modRiqIncidSD)
-plot(tabDados$Incidencia ~ residRiqSD)
-abline(modRiqIncidSD,col='red')
-
-##modelo5: riqueza media -> numero medio de casos por ano
-modRiqMedAno = glm(tabDados$MediaAno~residRiq,family='gaussian')
-summary(modRiqMedAno)
-plot(tabDados$MediaAno ~ residRiq)
-abline(modRiqMedAno,col='red')
-
-##modelo6: desv. pad. riqueza -> n de casos
-modRiqMedAnoSD = glm(tabDados$MediaAno~residRiqSD,family='gaussian')
-summary(modRiqIncidSD)
-plot(tabDados$Incidencia ~ residRiqSD)
-abline(modRiqMedAnoSD,col='red')
-
-##variavel preditora: risco
-
-##modelo1: risco media -> n de casos
-modRiscNum = glm(tabDados$NumCasos~residRisc,family='poisson')
-summary(modRiscNum)
-plot(tabDados$NumCasos ~ residRisc)
-abline(modRiscNum,col='red')
-
-##modelo2: desv. pad. risco -> n de casos
-modRiscNumSD = glm(tabDados$NumCasos~residRiscSD,family='poisson')
-summary(modRiscNumSD)
-plot(tabDados$NumCasos ~ residRiscSD)
-abline(modRiscNumSD,col='red')
-
-##modelo3: risco media -> incidencia
-modRiscIncid = glm(tabDados$Incidencia~residRisc,family='gaussian')
-summary(modRiscIncid)
-plot(tabDados$Incidencia ~ residRisc)
-abline(modRiscIncid,col='red')
-
-##modelo4: desv. pad. risco -> incidencia
-modRiscIncidSD = glm(tabDados$Incidencia~residRiscSD,family='gaussian')
-summary(modRiscIncidSD)
-plot(tabDados$Incidencia ~ residRiscSD)
-abline(modRiscIncidSD,col='red')
-
-##modelo5: risco media -> numero medio de casos por ano
-modRiscMedAno = glm(tabDados$MediaAno~residRisc,family='gaussian')
-summary(modRiscMedAno)
-plot(tabDados$MediaAno ~ residRisc)
-abline(modRiscMedAno,col='red')
-
-##modelo6: desv. pad. risco -> n de casos
-modRiscMedAnoSD = glm(tabDados$MediaAno~residRiscSD,family='poisson')
-summary(modRiscIncidSD)
-plot(tabDados$Incidencia ~ residRiscSD)
-abline(modRiscMedAnoSD,col='red')
-
-##variavel rpeditora: riqueza de especies HII
-
-##modelo1: riqueza media -> n de casos
-modRiqNumHii = glm(tabDados$NumCasos~residRiqHii,family='poisson')
-summary(modRiqNumHii)
-plot(tabDados$NumCasos ~ residRiqHii)
-abline(modRiqNumHii,col='red')
-
-##modelo2: desv. pad. riqueza -> n de casos
-modRiqNumSDHii = glm(tabDados$NumCasos~residRiqSDHii,family='poisson')
-summary(modRiqNumSDHii)
-plot(tabDados$NumCasos ~ residRiqSDHii)
-abline(modRiqNumSDHii,col='red')
-
-##modelo3: riqueza media -> incidencia
-modRiqIncidHii = glm(tabDados$Incidencia~residRiqHii,family='gaussian')
-summary(modRiqIncidHii)
-plot(tabDados$Incidencia ~ residRiqHii)
-abline(modRiqIncidHii,col='red')
-
-##modelo4: desv. pad. riqueza -> incidencia
-modRiqIncidSDHii = glm(tabDados$Incidencia~residRiqSDHii,family='gaussian')
-summary(modRiqIncidSDHii)
-plot(tabDados$Incidencia ~ residRiqSDHii)
-abline(modRiqIncidSDHii,col='red')
-
-##modelo5: riqueza media -> numero medio de casos por ano
-modRiqMedAnoHii = glm(tabDados$MediaAno~residRiqHii,family='gaussian')
-summary(modRiqMedAnoHii)
-plot(tabDados$MediaAno ~ residRiqHii)
-abline(modRiqMedAnoHii,col='red')
-
-##modelo6: desv. pad. riqueza -> n de casos
-modRiqMedAnoSDHii = glm(tabDados$MediaAno~residRiqSDHii,family='gaussian')
-summary(modRiqIncidSDHii)
-plot(tabDados$Incidencia ~ residRiqSDHii)
-abline(modRiqMedAnoSDHii,col='red')
-
-##variavel preditora: risco HII
-
-##modelo1: risco media -> n de casos
-modRiscNumHii = glm(tabDados$NumCasos~residRiscHii,family='poisson')
-summary(modRiscNumHii)
-plot(tabDados$NumCasos ~ residRiscHii)
-abline(modRiscNumHii,col='red')
-
-##modelo2: desv. pad. risco -> n de casos
-modRiscNumSDHii = glm(tabDados$NumCasos~residRiscSDHii,family='poisson')
-summary(modRiscNumSDHii)
-plot(tabDados$NumCasos ~ residRiscSDHii)
-abline(modRiscNumSDHii,col='red')
-
-##modelo3: risco media -> incidencia
-modRiscIncidHii = glm(tabDados$Incidencia~residRiscHii,family='gaussian')
-summary(modRiscIncidHii)
-plot(tabDados$Incidencia ~ residRiscHii)
-abline(modRiscIncidHii,col='red')
-
-##modelo4: desv. pad. risco -> incidencia
-modRiscIncidSDHii = glm(tabDados$Incidencia~residRiscSDHii,family='gaussian')
-summary(modRiscIncidSDHii)
-plot(tabDados$Incidencia ~ residRiscSDHii)
-abline(modRiscIncidSDHii,col='red')
-
-##modelo5: risco media -> numero medio de casos por ano
-modRiscMedAnoHii = glm(tabDados$MediaAno~residRiscHii,family='gaussian')
-summary(modRiscMedAnoHii)
-plot(tabDados$MediaAno ~ residRiscHii)
-abline(modRiscMedAnoHii,col='red')
-
-##modelo6: desv. pad. risco -> n de casos
-modRiscMedAnoSDHii = glm(tabDados$MediaAno~residRiscSDHii,family='gaussian')
-summary(modRiscIncidSDHii)
-plot(tabDados$Incidencia ~ residRiscSDHii)
-abline(modRiscMedAnoSDHii,col='red')
-
-##variavel preditora: indice de imapcto humano
-
-##modelo1: impacto humano medio -> numero de casos
-modHiiMeanNum = glm(NumCasos~residHii,family='poisson',data=tabDados)
-summary(modHiiMeanNum)
-plot(tabDados$NumCasos ~ residHii)
-abline(modHiiMeanNum,col='red')
-
-##modelo2: desv. pad. impacto humano -> numero de casos
-modHiiSDNum = glm(NumCasos~residHiiSD,family='poisson',data=tabDados)
-summary(modHiiSDNum)
-plot(tabDados$NumCasos ~ residHiiSD)
-abline(modHiiSDNum,col='red')
-
-##modelo3: impacto humano medio -> incidencia
-modHiiMeanIncid = glm(Incidencia~residHii,family='gaussian',data=tabDados)
-summary(modHiiMeanIncid)
-plot(tabDados$Incidencia ~ residHii)
-abline(modHiiMeanIncid,col='red')
-
-##modelo4: desv. pad. impacto humano -> incidencia
-modHiiSDIncid = glm(Incidencia~residHiiSD,family='gaussian',data=tabDados)
-summary(modHiiSDIncid)
-plot(tabDados$Incidencia ~ residHiiSD)
-abline(modHiiSDIncid,col='red')
-
-##modelo5: impacto humano medio -> numero medio de casos por ano
-modHiiMeanMedAno = glm(MediaAno~residHii,family='gaussian',data=tabDados)
-summary(modHiiMeanIncid)
-plot(tabDados$MediaAno ~ residHii)
-abline(modHiiMeanMedAno,col='red')
-
-##modelo6: desv. pad. impacto humano -> numero medio de casos por ano
-modHiiSDMedAno = glm(MediaAno~residHiiSD,family='gaussian',data=tabDados)
-summary(modHiiSDMedAno)
-plot(tabDados$MediaAno ~ residHii)
-abline(modHiiSDMedAno,col='red')
-
-
-##tabela de resultados
-
-tabRes = data.frame(
-    preditora = c(rep(c('riqueza','risco','riquezaHII','riscoHII','HII'),3)),
-    resposta = c(rep('Num_de_casos',5),rep('Incidencia',5),rep('Num_med_casos/ano',5)),
-    efeito = c(modRiqNum$coefficients[2],modRiscNum$coefficients[2],modRiqNumHii$coefficients[2],modRiscNumHii$coefficients[2],modHiiMeanNum$coefficients[2],
-            modRiqIncid$coefficients[2],modRiscIncid$coefficients[2],modRiqIncidHii$coefficients[2],modRiscIncidHii$coefficients[2],modHiiMeanIncid$coefficients[2],
-            modRiqMedAno$coefficients[2],modRiscMedAno$coefficients[2],modRiqMedAnoHii$coefficients[2],modRiscMedAnoHii$coefficients[2],modHiiMeanMedAno$coefficients[2]),
-    deviance = c(modRiqNum$deviance,modRiscNum$deviance,modRiqNumHii$deviance,modRiscNumHii$devianc,modHiiMeanNum$deviance,
-                 modRiqIncid$deviance,modRiscIncid$deviance,modRiqIncidHii$deviance,modRiscIncidHii$deviance,modHiiMeanIncid$deviance,
-                 modRiqMedAno$deviance,modRiscMedAno$deviance,modRiqMedAnoHii$deviance,modRiscMedAnoHii$deviance,modHiiMeanMedAno$deviance),
-    null_deviance = c(modRiqNum$null.deviance,modRiscNum$null.deviance,modRiqNumHii$null.deviance,modRiscNumHii$null.deviance,modHiiMeanNum$null.deviance,
-                      modRiqIncid$null.deviance,modRiscIncid$null.deviance,modRiqIncidHii$null.deviance,modRiscIncidHii$null.deviance,modHiiMeanIncid$null.deviance,
-                      modRiqMedAno$null.deviance,modRiscMedAno$null.deviance,modRiqMedAnoHii$null.deviance,modRiscMedAnoHii$null.deviance,modHiiMeanMedAno$null.deviance),
-    aic = c(modRiqNum$aic,modRiscNum$aic,modRiqNumHii$aic,modRiscNumHii$aic,modHiiMeanNum$aic,
-            modRiqIncid$aic,modRiscIncid$aic,modRiqIncidHii$aic,modRiscIncidHii$aic,modHiiMeanIncid$aic,
-            modRiqMedAno$aic,modRiscMedAno$aic,modRiqMedAnoHii$aic,modRiscMedAnoHii$aic,modHiiMeanMedAno$aic),
-    p_valor = c(coef(summary(modRiqNum))[8],coef(summary(modRiscNum))[8],coef(summary(modRiqNumHii))[8],coef(summary(modRiscNumHii))[8],coef(summary(modHiiMeanNum))[8],
-                coef(summary(modRiqIncid))[8],coef(summary(modRiscIncid))[8],coef(summary(modRiqIncidHii))[8],coef(summary(modRiscIncidHii))[8],coef(summary(modHiiMeanIncid))[8],
-                coef(summary(modRiqMedAno))[8],coef(summary(modRiscMedAno))[8],coef(summary(modRiqMedAnoHii))[8],coef(summary(modRiscMedAnoHii))[8],coef(summary(modHiiMeanMedAno))[8])
-)
-
-write.csv(tabRes,"/home/anderson/Documentos/Projetos/macroecologia_de_chagas/tabOutputs.csv",row.names=FALSE)
-
-
 ##usando dados novos do SUS
 
 ##abrindo tabela de dados (com dados novos, do dataSUS)
 tabDados = read.csv("/home/anderson/Documentos/Projetos/macroecologia_de_chagas/tabDadosCompleta2.csv",header=TRUE,dec='.')
+
+
 
 ##modelos estatisticos
 
@@ -514,3 +215,108 @@ tabResDATASUS = data.frame(
                 coef(summary(modRiqCro))[8],coef(summary(modRiscCro))[8],coef(summary(modRiqCroHii))[8],coef(summary(modRiscCroHii))[8],coef(summary(modHiiMeanCro))[8]))
 
 write.csv(tabResDATASUS,"/home/anderson/Documentos/Projetos/macroecologia_de_chagas/tabOutputsDATASUS.csv",row.names=FALSE)
+
+
+##########################################
+###trabalhando na escala dos MUNICIPIOS###
+##########################################
+
+
+municipios = readOGR(dsn='/home/anderson/PosDoc/shapefiles/br_municipios/BRMUE250GC_SIR.shp',layer='BRMUE250GC_SIR')
+tabInfecbMuni = read.csv('/home/anderson/Documentos/Projetos/macroecologia_de_chagas/infeccao-municipio-2007-2014.csv',header=TRUE)
+muniShapes = municipios[match(toupper(tabInfecbMuni$municipio),municipios$NM_MUNICIP),]
+
+riqMedMuni = sapply(extract(mapaRiqueza,muniShapes,na.rm=TRUE), mean, na.rm=TRUE)
+riscMedMuni = sapply(extract(mapaRisco,muniShapes,na.rm=TRUE), mean,na.rm=TRUE)
+riqMedMuniHii = sapply(extract(mapaRiquezaHii,muniShapes,na.rm=TRUE), mean,na.rm=TRUE)
+riscMedMuniHii = sapply(extract(mapaRiscoHii,muniShapes,na.rm=TRUE), mean,na.rm=TRUE)
+HiiMedMuni = sapply(extract(mapaHII,muniShapes,na.rm=TRUE), mean,na.rm=TRUE)
+areaMuni = sapply(extract(mapaRiqueza,muniShapes,na.rm=TRUE), length)
+
+tabDadosMuni = data.frame(municipios = muniShapes$NM_MUNICIP,
+                          riqMedMuni=riqMedMuni,
+                          riscMedMuni=riscMedMuni,
+                          riqMedMuniHii=riqMedMuniHii,
+                          riscMedMuniHii=riscMedMuniHii,
+                          HiiMedMuni=HiiMedMuni,
+                          areaMuni=areaMuni)
+
+##salvando a tabela com dados das variaveis extraidas por municipio
+write.csv(tabDadosMuni,file="/home/anderson/Documentos/Projetos/macroecologia_de_chagas/tabDadosMuni.csv",row.names=FALSE)
+
+##abrindo tabela de dados municipios
+tabDadosMuni = read.cssv("/home/anderson/Documentos/Projetos/macroecologia_de_chagas/tabDadosMuni.csv",header=TRUE)
+
+##dados de doenca de chagas do ministerio da saude
+tabBarbMuni = read.csv("/home/anderson/Documentos/Projetos/macroecologia_de_chagas/infeccao-municipio-2007-2014.csv",header=TRUE)
+
+##adicionando a tabela de dados de municipios
+tabDadosMuni$casos = tabBarbMuni$casos
+
+##salvando a tabela final
+write.csv(tabDadosMuni,"/home/anderson/Documentos/Projetos/macroecologia_de_chagas/tabDadosMuniCompleta.csv",row.names=FALSE)
+
+##abrindo tabela dedados completa
+tabDadosMuni = read.csv("/home/anderson/Documentos/Projetos/macroecologia_de_chagas/tabDadosMuniCompleta.csv",header=TRUE)
+
+##modelos estatisticos
+
+residRiq = glm(riqMedMuni ~ areaMuni, family='gaussian', data=tabDadosMuni)$residuals
+residRisc = glm(riscMedMuni ~ areaMuni, family='gaussian', data=tabDadosMuni)$residuals
+residRiqHii = glm(riqMedMuniHii ~ areaMuni, family='gaussian', data=tabDadosMuni)$residuals
+residRiscHii = glm(riqMedMuniHii ~ areaMuni, family='gaussian', data=tabDadosMuni)$residuals
+residHii = glm(HiiMedMuni ~ areaMuni, family='gaussian', data=tabDadosMuni)$residuals
+
+##variavel rpeditora: riqueza de especies
+
+
+
+#######################################################################################################################
+#######################################################################################################################
+###### CONTINUAR DAQUI: SUBSTITUIR VARIAVEIS PELOS RESIDUOS ###########################################################
+#######################################################################################################################
+#######################################################################################################################
+##modelo1: riqueza media -> n de casos
+
+
+
+modRiq = glm(casos~residRisc,family='poisson',data=tabDadosMuni)
+summary(modRiq)
+plot(tabDadosMuni$casos ~ residRisc)
+abline(modRiq,col='red')
+
+##modelo2: risco medio -> n de casos
+modRisc = glm(casos~riscMedMuni,family='poisson',data=tabDadosMuni)
+summary(modRisc)
+plot(tabDadosMuni$casos ~ tabDadosMuni$riscMedMuni)
+abline(modRisc,col='red')
+
+##modelo3: riqueza media -> n de casos
+modRiqHii = glm(casos~riqMedMuniHii,family='poisson',data=tabDadosMuni)
+summary(modRiqHii)
+plot(tabDadosMuni$casos ~ tabDadosMuni$riqMedMuniHii)
+abline(modRiqHii,col='red')
+
+##modelo4: risco medio -> n de casos
+modRiscHii = glm(casos~riscMedMuniHii,family='poisson',data=tabDadosMuni)
+summary(modRiscHii)
+plot(tabDadosMuni$casos ~ tabDadosMuni$riscMedMuniHii)
+abline(modRiscHii,col='red')
+
+##modelo5: HII -> n de casos
+modHii = glm(casos~HiiMedMuni,family='poisson',data=tabDadosMuni)
+summary(modHii)
+plot(tabDadosMuni$casos ~ tabDadosMuni$HiiMedMuni)
+abline(modHii,col='red')
+
+##tabela de resultados
+
+tabResMuni = data.frame(
+    preditora = c('riqueza','risco','riquezaHII','riscoHII','HII'),
+    efeito = c(modRiq$coefficients[2],modRisc$coefficients[2],modRiqHii$coefficients[2],modRiscHii$coefficients[2],modHii$coefficients[2]),
+    deviance = c(modRiq$deviance,modRisc$deviance,modRiqHii$deviance,modRiscHii$devianc,modHii$deviance),
+    null_deviance = c(modRiq$null.deviance,modRisc$null.deviance,modRiqHii$null.deviance,modRiscHii$null.deviance,modHii$null.deviance),
+    aic = c(modRiq$aic,modRisc$aic,modRiqHii$aic,modRiscHii$aic,modHii$aic),
+    p_valor = c(coef(summary(modRiq))[8],coef(summary(modRisc))[8],coef(summary(modRiqHii))[8],coef(summary(modRiscHii))[8],coef(summary(modHii))[8]))
+
+write.csv(tabResMuni,"/home/anderson/Documentos/Projetos/macroecologia_de_chagas/tabMuniOutputs.csv",row.names=FALSE)
