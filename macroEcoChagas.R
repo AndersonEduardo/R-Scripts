@@ -39,7 +39,7 @@ for (i in 1:length(vetorEst)){
 
     tabDados = rbind(tabDados,data.frame(
                               estado = vetorEst[i],
-                              riqMed=riqMed,
+ mac                             riqMed=riqMed,
                               riqSD=riqSD,
                               riscMed=riscMed,
                               riscSD=riscSD,
@@ -54,11 +54,46 @@ for (i in 1:length(vetorEst)){
 ##salvando a tabela com dados das variaveis extraidas por estado
 write.csv(tabDados,file="/home/anderson/Documentos/Projetos/macroecologia_de_chagas/tabDados.csv",row.names=FALSE)
 
+##retirando o distrito federal e organizando em ordem alfabetica
+#read.csv("/home/anderson/Documentos/Projetos/macroecologia_de_chagas/tabDados.csv",header=TRUE)
+tabRes = tabRes[!tabRes$estado=='DISTRITO FEDERAL',] #retirar o DF
+tabRes = tabRes[order(tabRes$estado),] #ordem alfabetica 
+
+##dados de doenca de chagas do ministerio da saude
+tabBarb = read.csv("/home/anderson/Documentos/Projetos/macroecologia_de_chagas/Incidencia media anual casos agudos 2000-2013.csv",header=TRUE)
+tabBarb = tabBarb[order(tabBarb$UF),]
+
+##adicionando dados de doenca de chagas do ministerio da saude na tabela de dados para cada estado
+tabRes$NumCasos = c(tabBarb$NumCasos[1:10],NA,tabBarb$NumCasos[11:13],NA,tabBarb$NumCasos[14:24])
+tabRes$MediaAno = c(tabBarb$MediaAno[1:10],NA,tabBarb$MediaAno[11:13],NA,tabBarb$MediaAno[14:24])
+tabRes$Incidencia = c(tabBarb$Incidencia[1:10],NA,tabBarb$Incidencia[11:13],NA,tabBarb$Incidencia[14:24])
+
+##adicionando dados do tamanho territorial dos estados
+##link: http://www.ibge.gov.br/home/geociencias/areaterritorial/principal.shtm
+tabArea = read.csv("/home/anderson/Documentos/Projetos/macroecologia_de_chagas/territorio_estados.csv",header=TRUE)
+tabArea = tabArea[order(tabArea$estado),] #colocando em ordem alfabetica
+tabArea = tabArea[tabArea$estado!='Distrito_Federal',] #retirando o distrito federal
+tabRes$area = tabArea$area
+
+##salvando a tabela final
+write.csv(tabRes,"/home/anderson/Documentos/Projetos/macroecologia_de_chagas/tabDadosCompleta.csv",row.names=FALSE)
+
+##abrindo tabela de dados completa
+tabRes = read.cev("/home/anderson/Documentos/Projetos/macroecologia_de_chagas/tabDadosCompleta.csv",header=TRUE)
+
+##residuos: retirando o efeito dos tamanhos
+residRiq = glm(riqMed~area,family='poisson',data=tabRes)$residuals
+residRiqSD = glm(riqSD~area,family='poisson',data=tabRes)$residuals
+residHii = glm(hiiMed~area,family='gaussian',data=tabRes)$residuals
+residHiiSD = glm(hiiSD~area,family='gaussian',data=tabRes)$residuals
+residRisc = glm(riscMed~area,family='gaussian',data=tabRes)$residuals
+residRiscSD = glm(riscMed~area,family='gaussian',data=tabRes)$residuals
+
 ##usando dados novos do SUS
 
-##abrindo tabela de dados (com dados novos, do dataSUS)
-tabDados = read.csv("/home/anderson/Documentos/Projetos/macroecologia_de_chagas/tabDadosCompleta2.csv",header=TRUE,dec='.')
-
+##abrindo tabela de dados
+#tabDados = read.csv("/home/anderson/Documentos/Projetos/macroecologia_de_chagas/tabDadosCompleta.csv",header=TRUE,dec='.') #(com dados novos, do dataSUS)
+tabDados = read.csv("/home/anderson/Documentos/Projetos/macroecologia_de_chagas/tabDadosCompleta2.csv",header=TRUE,dec='.') #(com dados novos, do dataSUS)
 
 
 ##modelos estatisticos
@@ -217,15 +252,16 @@ tabResDATASUS = data.frame(
 write.csv(tabResDATASUS,"/home/anderson/Documentos/Projetos/macroecologia_de_chagas/tabOutputsDATASUS.csv",row.names=FALSE)
 
 
-##########################################
-###trabalhando na escala dos MUNICIPIOS###
-##########################################
+############################################
+####trabalhando na escala dos MUNICIPIOS####
+############################################
 
 
 municipios = readOGR(dsn='/home/anderson/PosDoc/shapefiles/br_municipios/BRMUE250GC_SIR.shp',layer='BRMUE250GC_SIR')
 tabInfecbMuni = read.csv('/home/anderson/Documentos/Projetos/macroecologia_de_chagas/infeccao-municipio-2007-2014.csv',header=TRUE)
-muniShapes = municipios[match(toupper(tabInfecbMuni$municipio),municipios$NM_MUNICIP),]
 
+##extraindo somente para municipios com dados SUS
+muniShapes = municipios[match(toupper(tabInfecbMuni$municipio),municipios$NM_MUNICIP),] 
 riqMedMuni = sapply(extract(mapaRiqueza,muniShapes,na.rm=TRUE), mean, na.rm=TRUE)
 riscMedMuni = sapply(extract(mapaRisco,muniShapes,na.rm=TRUE), mean,na.rm=TRUE)
 riqMedMuniHii = sapply(extract(mapaRiquezaHii,muniShapes,na.rm=TRUE), mean,na.rm=TRUE)
@@ -233,7 +269,16 @@ riscMedMuniHii = sapply(extract(mapaRiscoHii,muniShapes,na.rm=TRUE), mean,na.rm=
 HiiMedMuni = sapply(extract(mapaHII,muniShapes,na.rm=TRUE), mean,na.rm=TRUE)
 areaMuni = sapply(extract(mapaRiqueza,muniShapes,na.rm=TRUE), length)
 
-tabDadosMuni = data.frame(municipios = muniShapes$NM_MUNICIP,
+##extraindo para TODOS os municipios
+riqMedMuni = sapply(extract(mapaRiqueza,municipios,na.rm=TRUE), mean, na.rm=TRUE)
+riscMedMuni = sapply(extract(mapaRisco,municipios,na.rm=TRUE), mean,na.rm=TRUE)
+riqMedMuniHii = sapply(extract(mapaRiquezaHii,municipios,na.rm=TRUE), mean,na.rm=TRUE)
+riscMedMuniHii = sapply(extract(mapaRiscoHii,municipios,na.rm=TRUE), mean,na.rm=TRUE)
+HiiMedMuni = sapply(extract(mapaHII,municipios,na.rm=TRUE), mean,na.rm=TRUE)
+areaMuni = sapply(extract(mapaRiqueza,municipios,na.rm=TRUE), length)
+
+
+tabDadosTodosMuni = data.frame(municipios = municipios$NM_MUNICIP,
                           riqMedMuni=riqMedMuni,
                           riscMedMuni=riscMedMuni,
                           riqMedMuniHii=riqMedMuniHii,
@@ -242,71 +287,124 @@ tabDadosMuni = data.frame(municipios = muniShapes$NM_MUNICIP,
                           areaMuni=areaMuni)
 
 ##salvando a tabela com dados das variaveis extraidas por municipio
-write.csv(tabDadosMuni,file="/home/anderson/Documentos/Projetos/macroecologia_de_chagas/tabDadosMuni.csv",row.names=FALSE)
+write.csv(tabDadosTodosMuni,file="/home/anderson/Documentos/Projetos/macroecologia_de_chagas/tabDadosTodosMuni.csv",row.names=FALSE)
 
 ##abrindo tabela de dados municipios
-tabDadosMuni = read.cssv("/home/anderson/Documentos/Projetos/macroecologia_de_chagas/tabDadosMuni.csv",header=TRUE)
+tabDadosTodosMuni = read.cssv("/home/anderson/Documentos/Projetos/macroecologia_de_chagas/tabDadosTodosMuni.csv",header=TRUE)
 
 ##dados de doenca de chagas do ministerio da saude
 tabBarbMuni = read.csv("/home/anderson/Documentos/Projetos/macroecologia_de_chagas/infeccao-municipio-2007-2014.csv",header=TRUE)
 
 ##adicionando a tabela de dados de municipios
-tabDadosMuni$casos = tabBarbMuni$casos
+vetorCasos = as.integer( tabDadosTodosMuni$municipios %in% toupper(tabBarbMuni$municipio) ) #vetor de 0 e 1
+vetorLinhas = base::match(toupper(tabBarbMuni$municipio),tabDadosTodosMuni$municipios) #encontrando as linhas que tem dados do SUS
+vetorCasos[vetorLinhas] = tabBarbMuni$casos #ajustando para '0' e 'numero de casos',  em vez de '0' e '1'
+tabDadosTodosMuni$casos = vetorCasos #adicionando na tabela de dados
 
 ##salvando a tabela final
-write.csv(tabDadosMuni,"/home/anderson/Documentos/Projetos/macroecologia_de_chagas/tabDadosMuniCompleta.csv",row.names=FALSE)
+write.csv(tabDadosTodosMuni,"/home/anderson/Documentos/Projetos/macroecologia_de_chagas/tabDadosTodosMuniCompleta.csv",row.names=FALSE)
 
 ##abrindo tabela dedados completa
-tabDadosMuni = read.csv("/home/anderson/Documentos/Projetos/macroecologia_de_chagas/tabDadosMuniCompleta.csv",header=TRUE)
+tabDadosTodosMuni = read.csv("/home/anderson/Documentos/Projetos/macroecologia_de_chagas/tabDadosTodosMuniCompleta.csv",header=TRUE)
+
+
+##sobredispersao
+
+##nuemro de casos
+boxplot(tabDadosTodosMuni$casos)
+plot(tabDadosTodosMuni$casos)
+hist(tabDadosTodosMuni$casos)
+boxplot(tabDadosTodosMuni$casos[tabDadosTodosMuni$casos<100])
+plot(tabDadosTodosMuni$casos[tabDadosTodosMuni$casos<100])
+#
+tabDadosTodosMuniControled = tabDadosTodosMuni[which(tabDadosTodosMuni$casos<100),]
+
+##riqueza
+boxplot(tabDadosTodosMuniControled$riqMedMuni)
+plot(tabDadosTodosMuniControled$riqMedMuni)
+hist(tabDadosTodosMuniControled$riqMedMuni)
+
+##risco
+boxplot(tabDadosTodosMuniControled$riscMedMuni)
+plot(tabDadosTodosMuniControled$riscMedMuni)
+hist(tabDadosTodosMuniControled$riscMedMuni)
+
+##riqHii
+boxplot(tabDadosTodosMuniControled$riqMedMuniHii)
+plot(tabDadosTodosMuniControled$riqMedMuniHii)
+hist(tabDadosTodosMuniControled$riqMedMuniHii)
+
+##riscHii
+boxplot(tabDadosTodosMuniControled$riscMedMuniHii)
+plot(tabDadosTodosMuniControled$riscMedMuniHii)
+hist(tabDadosTodosMuniControled$riscMedMuniHii)
+
+##Hii
+boxplot(tabDadosTodosMuniControled$HiiMedMuni)
+plot(tabDadosTodosMuniControled$HiiMedMuni)
+hist(tabDadosTodosMuniControled$HiiMedMuni)
+
+
+##correlacao com area do municipio
+plot(tabDadosTodosMuniControled$casos ~ tabDadosTodosMuniControled$areaMuni)
+plot(tabDadosTodosMuniControled$casos[tabDadosTodosMuniControled$areaMuni<600] ~ tabDadosTodosMuniControled$areaMuni[tabDadosTodosMuniControled$areaMuni<600])
+
+plot(tabDadosTodosMuniControled$riqMedMuni ~ tabDadosTodosMuniControled$areaMuni)
+plot(tabDadosTodosMuniControled$riqMedMuni[tabDadosTodosMuniControled$areaMuni<600] ~ tabDadosTodosMuniControled$areaMuni[tabDadosTodosMuniControled$areaMuni<600])
+
+plot(tabDadosTodosMuniControled$riscMedMuni ~ tabDadosTodosMuniControled$areaMuni)
+plot(tabDadosTodosMuniControled$riscMedMuni[tabDadosTodosMuniControled$areaMuni<600] ~ tabDadosTodosMuniControled$areaMuni[tabDadosTodosMuniControled$areaMuni<600]) ##FAZER MODELOS COM OS RESIDUOS
+
+plot(tabDadosTodosMuniControled$riqMedMuniHii ~ tabDadosTodosMuniControled$areaMuni)
+plot(tabDadosTodosMuniControled$riqMedMuniHii[tabDadosTodosMuniControled$areaMuni<600] ~ tabDadosTodosMuniControled$areaMuni[tabDadosTodosMuniControled$areaMuni<600]) ##FAZER OS MODELOS COM OS RESIDUOS
+
+plot(tabDadosTodosMuniControled$riscMedMuniHii ~ tabDadosTodosMuniControled$areaMuni)
+plot(tabDadosTodosMuniControled$riscMedMuniHii[tabDadosTodosMuniControled$areaMuni<600] ~ tabDadosTodosMuniControled$areaMuni[tabDadosTodosMuniControled$areaMuni<600]) ##FAZER OS MODELOS COM OS RESIDUOS
+
+plot(log(tabDadosTodosMuniControled$HiiMedMuni) ~ tabDadosTodosMuniControled$areaMuni)
+plot(log(tabDadosTodosMuniControled$HiiMedMuni[tabDadosTodosMuniControled$areaMuni<600]) ~ tabDadosTodosMuniControled$areaMuni[tabDadosTodosMuniControled$areaMuni<600]) ##FAZER OS MODELOS COM OS RESIDUOS
+
+tabDadosTodosMuniControled = tabDadosTodosMuniControled[which(tabDadosTodosMuniControled$areaMuni<600),]
+
+
+##residuos da area do municipio
+residRiq = glm(log(riqMedMuni) ~ areaMuni, family='gaussian', data=tabDadosTodosMuniControled)$residuals
+residRisc = glm(log(riscMedMuni) ~ areaMuni, family='gaussian', data=tabDadosTodosMuniControled)$residuals
+residRiqHii = glm(riqMedMuniHii ~ areaMuni, family='gaussian', data=tabDadosTodosMuniControled)$residuals
+residRiscHii = glm(riqMedMuniHii ~ areaMuni, family='gaussian', data=tabDadosTodosMuniControled)$residuals
+residHii = glm(HiiMedMuni ~ areaMuni, family='gaussian', data=tabDadosTodosMuniControled)$residuals
+
 
 ##modelos estatisticos
 
-residRiq = glm(riqMedMuni ~ areaMuni, family='gaussian', data=tabDadosMuni)$residuals
-residRisc = glm(riscMedMuni ~ areaMuni, family='gaussian', data=tabDadosMuni)$residuals
-residRiqHii = glm(riqMedMuniHii ~ areaMuni, family='gaussian', data=tabDadosMuni)$residuals
-residRiscHii = glm(riqMedMuniHii ~ areaMuni, family='gaussian', data=tabDadosMuni)$residuals
-residHii = glm(HiiMedMuni ~ areaMuni, family='gaussian', data=tabDadosMuni)$residuals
-
-##variavel rpeditora: riqueza de especies
-
-
-
-#######################################################################################################################
-#######################################################################################################################
-###### CONTINUAR DAQUI: SUBSTITUIR VARIAVEIS PELOS RESIDUOS ###########################################################
-#######################################################################################################################
-#######################################################################################################################
 ##modelo1: riqueza media -> n de casos
-
-
-
-modRiq = glm(casos~residRisc,family='poisson',data=tabDadosMuni)
+modRiq = glm(casos[residRiq>-1.5][-1]~residRiq[residRiq>-1.5],family='poisson',data=tabDadosTodosMuniControled)
 summary(modRiq)
-plot(tabDadosMuni$casos ~ residRisc)
+plot(tabDadosTodosMuniControled$casos[residRiq>-1.5][-1] ~ residRiq[residRiq>-1.5])
 abline(modRiq,col='red')
 
 ##modelo2: risco medio -> n de casos
-modRisc = glm(casos~riscMedMuni,family='poisson',data=tabDadosMuni)
+modRisc = glm(casos~riscMedMuni,family='poisson',data=tabDadosTodosMuniControled)
 summary(modRisc)
-plot(tabDadosMuni$casos ~ tabDadosMuni$riscMedMuni)
+plot(tabDadosTodosMuniControled$casos ~ tabDadosTodosMuniControled$riscMedMuni)
 abline(modRisc,col='red')
 
 ##modelo3: riqueza media -> n de casos
-modRiqHii = glm(casos~riqMedMuniHii,family='poisson',data=tabDadosMuni)
+modRiqHii = glm(casos[-1]~residRiqHii,family='poisson',data=tabDadosTodosMuniControled)
 summary(modRiqHii)
-plot(tabDadosMuni$casos ~ tabDadosMuni$riqMedMuniHii)
+plot(tabDadosTodosMuniControled$casos[-1] ~ residRiqHii)
 abline(modRiqHii,col='red')
 
 ##modelo4: risco medio -> n de casos
-modRiscHii = glm(casos~riscMedMuniHii,family='poisson',data=tabDadosMuni)
+modRiscHii = glm(casos[-1]~residRiscHii,family='poisson',data=tabDadosTodosMuniControled)
 summary(modRiscHii)
-plot(tabDadosMuni$casos ~ tabDadosMuni$riscMedMuniHii)
+plot(tabDadosTodosMuniControled$casos[-1] ~ residRiscHii)
 abline(modRiscHii,col='red')
 
 ##modelo5: HII -> n de casos
-modHii = glm(casos~HiiMedMuni,family='poisson',data=tabDadosMuni)
+modHii = glm(casos[-1]~residHii,family='poisson',data=tabDadosTodosMuniControled)
 summary(modHii)
-plot(tabDadosMuni$casos ~ tabDadosMuni$HiiMedMuni)
+plot(tabDadosTodosMuniControled$casos[-1] ~ residHii)
 abline(modHii,col='red')
 
 ##tabela de resultados
@@ -320,3 +418,266 @@ tabResMuni = data.frame(
     p_valor = c(coef(summary(modRiq))[8],coef(summary(modRisc))[8],coef(summary(modRiqHii))[8],coef(summary(modRiscHii))[8],coef(summary(modHii))[8]))
 
 write.csv(tabResMuni,"/home/anderson/Documentos/Projetos/macroecologia_de_chagas/tabMuniOutputs.csv",row.names=FALSE)
+
+
+##################################################################
+##############  UTILIZANDO MODELO BINNOMIAL  #####################
+##################################################################
+
+##abrindo tabela de dados municipios
+tabDadosTodosMuni = read.csv("/home/anderson/Documentos/Projetos/macroecologia_de_chagas/tabDadosTodosMuni.csv",header=TRUE)
+
+##dados de doenca de chagas do ministerio da saude
+tabBarbMuni = read.csv("/home/anderson/Documentos/Projetos/macroecologia_de_chagas/infeccao-municipio-2007-2014.csv",header=TRUE)
+
+##adicionando a tabela de dados de municipios
+vetorCasos = as.integer( tabDadosTodosMuni$municipios %in% toupper(tabBarbMuni$municipio) ) #vetor de 0 e 1
+vetorLinhas = base::match(toupper(tabBarbMuni$municipio),tabDadosTodosMuni$municipios) #encontrando as linhas que tem dados do SUS
+tabDadosTodosMuni$casos = vetorCasos #adicionando na tabela de dados
+
+##salvando a tabela final
+write.csv(tabDadosTodosMuni,"/home/anderson/Documentos/Projetos/macroecologia_de_chagas/tabDadosTodosMuniCompletaLogist.csv",row.names=FALSE)
+
+##abrindo tabela dedados completa
+tabDadosTodosMuni = read.csv("/home/anderson/Documentos/Projetos/macroecologia_de_chagas/tabDadosTodosMuniCompletaLogist.csv",header=TRUE)
+
+
+##sobredispersao
+
+##riqueza
+boxplot(tabDadosTodosMuni$riqMedMuni)
+plot(tabDadosTodosMuni$riqMedMuni)
+hist(tabDadosTodosMuni$riqMedMuni)
+
+##risco
+boxplot(tabDadosTodosMuni$riscMedMuni)
+plot(tabDadosTodosMuni$riscMedMuni)
+hist(tabDadosTodosMuni$riscMedMuni)
+
+##riqHii
+boxplot(tabDadosTodosMuni$riqMedMuniHii)
+plot(tabDadosTodosMuni$riqMedMuniHii)
+hist(tabDadosTodosMuni$riqMedMuniHii)
+
+##riscHii
+boxplot(tabDadosTodosMuni$riscMedMuniHii)
+plot(tabDadosTodosMuni$riscMedMuniHii)
+hist(tabDadosTodosMuni$riscMedMuniHii)
+
+##Hii
+boxplot(tabDadosTodosMuni$HiiMedMuni)
+plot(tabDadosTodosMuni$HiiMedMuni)
+hist(tabDadosTodosMuni$HiiMedMuni)
+
+
+##correlacao com area do municipio
+plot(tabDadosTodosMuni$casos ~ tabDadosTodosMuni$areaMuni)
+plot(tabDadosTodosMuni$casos[tabDadosTodosMuni$areaMuni<600] ~ tabDadosTodosMuni$areaMuni[tabDadosTodosMuni$areaMuni<600])
+
+plot(tabDadosTodosMuni$riqMedMuni ~ tabDadosTodosMuni$areaMuni)
+plot(tabDadosTodosMuni$riqMedMuni[tabDadosTodosMuni$areaMuni<600] ~ tabDadosTodosMuni$areaMuni[tabDadosTodosMuni$areaMuni<600])
+
+plot(tabDadosTodosMuni$riscMedMuni ~ tabDadosTodosMuni$areaMuni)
+plot(tabDadosTodosMuni$riscMedMuni[tabDadosTodosMuni$areaMuni<600] ~ tabDadosTodosMuni$areaMuni[tabDadosTodosMuni$areaMuni<600]) ##FAZER MODELOS COM OS RESIDUOS
+
+plot(tabDadosTodosMuni$riqMedMuniHii ~ tabDadosTodosMuni$areaMuni)
+plot(tabDadosTodosMuni$riqMedMuniHii[tabDadosTodosMuni$areaMuni<600] ~ tabDadosTodosMuni$areaMuni[tabDadosTodosMuni$areaMuni<600]) ##FAZER OS MODELOS COM OS RESIDUOS
+
+plot(tabDadosTodosMuni$riscMedMuniHii ~ tabDadosTodosMuni$areaMuni)
+plot(tabDadosTodosMuni$riscMedMuniHii[tabDadosTodosMuni$areaMuni<600] ~ tabDadosTodosMuni$areaMuni[tabDadosTodosMuni$areaMuni<600]) ##FAZER OS MODELOS COM OS RESIDUOS
+
+plot(log(tabDadosTodosMuni$HiiMedMuni) ~ tabDadosTodosMuni$areaMuni)
+plot(log(tabDadosTodosMuni$HiiMedMuni[tabDadosTodosMuni$areaMuni<600]) ~ tabDadosTodosMuni$areaMuni[tabDadosTodosMuni$areaMuni<600]) ##FAZER OS MODELOS COM OS RESIDUOS
+
+tabDadosTodosMuni = tabDadosTodosMuni[which(tabDadosTodosMuni$areaMuni<600),]
+
+
+##residuos da area do municipio
+residRiq = glm(riqMedMuni ~ areaMuni, family='gaussian', data=tabDadosTodosMuni)$residuals
+residRisc = glm(riscMedMuni ~ areaMuni, family='gaussian', data=tabDadosTodosMuni)$residuals
+residRiqHii = glm(riqMedMuniHii ~ areaMuni, family='gaussian', data=tabDadosTodosMuni)$residuals
+residRiscHii = glm(riqMedMuniHii ~ areaMuni, family='gaussian', data=tabDadosTodosMuni)$residuals
+residHii = glm(HiiMedMuni ~ areaMuni, family='gaussian', data=tabDadosTodosMuni)$residuals
+
+
+##modelos estatisticos
+
+##modelos lineares
+
+##modelo1: riqueza media -> n de casos
+modRiq = glm(casos~riqMedMuni,family='binomial',data=tabDadosTodosMuni)
+summary(modRiq)
+plot(tabDadosTodosMuni$casos ~ tabDadosTodosMuni$riqMedMuni)
+pred = predict(modRiq,data.frame(riqMedMuni=tabDadosTodosMuni$riqMedMuni),type='response')
+points(pred ~ tabDadosTodosMuni$riqMedMuni,col='red')
+
+##modelo2: risco medio -> n de casos
+modRisc = glm(casos~riscMedMuni,family='binomial',data=tabDadosTodosMuni)
+summary(modRisc)
+plot(tabDadosTodosMuni$casos ~ tabDadosTodosMuni$riscMedMuni)
+pred = predict(modRisc,data.frame(riscMedMuni=tabDadosTodosMuni$riscMedMuni),type='response')
+points(pred ~ tabDadosTodosMuni$riscMedMuni,col='red')
+
+##modelo3: riqueza media HII -> n de casos
+modRiqHii = glm(casos[-1] ~ residRiqHii,family='binomial',data=tabDadosTodosMuni)
+summary(modRiqHii)
+plot(tabDadosTodosMuni$casos[-1] ~ residRiqHii)
+pred = predict(modRiqHii,data.frame(residRiqHii=residRiqHii),type='response')
+points(pred ~ residRiqHii,col='red')
+
+##modelo4: risco medio HII -> n de casos
+modRiscHii = glm(casos[-1]~residRiscHii,family='binomial',data=tabDadosTodosMuni)
+summary(modRiscHii)
+plot(tabDadosTodosMuni$casos[-1] ~ residRiscHii)
+pred = predict(modRiscHii,data.frame(residRiscHii=residRiscHii),type='response')
+points(pred ~ residRiscHii,col='red')
+
+##modelo5: HII -> n de casos
+modHii = glm(casos[-1]~residHii,family='binomial',data=tabDadosTodosMuni)
+summary(modHii)
+plot(tabDadosTodosMuni$casos[-1] ~ residHii)
+pred = predict(modHii,data.frame(residHii=residHii),type='response')
+points(pred~residHii,col='red')
+
+##modelos quadraticos
+
+##modelo1: riqueza media -> n de casos
+modRiqQuad = glm(casos~riqMedMuni + I(riqMedMuni^2),family='binomial',data=tabDadosTodosMuni)
+summary(modRiqQuad)
+plot(tabDadosTodosMuni$casos ~ tabDadosTodosMuni$riqMedMuni)
+pred = predict(modRiqQuad,data.frame(riqMedMuni=tabDadosTodosMuni$riqMedMuni),type='response')
+points(pred ~ tabDadosTodosMuni$riqMedMuni,col='red')
+
+x = glm(casos[-1] ~ riqMedMuni[-1] + I(riqMedMuni[-1]^2) + riscMedMuni[-1] + I(riscMedMuni[-1]^2)  + residHii + I(residHii^2),family='binomial',data=tabDadosTodosMuni)
+summary(x)
+pred = predict(x,data.frame(riqMedMuni=tabDadosTodosMuni$riqMedMuni),type='response')
+points(pred ~ tabDadosTodosMuni$riqMedMuni,col='red')
+
+##modelo2: risco medio -> n de casos
+modRiscQuad = glm(casos~riscMedMuni + I(riscMedMuni^2),family='binomial',data=tabDadosTodosMuni)
+summary(modRiscQuad)
+plot(tabDadosTodosMuni$casos ~ tabDadosTodosMuni$riscMedMuni)
+pred = predict(modRiscQuad,data.frame(riqMedMuni=tabDadosTodosMuni$riqMedMuni,riscMedMuni=tabDadosTodosMuni$riscMedMuni),type='response')
+points(pred ~ tabDadosTodosMuni$riscMedMuni,col='red')
+
+##modelo3: riqueza media HII -> n de casos
+modRiqHiiQuad = glm(casos[-1] ~ residRiqHii + I(residRiqHii^2),family='binomial',data=tabDadosTodosMuni)
+summary(modRiqHiiQuad)
+plot(tabDadosTodosMuni$casos[-1] ~ residRiqHii)
+pred = predict(modRiqHiiQuad,data.frame(residRiqHii=residRiqHii),type='response')
+points(pred ~ residRiqHii,col='red')
+
+##modelo4: risco medio HII -> n de casos
+modRiscHiiQuad = glm(casos[-1] ~ residRiscHii + I(residRiscHii^2),family='binomial',data=tabDadosTodosMuni)
+summary(modRiscHiiQuad)
+plot(tabDadosTodosMuni$casos[-1] ~ residRiscHii)
+pred = predict(modRiscHiiQuad,data.frame(residRiscHii=residRiscHii),type='response')
+points(pred ~ residRiscHii,col='red')
+
+##modelo5: HII -> n de casos
+modHiiQuad = glm(casos[-1] ~ residHii + I(residHii^2),family='binomial',data=tabDadosTodosMuni)
+summary(modHiiQuad)
+plot(tabDadosTodosMuni$casos[-1] ~ residHii)
+pred = predict(modHiiQuad,data.frame(residHii=residHii),type='response')
+points(pred~residHii,col='red')
+
+
+##modelos lineares combinados
+###obs: riqueza e risco sao correlacionados! nao da pra fazer modelos para os dois juntos!
+
+##modelo1: riqueza media + HII
+modRiqHii = glm(casos ~ riqMedMuni + HiiMedMuni ,family='binomial',data=tabDadosTodosMuni)
+summary(modRiqHii)
+
+##modelo2: risco medio + HII
+modRiscHii = glm(casos ~ riscMedMuni + HiiMedMuni ,family='binomial',data=tabDadosTodosMuni)
+summary(modRiscHii)
+
+
+##modelos quadraticos combinados
+###obs: riqueza e risco sao correlacionados! nao da pra fazer modelos para os dois juntos!
+
+##modelo1: riqueza media + HII
+modRiqHiiQuad = glm(casos ~ riqMedMuni + I(riqMedMuni^2) + HiiMedMuni + I(HiiMedMuni^2) ,family='binomial',data=tabDadosTodosMuni)
+summary(modRiqHiiQuad)
+
+##modelo2: risco medio + HII
+modRiscHiiQuad = glm(casos ~ riscMedMuni + I(riscMedMuni^2) + HiiMedMuni + I(HiiMedMuni^2) ,family='binomial',data=tabDadosTodosMuni)
+summary(modRiscHiiQuad)
+
+
+##tabela de resultados
+
+tabResMuni = data.frame(
+
+    modelo = c(rep('linear',5),rep('quadratico',5)),
+
+    preditora = c(rep(c('riqueza','risco','riquezaHII','riscoHII','HII'),2)),
+
+    efeito = c(modRiq$coefficients[2],modRisc$coefficients[2],modRiqHii$coefficients[2],modRiscHii$coefficients[2],modHii$coefficients[2],
+               modRiqQuad$coefficients[2],modRiscQuad$coefficients[2],modRiqHiiQuad$coefficients[2],modRiscHiiQuad$coefficients[2],modHiiQuad$coefficients[2]),
+
+    deviance = c(modRiq$deviance,modRisc$deviance,modRiqHii$deviance,modRiscHii$devianc,modHii$deviance,
+                 modRiqQuad$deviance,modRiscQuad$deviance,modRiqHiiQuad$deviance,modRiscHiiQuad$devianc,modHiiQuad$deviance),
+
+    null_deviance = c(modRiq$null.deviance,modRisc$null.deviance,modRiqHii$null.deviance,modRiscHii$null.deviance,modHii$null.deviance,
+                      modRiqQuad$null.deviance,modRiscQuad$null.deviance,modRiqHiiQuad$null.deviance,modRiscHiiQuad$null.deviance,modHiiQuad$null.deviance),
+
+    aic = c(modRiq$aic,modRisc$aic,modRiqHii$aic,modRiscHii$aic,modHii$aic,
+            modRiqQuad$aic,modRiscQuad$aic,modRiqHiiQuad$aic,modRiscHiiQuad$aic,modHiiQuad$aic),
+    p_valor = c(coef(summary(modRiq))[8],coef(summary(modRisc))[8],coef(summary(modRiqHii))[8],coef(summary(modRiscHii))[8],coef(summary(modHii))[8],
+                coef(summary(modRiqQuad))[11],coef(summary(modRiscQuad))[11],coef(summary(modRiqHiiQuad))[11],coef(summary(modRiscHiiQuad))[11],coef(summary(modHiiQuad))[11]))
+
+
+write.csv(tabResMuni,"/home/anderson/Documentos/Projetos/macroecologia_de_chagas/tabMuniOutputs.csv",row.names=FALSE)
+
+
+##tabela de resultados
+
+tabResMuniComb = data.frame(
+    modelo = c(rep('linear',2),rep('quadratico',2)),
+    preditora = c(rep(c('riq&HII','risco&HII'),2)),
+    efeito = c(modRiqHii$coefficients[2],modRiscHii$coefficients[2],
+               modRiqHiiQuad$coefficients[2],modRiscHiiQuad$coefficients[2]),
+    deviance = c(modRiqHii$deviance,modRiscHii$deviance,
+                 modRiqHiiQuad$deviance,modRiscHiiQuad$deviance),
+    null_deviance = c(modRiqHii$null.deviance,modRiscHii$null.deviance,
+                      modRiqHiiQuad$null.deviance,modRiscHiiQuad$null.deviance),
+    aic = c(modRiqHii$aic,modRiscHii$aic,
+            modRiqHiiQuad$aic,modRiscHiiQuad$aic),
+    p_valor = c(coef(summary(modRiqHii))[8],coef(summary(modRiscHii))[8],
+                coef(summary(modRiqHiiQuad))[11],coef(summary(modRiscHiiQuad))[11]))
+
+
+write.csv(tabResMuniComb,"/home/anderson/Documentos/Projetos/macroecologia_de_chagas/tabMuniModelosCombinadosOutputs.csv",row.names=FALSE)
+
+##visualizando em ordem de AUC
+x = rbind(tabResMuni,tabResMuniComb)
+x[order(x$aic),]
+
+##visualizando em ordem do slope
+x = rbind(tabResMuni,tabResMuniComb)
+x[order(x$efeito),]
+
+
+###PROJETANDO AREAS DE RISCO EPIDEMICO
+
+extent(mapaHII) = extent(mapaRiqueza)
+
+preditoras = stack(mapaRiqueza,mapaHII)
+names(preditoras) = c('riqMedMuni','HiiMedMuni')
+
+preditoras = stack(mapaRisco,mapaHII)
+names(preditoras) = c('riscMedMuni','HiiMedMuni')
+
+names(mapaRiqueza) = 'riqMedMuni'
+
+riscoEpi = predict(preditoras,modRiqHiiQuad,type='response')
+plot(riscoEpi)
+plot(muniShapes,add=T)
+
+jpeg('/home/anderson/Documentos/Projetos/macroecologia_de_chagas/riscoEpi.jpeg',width=1200,height=1200)
+plot(riscoEpi)
+plot(muniShapes,add=T)
+dev.off()
+
