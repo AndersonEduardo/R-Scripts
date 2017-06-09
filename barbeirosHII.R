@@ -19,7 +19,7 @@ source("/home/anderson/R/R-Scripts/TSSmaxent.R")
 #anderson
 envVarFolder = "/home/anderson/Documentos/Projetos/Barbeiros_Lucas/Variaveis Climaticas"
 spOccFolder = "/home/anderson/Documentos/Projetos/Barbeiros_Lucas/Ocorrencias/"
-projectFolder = "/home/anderson/Documentos/Projetos/Barbeiros_Lucas/"
+projectFolder = "/home/anderson/Documentos/Projetos/Barbeiros_Lucas/resultados nicho climatico + impacto humano/"
 
 ##abrindo as variaveis climaticas
 ##abrindo shape da America do Sul
@@ -145,12 +145,13 @@ plot(mapaRiquezaFuturoPessimista)
 writeRaster(x=mapaRiquezaFuturoPessimista,filename=paste(projectFolder,'Mapas de riqueza/mapaRiquezaFuturoPessimista.asc',sep=''),overwrite=TRUE)
 
 
-###QUARTA PARTE: gerando MAPAS DE RISCO - SEM impacto humano###
+###QUARTA PARTE: gerando MAPAS DE RISCO - COM impacto humano###
 
 ##indices para RISCO DE INFECCAO por especie de vetor
+##link: http://portalarquivos.saude.gov.br/images/pdf/2015/agosto/03/2014-020..pdf
 tabBarb = read.csv("/home/anderson/Documentos/Projetos/macroecologia_de_chagas/Taxa de infeccao natural vetores 2007-2011.csv",header=TRUE)
-infecBarb = sort(tabBarb[,3],decreasing=TRUE)
-infecIndOrdered = c(infecBarb[6],infecBarb[3]) #,infecBarb[5],infecBarb[9],infecBarb[10],infecBarb[11],infecBarb[13],infecBarb[1])
+#infecBarb = sort(tabBarb[,3],decreasing=TRUE)
+#infecIndOrdered = c(infecBarb[6],infecBarb[3]) #,infecBarb[5],infecBarb[9],infecBarb[10],infecBarb[11],infecBarb[13],infecBarb[1])
 #infecInd = sort(1:length(infecBarb),decreasing=TRUE) #idice de infeccao para confeccao dos mapas
 
 #sobrepondo distribuicoes para mapa de risco
@@ -158,22 +159,37 @@ infecIndOrdered = c(infecBarb[6],infecBarb[3]) #,infecBarb[5],infecBarb[9],infec
 listaPresente = grep(list.files(paste(projectFolder,"Projecoes",sep=""),full.names=TRUE),pattern='Otimista|Pessimista',inv=T,value=T)
 listaPresenteBIN = grep(listaPresente,pattern='BIN.asc',value=TRUE)
 camadasPresente = stack(listaPresenteBIN)
+#
+listaNomes = names(camadasPresente)
+listaNomes = gsub(pattern='BIN',replacement='',x=listaNomes)
+listaNomes = basename(listaNomes)
+listaNomes = gsub(pattern='.asc',replacement='',x=listaNomes)
+infecIndOrdered = tabBarb$taxaInfeccaonatural[match(listaNomes,tabBarb$sp)]/100 #taxa de infeccao natural na ordem dos rasters (de 0 a 1)
+#
 mapaRiscoPresente = sum(camadasPresente*infecIndOrdered) 
-mapaRiscoPresente = mapaRiscoPresente/maxValue(mapaRiscoPresente)
+mapaRiscoPresente = mapaRiscoPresente/length(infecIndOrdered)
 plot(mapaRiscoPresente)
 writeRaster(x=mapaRiscoPresente,filename=paste(projectFolder,'Mapas de risco/mapaRiscoPresente.asc',sep=''),overwrite=TRUE)
 
 #futuro otimista
 camadasFuturoOtimista = stack(list.files(paste(projectFolder,"Projecoes",sep=""),pattern = "OtimistaBIN.asc",full.names=TRUE))
+listaNomes = names(camadasFuturoOtimista)
+listaNomes = gsub(pattern='OtimistaBIN',replacement='',x=listaNomes)
+infecIndOrdered = tabBarb$taxaInfeccaonatural[match(listaNomes,tabBarb$sp)]/100 #taxa de infeccao natural na ordem dos rasters (de 0 a 1)
+#
 mapaRiscoFuturoOtimista = sum(camadasFuturoOtimista*infecIndOrdered)
-mapaRiscoFuturoOtimista = mapaRiscoFuturoOtimista/maxValue(mapaRiscoFuturoOtimista)
+mapaRiscoFuturoOtimista = mapaRiscoFuturoOtimista/length(infecIndOrdered)
 plot(mapaRiscoFuturoOtimista)
 writeRaster(x=mapaRiscoFuturoOtimista,filename=paste(projectFolder,'Mapas de risco/mapaRiscoFuturoOtimista.asc',sep=''),overwrite=TRUE)
 
 #futuro pessimista
 camadasFuturoPessimista = stack(list.files(paste(projectFolder,"Projecoes",sep=""),pattern = "PessimistaBIN.asc",full.names=TRUE))
+listaNomes = names(camadasFuturoPessimista)
+listaNomes = gsub(pattern='PessimistaBIN',replacement='',x=listaNomes)
+infecIndOrdered = tabBarb$taxaInfeccaonatural[match(listaNomes,tabBarb$sp)]/100 #taxa de infeccao natural na ordem dos rasters (de 0 a 1)
+#
 mapaRiscoFuturoPessimista = sum(camadasFuturoPessimista*infecIndOrdered)
-mapaRiscoFuturoPessimista = mapaRiscoFuturoPessimista/maxValue(mapaRiscoFuturoPessimista)
+mapaRiscoFuturoPessimista = mapaRiscoFuturoPessimista/length(infecIndOrdered)
 plot(mapaRiscoFuturoPessimista)
 writeRaster(x=mapaRiscoFuturoPessimista,filename=paste(projectFolder,'Mapas de risco/mapaRiscoFuturoPessimista.asc',sep=''),overwrite=TRUE)
 
@@ -259,11 +275,13 @@ plot(mapaRiquezaFuturoPessimista,legend.only=TRUE,legend.width=3,axis.args=list(
 plot(mapaRiscoPresente,legend=FALSE,cex.axis=2); plot(AmSulShape,add=TRUE); grid()
 plot(mapaRiscoFuturoOtimista,legend=FALSE,cex.axis=2,cex.lab=2); plot(AmSulShape,add=TRUE); grid()
 plot(mapaRiscoFuturoPessimista,legend=FALSE,cex.axis=2); plot(AmSulShape,add=TRUE); grid()
-plot(mapaRiscoFuturoPessimista,legend.only=TRUE,legend.width=3,axis.args=list(cex.axis=2),legend.args=list(text='Risco',font=2,side=4,line=5.7,cex=2.2,cex.axis=0.2)) #legenda
+plot(mapaRiscoFuturoPessimista,legend.only=TRUE,legend.width=3,axis.args=list(cex.axis=2),legend.args=list(text='Risco de vetor infectado',font=2,side=4,line=5.7,cex=2.2,cex.axis=0.2)) #legenda
 dev.off()
 
 
 ###SETIMA PARTE: comparando areas de ALTA RIQUEZA entre as projecoes com e sem impacto humano###
+
+projectFolder = '/home/anderson/Documentos/Projetos/Barbeiros_Lucas/'
 
 ##presente
 mapaRiquezaPresente = raster(paste(projectFolder,'resultados nicho climatico/Mapas de riqueza/mapaRiquezaPresente.asc',sep=''))
@@ -345,6 +363,8 @@ dev.off()
 
 ###OITAVA PARTE: comparando areas de ALTO RISCO entre as projecoes com e sem impacto humano###
 
+projectFolder = '/home/anderson/Documentos/Projetos/Barbeiros_Lucas/'
+
 ##presente
 mapaRiscoPresente = raster(paste(projectFolder,'resultados nicho climatico/Mapas de risco/mapaRiscoPresente.asc',sep=''))
 mapaRiscoPresenteHii = raster(paste(projectFolder,'resultados nicho climatico + impacto humano/Mapas de risco/mapaRiscoPresente.asc',sep=''))
@@ -423,6 +443,7 @@ legend('bottomright',legend=c('Variáveis climáticas','Var. clim. & impacto hum
 dev.off()
 
 ##graficos das tendencias: percentual de cobertura da america do sul
+jpeg(filename=paste(projectFolder,'tendenciasCobertura.jpeg'))
 plot(tabSobreposicaoRisco$percentual_da_AmSul~c(1,2,2),main='Percentual de cobertura da Am. do Sul',xlab='Cenário',ylab='Percentual',pch=c(15,16,17),ylim=c(0,50),xlim=c(0.5,2.5),cex=3,col=rgb(1,0,0,0.5));grid()
 abline(lm(tabSobreposicaoRisco$percentual_da_AmSul~c(1,2,2)),col='red')
 points(tabSobreposicaoRiqueza$percentual_da_AmSul~c(1,2,2),xlabel='',ylabel='',pch=c(15,16,17),ylim=c(0,50),xlim=c(0.5,2.5),cex=3,col=rgb(0,1,0,0.5));grid()
@@ -433,10 +454,13 @@ abline(lm(tabSobreposicaoRisco$percentual_da_AmSul.1~c(1,2,2)),col='red',lty=2,l
 points(tabSobreposicaoRiqueza$percentual_da_AmSul.1~c(1,2,2),xlab='',ylab='',pch=c(15,16,17),ylim=c(0,50),xlim=c(0.5,2.5),cex=3,lwd=2,col=rgb(0,1,0,0.5));grid()
 abline(lm(tabSobreposicaoRiqueza$percentual_da_AmSul.1~c(1,2,2)),col='green',lty=2,lwd=2)
 legend('topright',legend=c('Presente','2070 otimista','2070 pessimista','Apenas variáveis climáticas','Var. clim. & impacto humano','Riqueza','Risco'),pch=c(0,1,2,NA,NA,NA,NA),lty=c(NA,NA,NA,1,2,NA,NA),text.col=c('black','black','black','black','black','green','red'))
+dev.off()
 
 ##graficos das tendencias: correlacao
+jpeg(filename=paste(projectFolder,'tendenciasCorrelacao.jpeg'))
 plot(tabSobreposicaoRisco$spearman~c(1,2,2),main='Percentual de cobertura da Am. do Sul',xlab='Cenário',ylab='Percentual',pch=c(15,16,17),ylim=c(0,1),xlim=c(0.5,2.5),cex=3,col=rgb(1,0,0,0.5));grid()
 abline(lm(tabSobreposicaoRisco$spearman~c(1,2,2)),col='red')
 points(tabSobreposicaoRiqueza$spearman~c(1,2,2),xlabel='',ylabel='',pch=c(15,16,17),ylim=c(0,50),xlim=c(0.5,2.5),cex=3,col=rgb(0,1,0,0.5));grid()
 abline(lm(tabSobreposicaoRiqueza$spearman~c(1,2,2)),col='green')
 legend('topright',legend=c('Presente','2070 otimista','2070 pessimista','Riqueza','Risco'),pch=c(0,1,2,NA,NA),text.col=c('black','black','black','green','red'))
+dev.off()

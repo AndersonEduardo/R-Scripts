@@ -144,35 +144,51 @@ writeRaster(x=mapaRiquezaFuturoPessimista,filename=paste(projectFolder,'Mapas de
 
 ###QUARTA PARTE: gerando MAPAS DE RISCO - SEM impacto humano###
 
-##indices para RISCO DE INFECCAO por especie de vetor
-tabBarb = read.csv("/home/anderson/Documentos/Projetos/Vetor x IDH para Doenca de Chagas/Taxa de infeccao natural vetores 2007-2011.csv",header=TRUE)
-infecBarb = sort(tabBarb[,3],decreasing=TRUE)
-infecIndOrdered = c(infecBarb[6],infecBarb[3]) #,infecBarb[5],infecBarb[9],infecBarb[10],infecBarb[11],infecBarb[13],infecBarb[1])
+##indices para RISCO DE INFECCAO por especie de vetor (dados SUS)
+##link: http://portalarquivos.saude.gov.br/images/pdf/2015/agosto/03/2014-020..pdf
+tabBarb = read.csv("/home/anderson/Documentos/Projetos/macroecologia_de_chagas/Taxa de infeccao natural vetores 2007-2011.csv",header=TRUE)
+#infecBarb = sort(tabBarb[,3],decreasing=TRUE)
+#infecIndOrdered = c(infecBarb[6],infecBarb[3],infecBarb[5],infecBarb[9],infecBarb[10],infecBarb[11],infecBarb[13],infecBarb[1])
 #infecInd = sort(1:length(infecBarb),decreasing=TRUE) #idice de infeccao para confeccao dos mapas
 
 #sobrepondo distribuicoes para mapa de risco
 #presente
-listaPresente = grep(list.files(paste(projectFolder,"Projecoes",sep=""),full.names=TRUE),pattern='Otimista|Pessimista',inv=T,value=T)
+listaPresente = grep(list.files(paste(projectFolder,"resultados nicho climatico/Projecoes",sep=""),full.names=TRUE),pattern='Otimista|Pessimista',inv=T,value=T)
 listaPresenteBIN = grep(listaPresente,pattern='BIN.asc',value=TRUE)
 camadasPresente = stack(listaPresenteBIN)
+#
+listaNomes = names(camadasPresente)
+listaNomes = gsub(pattern='BIN',replacement='',x=listaNomes)
+listaNomes = basename(listaNomes)
+listaNomes = gsub(pattern='.asc',replacement='',x=listaNomes)
+infecIndOrdered = tabBarb$taxaInfeccaonatural[match(listaNomes,tabBarb$sp)]/100 #taxa de infeccao natural na ordem dos rasters (de 0 a 1)
+#
 mapaRiscoPresente = sum(camadasPresente*infecIndOrdered) 
-mapaRiscoPresente = mapaRiscoPresente/maxValue(mapaRiscoPresente)
+mapaRiscoPresente = mapaRiscoPresente/length(infecIndOrdered)
 plot(mapaRiscoPresente)
-writeRaster(x=mapaRiscoPresente,filename=paste(projectFolder,'Mapas de risco/mapaRiscoPresente.asc',sep=''),overwrite=TRUE)
+writeRaster(x=mapaRiscoPresente,filename=paste(projectFolder,'resultados nicho climatico/Mapas de risco/mapaRiscoPresente.asc',sep=''),overwrite=TRUE)
 
 #futuro otimista
-camadasFuturoOtimista = stack(list.files(paste(projectFolder,"Projecoes",sep=""),pattern = "OtimistaBIN.asc",full.names=TRUE))
+camadasFuturoOtimista = stack(list.files(paste(projectFolder,"resultados nicho climatico/Projecoes",sep=""),pattern = "OtimistaBIN.asc",full.names=TRUE))
+listaNomes = names(camadasFuturoOtimista)
+listaNomes = gsub(pattern='OtimistaBIN',replacement='',x=listaNomes)
+infecIndOrdered = tabBarb$taxaInfeccaonatural[match(listaNomes,tabBarb$sp)]/100 #taxa de infeccao natural na ordem dos rasters (de 0 a 1)
+#
 mapaRiscoFuturoOtimista = sum(camadasFuturoOtimista*infecIndOrdered)
-mapaRiscoFuturoOtimista = mapaRiscoFuturoOtimista/maxValue(mapaRiscoFuturoOtimista)
+mapaRiscoFuturoOtimista = mapaRiscoFuturoOtimista/length(infecIndOrdered)
 plot(mapaRiscoFuturoOtimista)
-writeRaster(x=mapaRiscoFuturoOtimista,filename=paste(projectFolder,'Mapas de risco/mapaRiscoFuturoOtimista.asc',sep=''),overwrite=TRUE)
+writeRaster(x=mapaRiscoFuturoOtimista,filename=paste(projectFolder,'resultados nicho climatico/Mapas de risco/mapaRiscoFuturoOtimista.asc',sep=''),overwrite=TRUE)
 
 #futuro pessimista
-camadasFuturoPessimista = stack(list.files(paste(projectFolder,"Projecoes",sep=""),pattern = "PessimistaBIN.asc",full.names=TRUE))
+camadasFuturoPessimista = stack(list.files(paste(projectFolder,"resultados nicho climatico/Projecoes",sep=""),pattern = "PessimistaBIN.asc",full.names=TRUE))
+listaNomes = names(camadasFuturoOtimista)
+listaNomes = gsub(pattern='OtimistaBIN',replacement='',x=listaNomes)
+infecIndOrdered = tabBarb$taxaInfeccaonatural[match(listaNomes,tabBarb$sp)]/100 #taxa de infeccao natural na ordem dos rasters (de 0 a 1)
+#
 mapaRiscoFuturoPessimista = sum(camadasFuturoPessimista*infecIndOrdered)
-mapaRiscoFuturoPessimista = mapaRiscoFuturoPessimista/maxValue(mapaRiscoFuturoPessimista)
+mapaRiscoFuturoPessimista = mapaRiscoFuturoPessimista/length(infecIndOrdered)
 plot(mapaRiscoFuturoPessimista)
-writeRaster(x=mapaRiscoFuturoPessimista,filename=paste(projectFolder,'Mapas de risco/mapaRiscoFuturoPessimista.asc',sep=''),overwrite=TRUE)
+writeRaster(x=mapaRiscoFuturoPessimista,filename=paste(projectFolder,'resultados nicho climatico/Mapas de risco/mapaRiscoFuturoPessimista.asc',sep=''),overwrite=TRUE)
 
 
 ###QUINTA PARTE: estatisticas sumarias a partir dos mapas - SEM impacto humano###
@@ -180,8 +196,8 @@ writeRaster(x=mapaRiscoFuturoPessimista,filename=paste(projectFolder,'Mapas de r
 #presente 
 
 #tamanho da area do quartil superior (para riqueza e risco), para comparar os cenarios
-mapaRiquezaPresente = raster(paste(projectFolder,'Mapas de riqueza/mapaRiquezaPresente.asc',sep=''))
-mapaRiscoPresente = raster(paste(projectFolder,'Mapas de risco/mapaRiscoPresente.asc',sep=''))
+mapaRiquezaPresente = raster(paste(projectFolder,'resultados nicho climatico/Mapas de riqueza/mapaRiquezaPresente.asc',sep=''))
+mapaRiscoPresente = raster(paste(projectFolder,'resultados nicho climatico/Mapas de risco/mapaRiscoPresente.asc',sep=''))
 hightRiqPres= mapaRiquezaPresente > quantile(mapaRiquezaPresente, 0.75,na.rm=TRUE) #raster quartil superior riqueza
 hightRiscPres = mapaRiscoPresente > quantile(mapaRiscoPresente, 0.75,na.rm=TRUE) #raster quartil superior risco
 
@@ -196,8 +212,8 @@ corPres <- as.data.frame(cor(test, use="complete.obs",method='spearman'))
 #futuro otimista 
 
 #tamanho da area do quartil superior (para riqueza e risco), para comparar os cenarios
-mapaRiquezaFuturoOtimista = raster(paste(projectFolder,'Mapas de riqueza/mapaRiquezaFuturoOtimista.asc',sep=''))
-mapaRiscoFuturoOtimista = raster(paste(projectFolder,'Mapas de risco/mapaRiscoFuturoOtimista.asc',sep=''))
+mapaRiquezaFuturoOtimista = raster(paste(projectFolder,'resultados nicho climatico/Mapas de riqueza/mapaRiquezaFuturoOtimista.asc',sep=''))
+mapaRiscoFuturoOtimista = raster(paste(projectFolder,'resultados nicho climatico/Mapas de risco/mapaRiscoFuturoOtimista.asc',sep=''))
 hightRiqOtim= mapaRiquezaFuturoOtimista > quantile(mapaRiquezaFuturoOtimista, 0.75,na.rm=TRUE) #raster quartil superior riqueza
 hightRiscOtim = mapaRiscoFuturoOtimista > quantile(mapaRiscoFuturoOtimista, 0.75,na.rm=TRUE) #raster quartil superior risco
 
@@ -212,8 +228,8 @@ corOtim <- as.data.frame(cor(test, use="complete.obs",method='spearman'))
 #futuro pessimista 
 
 #tamanho da area do quartil superior (para riqueza e risco), para comparar os cenarios
-mapaRiquezaFuturoPessimista = raster(paste(projectFolder,'Mapas de riqueza/mapaRiquezaFuturoPessimista.asc',sep=''))
-mapaRiscoFuturoPessimista = raster(paste(projectFolder,'Mapas de risco/mapaRiscoFuturoPessimista.asc',sep=''))
+mapaRiquezaFuturoPessimista = raster(paste(projectFolder,'resultados nicho climatico/Mapas de riqueza/mapaRiquezaFuturoPessimista.asc',sep=''))
+mapaRiscoFuturoPessimista = raster(paste(projectFolder,'resultados nicho climatico/Mapas de risco/mapaRiscoFuturoPessimista.asc',sep=''))
 hightRiqPess= mapaRiquezaFuturoPessimista > quantile(mapaRiquezaFuturoPessimista, 0.75,na.rm=TRUE) #raster quartil superior riqueza
 hightRiscPess = mapaRiscoFuturoPessimista > quantile(mapaRiscoFuturoPessimista, 0.75,na.rm=TRUE) #raster quartil superior risco
 
@@ -234,18 +250,18 @@ tab = data.frame(scenario=c('pres','fut_otim','fut_pess'),
                  corRiqRisc = c(corPres[1,2],corOtim[1,2],corPess[1,2])
 )
 
-write.csv(tab,paste(projectFolder,'statsRes.csv'),row.names = FALSE)
+write.csv(tab,paste(projectFolder,'resultados nicho climatico/statsRes.csv',sep=''),row.names = FALSE)
 
 
 ###SEXTA PARTE: figuras dos mapas - SEM impacto humano###
-mapaRiquezaPresente = raster(paste(projectFolder,'Mapas de riqueza/mapaRiquezaPresente.asc',sep=''))
-mapaRiquezaFuturoOtimista = raster(paste(projectFolder,'Mapas de riqueza/mapaRiquezaFuturoPessimista.asc',sep=''))
-mapaRiquezaFuturoPessimista = raster(paste(projectFolder,'Mapas de riqueza/mapaRiquezaFuturoPessimista.asc',sep=''))
-mapaRiscoPresente = raster(paste(projectFolder,'Mapas de risco/mapaRiscoPresente.asc',sep=''))
-mapaRiscoFuturoOtimista = raster(paste(projectFolder,'Mapas de risco/mapaRiscoFuturoOtimista.asc',sep=''))
-mapaRiscoFuturoPessimista = raster(paste(projectFolder,'Mapas de risco/mapaRiscoFuturoPessimista.asc',sep=''))
+mapaRiquezaPresente = raster(paste(projectFolder,'resultados nicho climatico/Mapas de riqueza/mapaRiquezaPresente.asc',sep=''))
+mapaRiquezaFuturoOtimista = raster(paste(projectFolder,'resultados nicho climatico/Mapas de riqueza/mapaRiquezaFuturoPessimista.asc',sep=''))
+mapaRiquezaFuturoPessimista = raster(paste(projectFolder,'resultados nicho climatico/Mapas de riqueza/mapaRiquezaFuturoPessimista.asc',sep=''))
+mapaRiscoPresente = raster(paste(projectFolder,'resultados nicho climatico/Mapas de risco/mapaRiscoPresente.asc',sep=''))
+mapaRiscoFuturoOtimista = raster(paste(projectFolder,'resultados nicho climatico/Mapas de risco/mapaRiscoFuturoOtimista.asc',sep=''))
+mapaRiscoFuturoPessimista = raster(paste(projectFolder,'resultados nicho climatico/Mapas de risco/mapaRiscoFuturoPessimista.asc',sep=''))
 
-jpeg(filename=paste(projectFolder,'mapas.jpeg'),,width=1700,height=1200)
+jpeg(filename=paste(projectFolder,'resultados nicho climatico/mapas.jpeg',sep=''),width=1700,height=1200)
 par(mfrow=c(2,3),mar=c(5,5,5,14))
 ##riqueza
 plot(mapaRiquezaPresente,main='Presente',legend=FALSE,cex.axis=2,cex.main=4);plot(AmSulShape,add=TRUE); grid()
@@ -256,5 +272,5 @@ plot(mapaRiquezaFuturoPessimista,legend.only=TRUE,legend.width=3,axis.args=list(
 plot(mapaRiscoPresente,legend=FALSE,cex.axis=2); plot(AmSulShape,add=TRUE); grid()
 plot(mapaRiscoFuturoOtimista,legend=FALSE,cex.axis=2,cex.lab=2); plot(AmSulShape,add=TRUE); grid()
 plot(mapaRiscoFuturoPessimista,legend=FALSE,cex.axis=2); plot(AmSulShape,add=TRUE); grid()
-plot(mapaRiscoFuturoPessimista,legend.only=TRUE,legend.width=3,axis.args=list(cex.axis=2),legend.args=list(text='Risco',font=2,side=4,line=5.7,cex=2.2,cex.axis=0.2)) #legenda
+plot(mapaRiscoFuturoPessimista,legend.only=TRUE,legend.width=3,axis.args=list(cex.axis=2),legend.args=list(text='Risco de vetor infectado',font=2,side=4,line=5.7,cex=2.2,cex.axis=0.2)) #legenda
 dev.off()
