@@ -14,17 +14,17 @@ predictors = mask(predictors,AmSulShape) #recortando as variaveis ambientais
 #precRange = seq( predictors$bioclim_12@data@min, predictors$bioclim_12@data@max )
 
 ###funcoes para 'localizacao' e 'largura' do nicho (uma funcao para cada variavel ambiental)###
-larguraDistribTemp = abs(rnorm(100,500,100))
-localDistribTemp = rnorm(100,250,20)
+larguraDistribTemp = abs(rnorm(50,500,100))
+localDistribTemp = rnorm(100,250,50)
 
-larguraDistribPrecip = abs(rnorm(100,10,500))
+larguraDistribPrecip = abs(rnorm(100,1000,500))
 localDistribPrecip = abs(rnorm(100,4000,1000))
 
 ###criando as especies artificiais###
 distList = list() #objeto para armazenar uma lista com as especies
 
-for (i in 1:5){ #loop para o numero de especies a serem criadas
-    parameterSp <- formatFunctions(bioclim_01=c(fun='dnorm',mean=localDistribTemp[i],sd=larguraDistribTemp[i]),bioclim_12=c(fun='dnorm',mean=localDistribPrecip[i],sd=larguraDistribPrecip[i])) #criando as respostas da especie às variaveis ambientais
+for (i in 1:100){ #loop para o numero de especies a serem criadas
+    parameterSp <- formatFunctions(predictors,bioclim_01=c(fun='dnorm',mean=localDistribTemp[i],sd=larguraDistribTemp[i]),bioclim_12=c(fun='dnorm',mean=localDistribPrecip[i],sd=larguraDistribPrecip[i])) #criando as respostas da especie às variaveis ambientais
     sp_i <- generateSpFromFun(raster.stack=predictors, parameters=parameterSp) #criando a especie artifical (clima quente e umido)
     distList = append(distList,sp_i$suitab.raster)
 }
@@ -32,16 +32,28 @@ for (i in 1:5){ #loop para o numero de especies a serem criadas
 ###empilhando e tranformando em binario os mapas das distribuicoes 
 disListBIN = raster::stack(distList) > 0.1
 
+#dev.off()
+
+jpeg('/home/anderson/Documentos/Projetos/divSpsSid/div100.jpg',width=1200,height=1200)
+plot(sum(disListBIN));grid()
+plot(AmSulShape,add=T)
 dev.off()
 
-plot(sum(disListBIN))
-plot(AmSulShape,add=T)
+mapaRiq = sum(disListBIN)
+writeRaster(mapaRiq,'/home/anderson/Documentos/Projetos/divSpsSid/div100.asc',overwrite=TRUE)
+
 
 x1 = getValues(predictors[[1]]) #extract(predictors[[1]],disListBIN,mean)
 x2 = getValues(predictors[[2]]) #extract(predictors[[1]],disListBIN,mean)
-y1 = getValues(disListBIN)
+y1 = getValues(mapaRiq)
 
-mod = lm(y1 ~ x1 + x2)
+jpeg('/home/anderson/Documentos/Projetos/divSpsSid/corRiqVars.jpg',width=900,height=400)
+par(mfrow=c(1,2))
+plot(y1 ~ x1, xlab='temperatura média anual',ylab='riqueza de especies',pch=20,col=rgb(0,0,0,0.5))
+plot(y1 ~ x2, xlab='precipitação anual',ylab='riqueza de especies',pch=20,col=rgb(0,0,0,0.5))
+dev.off()
+
+mod = lm(y1 ~ x1)
 summary(mod)
 
 ###contnuar:
