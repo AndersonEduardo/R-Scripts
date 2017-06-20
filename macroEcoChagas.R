@@ -580,24 +580,24 @@ points(pred~tabDadosTodosMuni$HiiMedMuni,col='red')
 ###obs: riqueza e risco sao correlacionados! nao da pra fazer modelos para os dois juntos!
 
 ##modelo1: riqueza media + HII
-modRiqHii = glm(casos ~ riqMedMuni + HiiMedMuni ,family='binomial',data=tabDadosTodosMuni)
-summary(modRiqHii)
+modRiqHiiComb = glm(casos ~ riqMedMuni + HiiMedMuni ,family='binomial',data=tabDadosTodosMuni)
+summary(modRiqHiiComb)
 
 ##modelo2: risco medio + HII
-modRiscHii = glm(casos ~ riscMedMuni + HiiMedMuni ,family='binomial',data=tabDadosTodosMuni)
-summary(modRiscHii)
+modRiscHiiComb = glm(casos ~ riscMedMuni + HiiMedMuni ,family='binomial',data=tabDadosTodosMuni)
+summary(modRiscHiiComb)
 
 
 ##modelos quadraticos combinados
 ###obs: riqueza e risco sao correlacionados! nao da pra fazer modelos para os dois juntos!
 
 ##modelo1: riqueza media + HII
-modRiqHiiQuad = glm(casos ~ riqMedMuni + I(riqMedMuni^2) + HiiMedMuni + I(HiiMedMuni^2) ,family='binomial',data=tabDadosTodosMuni)
-summary(modRiqHiiQuad)
+modRiqHiiQuadComb = glm(casos ~ riqMedMuni + I(riqMedMuni^2) + HiiMedMuni + I(HiiMedMuni^2) ,family='binomial',data=tabDadosTodosMuni)
+summary(modRiqHiiQuadComb)
 
 ##modelo2: risco medio + HII
-modRiscHiiQuad = glm(casos ~ riscMedMuni + I(riscMedMuni^2) + HiiMedMuni + I(HiiMedMuni^2) ,family='binomial',data=tabDadosTodosMuni)
-summary(modRiscHiiQuad)
+modRiscHiiQuadComb = glm(casos ~ riscMedMuni + I(riscMedMuni^2) + HiiMedMuni + I(HiiMedMuni^2) ,family='binomial',data=tabDadosTodosMuni)
+summary(modRiscHiiQuadComb)
 
 
 ##tabela de resultados
@@ -606,7 +606,7 @@ tabResMuni = data.frame(
     modelo = c(rep('linear',5),rep('quadratico',5)),
     preditora = c(rep(c('riqueza','risco','riquezaHII','riscoHII','HII'),2)),
     efeito = c(modRiq$coefficients[2],modRisc$coefficients[2],modRiqHii$coefficients[2],modRiscHii$coefficients[2],modHii$coefficients[2],
-               modRiqQuad$coefficients[2],modRiscQuad$coefficients[2],modRiqHiiQuad$coefficients[2],modRiscHiiQuad$coefficients[2],modHiiQuad$coefficients[2]),
+               modRiqQuad$coefficients[3],modRiscQuad$coefficients[3],modRiqHiiQuad$coefficients[3],modRiscHiiQuad$coefficients[3],modHiiQuad$coefficients[3]),
     deviance = c(modRiq$deviance,modRisc$deviance,modRiqHii$deviance,modRiscHii$devianc,modHii$deviance,
                  modRiqQuad$deviance,modRiscQuad$deviance,modRiqHiiQuad$deviance,modRiscHiiQuad$devianc,modHiiQuad$deviance),
     null_deviance = c(modRiq$null.deviance,modRisc$null.deviance,modRiqHii$null.deviance,modRiscHii$null.deviance,modHii$null.deviance,
@@ -614,8 +614,7 @@ tabResMuni = data.frame(
     aic = c(modRiq$aic,modRisc$aic,modRiqHii$aic,modRiscHii$aic,modHii$aic,
             modRiqQuad$aic,modRiscQuad$aic,modRiqHiiQuad$aic,modRiscHiiQuad$aic,modHiiQuad$aic),
     p_valor = c(coef(summary(modRiq))[8],coef(summary(modRisc))[8],coef(summary(modRiqHii))[8],coef(summary(modRiscHii))[8],coef(summary(modHii))[8],
-                coef(summary(modRiqQuad))[11],coef(summary(modRiscQuad))[11],coef(summary(modRiqHiiQuad))[11],coef(summary(modRiscHiiQuad))[11],coef(summary(modHiiQuad))[11]))
-
+                coef(summary(modRiqQuad))[12],coef(summary(modRiscQuad))[12],coef(summary(modRiqHiiQuad))[12],coef(summary(modRiscHiiQuad))[12],coef(summary(modHiiQuad))[12]))
 
 write.csv(tabResMuni,"/home/anderson/Documentos/Projetos/macroecologia_de_chagas/tabMuniOutputs.csv",row.names=FALSE)
 
@@ -625,17 +624,20 @@ write.csv(tabResMuni,"/home/anderson/Documentos/Projetos/macroecologia_de_chagas
 tabResMuniComb = data.frame(
     modelo = c(rep('linear',2),rep('quadratico',2)),
     preditora = c(rep(c('riq&HII','risco&HII'),2)),
-    efeito = c(modRiqHii$coefficients[2],modRiscHii$coefficients[2],
-               modRiqHiiQuad$coefficients[2],modRiscHiiQuad$coefficients[2]),
-    deviance = c(modRiqHii$deviance,modRiscHii$deviance,
-                 modRiqHiiQuad$deviance,modRiscHiiQuad$deviance),
-    null_deviance = c(modRiqHii$null.deviance,modRiscHii$null.deviance,
-                      modRiqHiiQuad$null.deviance,modRiscHiiQuad$null.deviance),
-    aic = c(modRiqHii$aic,modRiscHii$aic,
-            modRiqHiiQuad$aic,modRiscHiiQuad$aic),
-    p_valor = c(coef(summary(modRiqHii))[8],coef(summary(modRiscHii))[8],
-                coef(summary(modRiqHiiQuad))[11],coef(summary(modRiscHiiQuad))[11]))
-
+    efeitoRiqOuRisc = c(modRiqHiiComb$coefficients[2],modRiscHiiComb$coefficients[2],
+                        modRiqHiiQuadComb$coefficients[3],modRiscHiiQuadComb$coefficients[3]),
+    efeitoHII = c(modRiqHiiComb$coefficients[2],modRiscHiiComb$coefficients[2],
+               modRiqHiiQuadComb$coefficients[5],modRiscHiiQuadComb$coefficients[5]),
+    deviance = c(modRiqHiiComb$deviance,modRiscHiiComb$deviance,
+                 modRiqHiiQuadComb$deviance,modRiscHiiQuadComb$deviance),
+    null_deviance = c(modRiqHiiComb$null.deviance,modRiscHiiComb$null.deviance,
+                      modRiqHiiQuadComb$null.deviance,modRiscHiiQuadComb$null.deviance),
+    aic = c(modRiqHiiComb$aic,modRiscHiiComb$aic,
+            modRiqHiiQuadComb$aic,modRiscHiiQuadComb$aic),
+    p_valorRiqOuRisc = c(coef(summary(modRiqHiiComb))[11],coef(summary(modRiscHiiComb))[11],
+                         coef(summary(modRiqHiiQuadComb))[18],coef(summary(modRiscHiiQuadComb))[18]),
+    p_valorHII = c(coef(summary(modRiqHiiComb))[12],coef(summary(modRiscHiiComb))[12],
+                         coef(summary(modRiqHiiQuadComb))[20],coef(summary(modRiscHiiQuadComb))[20]))
 
 write.csv(tabResMuniComb,"/home/anderson/Documentos/Projetos/macroecologia_de_chagas/tabMuniModelosCombinadosOutputs.csv",row.names=FALSE)
 
@@ -668,4 +670,26 @@ jpeg('/home/anderson/Documentos/Projetos/macroecologia_de_chagas/riscoEpi.jpeg',
 plot(riscoEpi)
 plot(muniShapes,add=T)
 dev.off()
+
+
+###DADOS DO PAPER DO ARTIGO "Large-scale patterns in morphological diversity, and species assembly in Neotropical Triatominae (Heteroptera: Reduviidae)"
+##Link: https://figshare.com/articles/Geographical_patterns_of_Triatominae_Heteroptera_Reduviidae_their_distribution_richness_and_morphology_in_the_Neotropics/653959
+
+tabar = read.csv('/home/anderson/Documentos/Projetos/macroecologia_de_chagas/Pasta sem título/653959/Triatomines_-_Pres__Abs_115_sp__Ricness_2736_Cels_-_Scale_1x1.csv',header=TRUE)
+barRiq = tabar[,c('Longitude','Latitude','Richness.Selected.sp')]
+
+library(sp)
+library(rgdal)
+library(raster)
+coordinates(barRiq)=~Longitude+Latitude
+proj4string(barRiq)=CRS("+init=epsg:4326") # set it to lat-long
+pts = spTransform(barRiq,CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0 '))
+gridded(barRiq) = TRUE
+r = raster(barRiq)
+projection(r) = CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0 ')
+
+AmSulShape = maptools::readShapePoly("/home/anderson/PosDoc/shapefiles/Am_Sul/borders.shp")
+
+plot(barRiq)
+plot(AmSulShape,add=T)
 
