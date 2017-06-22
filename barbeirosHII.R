@@ -342,9 +342,9 @@ tabSobreposicaoRiqueza = data.frame(
         ( freq(hightRiqOtimUni,value=3)/freq(hightRiqOtimHii,value=1) ) * 100,
         ( freq(hightRiqPessUni,value=3)/freq(hightRiqPessHii,value=1) ) * 100),
     percentual_geral=
-        c((freq(hightRiqPresUni,value=3)/(ncell(hightRiqPresUni)-freq(hightRiqPresUni,value=NA)) * 100),
-        (freq(hightRiqOtimUni,value=3)/(ncell(hightRiqOtimUni)-freq(hightRiqOtimUni,value=NA)) * 100),
-        ( freq(hightRiqPessUni,value=3)/(ncell(hightRiqPessUni)-freq(hightRiqPessUni,value=NA)) * 100)),
+        c(freq(hightRiqPresUni,value=3)/(freq(hightRiqPresUni,value=1)+freq(hightRiqPresUni,value=2)+freq(hightRiqPresUni,value=3)) * 100,
+        freq(hightRiqOtimUni,value=3)/(freq(hightRiqOtimUni,value=1)+freq(hightRiqOtimUni,value=2)+freq(hightRiqOtimUni,value=3)) * 100,
+        freq(hightRiqPessUni,value=3)/(freq(hightRiqPessUni,value=1)+freq(hightRiqPessUni,value=2)+freq(hightRiqPessUni,value=3)) * 100),
     spearman = c(corRiqPres[2,1],corRiqOtim[2,1],corRiqPess[2,1])
 )
 

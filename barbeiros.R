@@ -45,7 +45,7 @@ predictorsProjectionPessimista = files.crop.sub.projection.pessimista
 
 ##adicionando impacto humano as variaveis ambientais
 ##abrindo
-hii = raster(x='/home/anderson/Downloads/hii-s-america-geo-grid/hii_s_america_grid/hii_s_amer')
+hii = raster(x='/home/anderson/PosDoc/dados_ambientais/hii-s-america-geo-grid/res2-5/hii-2-5.asc')
 
 ##crop hii
 areaExt = extent(predictors[[1]])
