@@ -283,13 +283,11 @@ for (i in 1:length(spsTypes)){
   for (l in 1:length(nicheRealPath[1:24])){ #loop sobre as cadamdas de tempo
     
       realNiche = nicheRealPath[l] #nicho real
-      realNicheDataOcc = SDMTools::asc2dataframe(realNiche); names(realNicheDataOcc)=c('longitude','latitude','pres') #conversao ascii -> dataframe
-      realNicheDataOcc = rev(realNicheDataOcc)
-      
-      realNicheDataOcc = round(x=realNicheDataOcc,digits=2)
-      realNicheDataOcc = unique(realNicheDataOcc)
-
-      #xsdf = sp::SpatialPointsDataFrame(coords=realNicheDataOcc[,c('longitude','latitude')],data=realNicheDataOcc,proj4string=CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0'))
+      binMap = raster(realNiche,crs=CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0'))>0.1
+      realNicheDataOccCoord = dismo::randomPoints(binMap,1000)
+      realNicheDataOccPres = extract(binMap,realNicheDataOccCoord,na.rm=TRUE)
+      realNicheDataOcc = data.frame(cbind(realNicheDataOccCoord,realNicheDataOccPres))
+      names(realNicheDataOcc) = c('longitude','latitude','pres')      
       
       predictors = stack(list.files(path=envVarPaths[l],full.names=TRUE, pattern='.asc')) #predictors com todas as variaveis (presente)
       predictors = predictors[[c('bioclim_01','bioclim_12')]]
@@ -312,105 +310,124 @@ for (i in 1:length(spsTypes)){
         #Idistribution = numeric()
         
           sdmNiche = timeSampleData[[n]] #mapa de suitability gerado por SDM
-          SDMnicheData = SDMTools::asc2dataframe(sdmNiche); names(SDMnicheData)=c('longitude','latitude','pres') #conversao ascii -> dataframe
-       #The PCA is calibrated on all the sites of the study area
-          pca.env <-dudi.pca(rbind(nat,inv)[,3:10],scannf=F,nf=2)
+          binMapSDM = raster(sdmNiche,crs=CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0'))>0.1
+          SDMDataOccCoord = dismo::randomPoints(binMapSDM,1000)
+          SDMDataOccPres = extract(binMapSDM,SDMDataOccCoord,na.rm=TRUE)
+          SDMDataOcc = data.frame(cbind(SDMDataOccCoord,SDMDataOccPres))
+          names(SDMDataOcc) = c('longitude','latitude','pres')      
+
+          SDMDataPred = extract(x=predictors,y=SDMDataOcc[,c('longitude','latitude')],na.rm=TRUE) #extraindo variaveis ambientais do ponto, em sua respectiva camada de tempo
+          SDMData = cbind(SDMDataOcc, SDMDataPred) #juntando com os dados das outras camadas de tempo amostradas
+
+          ##The PCA is calibrated on all the sites of the study area
+          pca.env <-dudi.pca(rbind(realNicheData,SDMData)[,c('bioclim_01','bioclim_12')],scannf=F,nf=2)
           ecospat.plot.contrib(contrib=pca.env$co, eigen=pca.env$eig) #grafico
 
-# PCA scores for the whole study area
-scores.globclim <- pca.env$li
-# PCA scores for the species native distribution
-scores.sp.nat <- suprow(pca.env,nat[which(nat[,11]==1),3:10])$li
+          ##PCA scores for the whole study area
+          scores.globclim <- pca.env$li
+          ##PCA scores for the species native distribution
+          scores.sp.realNiche <- suprow(pca.env,realNicheData[which(realNicheData[,'pres']==1),c('bioclim_01','bioclim_12')])$li
 
-# PCA scores for the species invasive distribution
-scores.sp.inv <- suprow(pca.env,inv[which(inv[,11]==1),3:10])$li
+          ##PCA scores for the species invasive distribution
+          scores.sp.SDMniche <- suprow(pca.env,SDMData[which(SDMData[,'pres']==1),c('bioclim_01','bioclim_12')])$li
 
-# PCA scores for the whole native study area
-scores.clim.nat <-suprow(pca.env,nat[,3:10])$li
+          ##PCA scores for the whole native study area
+          scores.clim.realNiche <-suprow(pca.env,realNicheData[,c('bioclim_01','bioclim_12')])$li
 
-# PCA scores for the whole invaded study area
-scores.clim.inv <- suprow(pca.env,inv[,3:10])$li
+          ##PCA scores for the whole invaded study area
+          scores.clim.SDMniche <- suprow(pca.env,SDMData[,c('bioclim_01','bioclim_12')])$li
 
-# gridding the native niche
-grid.clim.nat <-ecospat.grid.clim.dyn(glob=scores.globclim,glob1=scores.clim.nat,sp=scores.sp.nat, R=100,th.sp=0)
+          ##gridding the native niche
+          grid.clim.realNiche <-ecospat.grid.clim.dyn(glob=scores.globclim,glob1=scores.clim.realNiche,sp=scores.sp.realNiche, R=100,th.sp=0)
 
-# gridding the invasive niche
-grid.clim.inv <- ecospat.grid.clim.dyn(glob=scores.globclim,glob1=scores.clim.inv,sp=scores.sp.inv, R=100,th.sp=0)
+          ##gridding the invasive niche
+          grid.clim.SDMniche <- ecospat.grid.clim.dyn(glob=scores.globclim,glob1=scores.clim.SDMniche,sp=scores.sp.SDMniche, R=100,th.sp=0)
 
-# equivalencia de nicho
-##OBS: Niche equivalency test H1: Is the overlap between the native and invaded niche higher than two random
-#niches?
-eq.test <- ecospat.niche.equivalency.test(grid.clim.nat, grid.clim.inv,rep=10, alternative = "greater")
-
-
-
-
-
-
-
+          ##equivalencia de nicho
+          ##OBS: Niche equivalency test H1: Is the overlap between the native and invaded niche higher than two random niches?
+          eq.test <- ecospat.niche.equivalency.test(grid.clim.realNiche, grid.clim.SDMniche,rep=10, alternative = "greater")
 
           
-        nicheOverlapObs = niche.overlap(c(sdmNiche,realNiche))
-        Dobs = nicheOverlapObs[1,2]
-        Iobs = nicheOverlapObs[2,1]
+        ## nicheOverlapObs = niche.overlap(c(sdmNiche,realNiche))
+        ## Dobs = nicheOverlapObs[1,2]
+        ## Iobs = nicheOverlapObs[2,1]
         
-        ##aleatorizando ocorrencias para teste de significancia
-        occPoints = read.csv(paste(mainSampleFolder,'/',spsTypes[i],'/occ',m,'pts',n,'rep.csv',sep=''),header=TRUE) #abrindo pontos de ocorrencia
-        occPoints[occPoints==0] = NA
-        occPoints = occPoints[complete.cases(occPoints),]
-        occPoints = round(occPoints, digits=2)
-        occPoints = occPoints[!duplicated(occPoints),]                 
+        ## ##aleatorizando ocorrencias para teste de significancia
+        ## occPoints = read.csv(paste(mainSampleFolder,'/',spsTypes[i],'/occ',m,'pts',n,'rep.csv',sep=''),header=TRUE) #abrindo pontos de ocorrencia
+        ## occPoints[occPoints==0] = NA
+        ## occPoints = occPoints[complete.cases(occPoints),]
+        ## occPoints = round(occPoints, digits=2)
+        ## occPoints = occPoints[!duplicated(occPoints),]                 
         
-        backgroundPoints = read.csv(paste(mainSampleFolder,'/',spsTypes[i],'/bg.csv',sep=''),header=TRUE) #abrindo pontos de background
-        backgroundPoints = backgroundPoints[sample(nrow(backgroundPoints),5000),]
-        backgroundPoints[backgroundPoints==0] = NA
-        backgroundPoints = backgroundPoints[complete.cases(backgroundPoints),]
-        backgroundPoints = round(backgroundPoints, digits=2)
-        backgroundPoints = backgroundPoints[!duplicated(backgroundPoints),]                 
+        ## backgroundPoints = read.csv(paste(mainSampleFolder,'/',spsTypes[i],'/bg.csv',sep=''),header=TRUE) #abrindo pontos de background
+        ## backgroundPoints = backgroundPoints[sample(nrow(backgroundPoints),5000),]
+        ## backgroundPoints[backgroundPoints==0] = NA
+        ## backgroundPoints = backgroundPoints[complete.cases(backgroundPoints),]
+        ## backgroundPoints = round(backgroundPoints, digits=2)
+        ## backgroundPoints = backgroundPoints[!duplicated(backgroundPoints),]                 
         
-        names(backgroundPoints) = names(occPoints) #certificando que os nomes das colunas estão iguais (cuidado aqui...)
-        dataSet = data.frame(cbind(rbind(occPoints,backgroundPoints),pres=c(rep(1,nrow(occPoints)),rep(0,nrow(backgroundPoints))))) #planilha de dados no formato SWD
+        ## names(backgroundPoints) = names(occPoints) #certificando que os nomes das colunas estão iguais (cuidado aqui...)
+        ## dataSet = data.frame(cbind(rbind(occPoints,backgroundPoints),pres=c(rep(1,nrow(occPoints)),rep(0,nrow(backgroundPoints))))) #planilha de dados no formato SWD
         
-        # for(o in 1:100){ #replicas da distribuicao nula de D e I
-        #   
-        #   presMix = dataSet[sample(nrow(dataSet)),c('pres')]
-        #   sampleMix = dataSet
-        #   sampleMix$pres = presMix
-        #   
-        #   me = maxent(
-        #     x=sampleMix[,c("bioclim_01","bioclim_12")],
-        #     p=sampleMix$pres,
-        #     args=c('responsecurves=FALSE',
-        #            'jackknife=FALSE',
-        #            'randomseed=FALSE',
-        #            'randomtestpoints=0',
-        #            'maximumbackground=5000',
-        #            'replicates=1',
-        #            'writebackgroundpredictions=FALSE',
-        #            'linear=TRUE',
-        #            'quadratic=TRUE',
-        #            'product=FALSE',
-        #            'threshold=FALSE',
-        #            'hinge=FALSE',
-        #            'maximumiterations=1000',
-        #            'convergencethreshold=1.0E-5',
-        #            'threads=2'
-        #     ))
-        #   
-        #   proj = predict(me,predictors,crs=crsInfo) #realizando projetacoes (para cada replica)                    
-        #   
-        #   sdmNicheMix = as(proj,'SpatialGridDataFrame')
-        #   
-        #   nicheOverlap_i= niche.overlap(c(sdmNicheMix,realNiche))
-        #   Ddistribution = append(Ddistribution,nicheOverlap_i[1,2])
-        #   Idistribution = append(Idistribution,nicheOverlap_i[2,1])
-        #   
-        # }
-        
-        DpValue = NA #sum(Ddistribution >= Dobs) / length(Ddistribution)
-        IpValue = NA #sum(Idistribution >= Iobs) / length(Idistribution)
-        
-        outputData = rbind(outputData,cbind(kyrBP=l-1,sampleSize=m,replicate=n,numbOfTimeLayers=length(unique(occPoints$kyrBP)),medianKyr=median(unique(occPoints$kyrBP)),minAge=min(unique(occPoints$kyrBP)),maxAge=max(unique(occPoints$kyrBP)),Schoeners_D=Dobs,p_value=DpValue,Hellinger_I=Iobs,p_value=IpValue))
+        ## # for(o in 1:100){ #replicas da distribuicao nula de D e I
+        ## #   
+        ## #   presMix = dataSet[sample(nrow(dataSet)),c('pres')]
+        ## #   sampleMix = dataSet
+        ## #   sampleMix$pres = presMix
+        ## #   
+        ## #   me = maxent(
+        ## #     x=sampleMix[,c("bioclim_01","bioclim_12")],
+        ## #     p=sampleMix$pres,
+        ## #     args=c('responsecurves=FALSE',
+        ## #            'jackknife=FALSE',
+        ## #            'randomseed=FALSE',
+        ## #            'randomtestpoints=0',
+        ## #            'maximumbackground=5000',
+        ## #            'replicates=1',
+        ## #            'writebackgroundpredictions=FALSE',
+        ## #            'linear=TRUE',
+        ## #            'quadratic=TRUE',
+        ## #            'product=FALSE',
+        ## #            'threshold=FALSE',
+        ## #            'hinge=FALSE',
+        ## #            'maximumiterations=1000',
+        ## #            'convergencethreshold=1.0E-5',
+        ## #            'threads=2'
+        ## #     ))
+        ## #   
+        ## #   proj = predict(me,predictors,crs=crsInfo) #realizando projetacoes (para cada replica)                    
+        ## #   
+        ## #   sdmNicheMix = as(proj,'SpatialGridDataFrame')
+        ## #   
+        ## #   nicheOverlap_i= niche.overlap(c(sdmNicheMix,realNiche))
+        ## #   Ddistribution = append(Ddistribution,nicheOverlap_i[1,2])
+        ## #   Idistribution = append(Idistribution,nicheOverlap_i[2,1])
+        ## #   
+        ## # }
+
+          Dobs = eq.test$obs$D
+          Iobs = eq.test$obs$I
+          DpValue = eq.test$p.D  #sum(Ddistribution >= Dobs) / length(Ddistribution)
+          IpValue = eq.test$p.I #sum(Idistribution >= Iobs) / length(Idistribution)
+
+          ##abrindo planilha de pontos para extrair dados do cenario
+          occPoints = read.csv(paste(mainSampleFolder,'/',spsTypes[i],'/occ',m,'pts',n,'rep.csv',sep=''),header=TRUE) 
+          occPoints[occPoints==0] = NA
+          occPoints = occPoints[complete.cases(occPoints),]
+          occPoints = round(occPoints, digits=2)
+          occPoints = occPoints[!duplicated(occPoints),]                 
+          
+          outputData = rbind(outputData,cbind(kyrBP=l-1,
+                                              sampleSize=m,
+                                              replicate=n,
+                                              numbOfTimeLayers=length(unique(occPoints$kyrBP)),
+                                              medianKyr=median(unique(occPoints$kyrBP)),
+                                              minAge=min(unique(occPoints$kyrBP)),
+                                              maxAge=max(unique(occPoints$kyrBP)),
+                                              Schoeners_D=Dobs,
+                                              p_value=DpValue,
+                                              Hellinger_I=Iobs,
+                                              p_value=IpValue))
         
         write.csv(outputData, file=paste(projectFolder,'/maxent/',spsTypes[i],"/projections/NO.csv",sep=""),row.names=FALSE) #salvando os dados do cenario
         
@@ -418,51 +435,6 @@ eq.test <- ecospat.niche.equivalency.test(grid.clim.nat, grid.clim.inv,rep=10, a
     }
   }
 }
-
-
-####ECOSPAT
-library(ecospat)
-
-data(ecospat.testNiche.inv)
-data(ecospat.testNiche.nat)
-
-inv <- ecospat.testNiche.inv
-nat <- ecospat.testNiche.nat
-
-#The PCA is calibrated on all the sites of the study area
-pca.env <-dudi.pca(rbind(nat,inv)[,3:10],scannf=F,nf=2)
-ecospat.plot.contrib(contrib=pca.env$co, eigen=pca.env$eig) #grafico
-
-# PCA scores for the whole study area
-scores.globclim <- pca.env$li
-# PCA scores for the species native distribution
-scores.sp.nat <- suprow(pca.env,nat[which(nat[,11]==1),3:10])$li
-
-# PCA scores for the species invasive distribution
-scores.sp.inv <- suprow(pca.env,inv[which(inv[,11]==1),3:10])$li
-
-# PCA scores for the whole native study area
-scores.clim.nat <-suprow(pca.env,nat[,3:10])$li
-
-# PCA scores for the whole invaded study area
-scores.clim.inv <- suprow(pca.env,inv[,3:10])$li
-
-# gridding the native niche
-grid.clim.nat <-ecospat.grid.clim.dyn(glob=scores.globclim,glob1=scores.clim.nat,sp=scores.sp.nat, R=100,th.sp=0)
-
-# gridding the invasive niche
-grid.clim.inv <- ecospat.grid.clim.dyn(glob=scores.globclim,glob1=scores.clim.inv,sp=scores.sp.inv, R=100,th.sp=0)
-
-# equivalencia de nicho
-##OBS: Niche equivalency test H1: Is the overlap between the native and invaded niche higher than two random
-#niches?
-eq.test <- ecospat.niche.equivalency.test(grid.clim.nat, grid.clim.inv,rep=10, alternative = "greater")
-
-
-###########
-
-
-
 
 
 ### QUINTA PARTE: construindo graficos dos resultados ###
