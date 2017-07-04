@@ -320,6 +320,17 @@ corRiqOtim <- as.data.frame(cor(testRiqOtim, use="complete.obs",method='spearman
 testRiqPess <- getValues(stack(hightRiqPess,hightRiqPessHii))
 corRiqPess <- as.data.frame(cor(testRiqPess, use="complete.obs",method='spearman'))
 
+##correlacao mapa riqueza modelos com e sem HII## OBS: ACHEI MELHOR USAR ESSE NO MANUSCRITO
+##presente
+testRiqPres <- getValues(stack(mapaRiquezaPresente,mapaRiquezaPresenteHii))
+corRiqPres <- as.data.frame(cor(testRiqPres, use="complete.obs",method='pearson'))
+##futuro otimista
+testRiqOtim <- getValues(stack(mapaRiquezaFuturoOtimista,mapaRiquezaFuturoOtimistaHii))
+corRiqOtim <- as.data.frame(cor(testRiqOtim, use="complete.obs",method='pearson'))
+##futuro pessimista
+testRiqPess <- getValues(stack(mapaRiquezaFuturoPessimista,mapaRiquezaFuturoPessimistaHii))
+corRiqPess <- as.data.frame(cor(testRiqPess, use="complete.obs",method='pearson'))
+
 tabSobreposicaoRiqueza = data.frame(
     cenario = c('presente','futuroOtimista','futuroPessimista'),
     total_celulas_nichoClim = c(freq(hightRiqPres,value=1),freq(hightRiqOtim,value=1),freq(hightRiqPess,value=1)),
@@ -401,6 +412,17 @@ corRiscOtim <- as.data.frame(cor(testRiscOtim, use="complete.obs",method='spearm
 ##futuro pessimista
 testRiscPess <- getValues(stack(hightRiscPess,hightRiscPessHii))
 corRiscPess <- as.data.frame(cor(testRiscPess, use="complete.obs",method='spearman'))
+
+##correlacao mapa risco modelos com e sem HII## OBS: ACHEI MELHOR USAR ESSE NO MANUSCRITO
+##presente
+testRiscPres <- getValues(stack(mapaRiscoPresente,mapaRiscoPresenteHii))
+corRiscPres <- as.data.frame(cor(testRiqPres, use="complete.obs",method='pearson'))
+##futuro otimista
+testRiscOtim <- getValues(stack(mapaRiscoFuturoOtimista,mapaRiscoFuturoOtimistaHii))
+corRiscOtim <- as.data.frame(cor(testRiqOtim, use="complete.obs",method='pearson'))
+##futuro pessimista
+testRiscPess <- getValues(stack(mapaRiscoFuturoPessimista,mapaRiscoFuturoPessimistaHii))
+corRiscPess <- as.data.frame(cor(testRiqPess, use="complete.obs",method='pearson'))
 
 tabSobreposicaoRisco = data.frame(
     cenario = c('presente','futuroOtimista','futuroPessimista'),

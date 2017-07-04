@@ -259,6 +259,9 @@ for (i in 1:length(spsTypes)){
 
 ###QUARTA PARTE: comparando projecao do SDM e a distribuicao espacial real do nicho da sp###
 
+library(raster)
+library(ecospat)
+
 projectFolder = "/home/anderson/Documentos/Projetos/Sps artificiais/" #pasta do projeto
 mainSampleFolder = '/home/anderson/Documentos/Projetos/Sps artificiais/Amostras/' #caminho para pasta onde a planilha com os pontos amostrados sera salva
 spsTypes = c('spHW', 'spHD', 'spCD') #nomes das especies
@@ -266,26 +269,37 @@ sampleSizes = c(5,15,25,35,45,55,65,75,85,95) #aqui, deve ser igual ao usasado n
 NumRep = 9
 envVarFolder = "/home/anderson/PosDoc/dados_ambientais/dados_projeto" #pasta com as variaveis ambientais
 envVarPaths = list.files(path=envVarFolder, full.names=T) #lista com os caminhos das camadas no sistema (comp.)
-AmSulShape = readShapePoly("/home/anderson/PosDoc/Am_Sul/borders.shp") #shape da America do Sul
+AmSulShape = maptools::readShapePoly("/home/anderson/PosDoc/shapefiles/Am_Sul/borders.shp") #shape da America do Sul
 
 for (i in 1:length(spsTypes)){
   
   nicheRealFolder = paste(projectFolder,'/NichoReal/',spsTypes[i],sep='') #pasta com os mapas de nicho real da sp
   nicheRealPath = list.files(path=nicheRealFolder,pattern='asc',full.names=TRUE) #lista com os enderecos dos mapas de distribuicao da sp
-  projectionsFolder = paste(projectFolder,'/maxent/',spsTypes[i],'/projections',sep='') #pasta com as projecoes do cenario
+  projectionsFolder = paste(projectFolder,'maxent/',spsTypes[i],'/projections',sep='') #pasta com as projecoes do cenario
   projectionsPath = list.files(path=projectionsFolder, pattern='asc',full.names=T) #caminhos para os .asc na paste do cenario
   outputData = data.frame()
 
   
   for (l in 1:length(nicheRealPath[1:24])){ #loop sobre as cadamdas de tempo
     
-    realNiche = nicheRealPath[l] #nicho real
-    
-    predictors = stack(list.files(path=envVarPaths[l],full.names=TRUE, pattern='.asc')) #predictors com todas as variaveis (presente)
-    predictors = predictors[[c('bioclim_01','bioclim_12')]]
-    predictors = mask(predictors,AmSulShape) #recortando as variaveis ambientais
-    projection(predictors) = CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0') #ajustando CRS
-    
+      realNiche = nicheRealPath[l] #nicho real
+      realNicheDataOcc = SDMTools::asc2dataframe(realNiche); names(realNicheDataOcc)=c('longitude','latitude','pres') #conversao ascii -> dataframe
+      realNicheDataOcc = rev(realNicheDataOcc)
+      
+      realNicheDataOcc = round(x=realNicheDataOcc,digits=2)
+      realNicheDataOcc = unique(realNicheDataOcc)
+
+      #xsdf = sp::SpatialPointsDataFrame(coords=realNicheDataOcc[,c('longitude','latitude')],data=realNicheDataOcc,proj4string=CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0'))
+      
+      predictors = stack(list.files(path=envVarPaths[l],full.names=TRUE, pattern='.asc')) #predictors com todas as variaveis (presente)
+      predictors = predictors[[c('bioclim_01','bioclim_12')]]
+      predictors = mask(predictors,AmSulShape) #recortando as variaveis ambientais
+      projection(predictors) = CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0') #ajustando CRS
+
+      realNicheDataPred = extract(x=predictors,y=realNicheDataOcc[,c('longitude','latitude')],na.rm=TRUE) #extraindo variaveis ambientais do ponto, em sua respectiva camada de tempo
+      realNicheData = cbind(realNicheDataOcc, realNicheDataPred) #juntando com os dados das outras camadas de tempo amostradas
+      
+      
     for (m in sampleSizes){ #loop sobre os tamanhos amostrais
       
       timeSampleData = list.files(path=projectionsFolder, pattern=glob2rx(paste('*Time',l-1,'*Sample',m,'.asc',sep='')),full.names=TRUE)
@@ -293,11 +307,49 @@ for (i in 1:length(spsTypes)){
       
       for(n in 1:NumRep){ #loop sobre replicas de cada combinacao de tempo e tamanho amostral
         
-        ##vetores vazios
-        Ddistribution = numeric()
-        Idistribution = numeric()
+          ##vetores vazios
+        #Ddistribution = numeric()
+        #Idistribution = numeric()
         
-        sdmNiche = timeSampleData[[n]] #mapa de suitability gerado por SDM
+          sdmNiche = timeSampleData[[n]] #mapa de suitability gerado por SDM
+          SDMnicheData = SDMTools::asc2dataframe(sdmNiche); names(SDMnicheData)=c('longitude','latitude','pres') #conversao ascii -> dataframe
+       #The PCA is calibrated on all the sites of the study area
+          pca.env <-dudi.pca(rbind(nat,inv)[,3:10],scannf=F,nf=2)
+          ecospat.plot.contrib(contrib=pca.env$co, eigen=pca.env$eig) #grafico
+
+# PCA scores for the whole study area
+scores.globclim <- pca.env$li
+# PCA scores for the species native distribution
+scores.sp.nat <- suprow(pca.env,nat[which(nat[,11]==1),3:10])$li
+
+# PCA scores for the species invasive distribution
+scores.sp.inv <- suprow(pca.env,inv[which(inv[,11]==1),3:10])$li
+
+# PCA scores for the whole native study area
+scores.clim.nat <-suprow(pca.env,nat[,3:10])$li
+
+# PCA scores for the whole invaded study area
+scores.clim.inv <- suprow(pca.env,inv[,3:10])$li
+
+# gridding the native niche
+grid.clim.nat <-ecospat.grid.clim.dyn(glob=scores.globclim,glob1=scores.clim.nat,sp=scores.sp.nat, R=100,th.sp=0)
+
+# gridding the invasive niche
+grid.clim.inv <- ecospat.grid.clim.dyn(glob=scores.globclim,glob1=scores.clim.inv,sp=scores.sp.inv, R=100,th.sp=0)
+
+# equivalencia de nicho
+##OBS: Niche equivalency test H1: Is the overlap between the native and invaded niche higher than two random
+#niches?
+eq.test <- ecospat.niche.equivalency.test(grid.clim.nat, grid.clim.inv,rep=10, alternative = "greater")
+
+
+
+
+
+
+
+
+          
         nicheOverlapObs = niche.overlap(c(sdmNiche,realNiche))
         Dobs = nicheOverlapObs[1,2]
         Iobs = nicheOverlapObs[2,1]
@@ -366,6 +418,51 @@ for (i in 1:length(spsTypes)){
     }
   }
 }
+
+
+####ECOSPAT
+library(ecospat)
+
+data(ecospat.testNiche.inv)
+data(ecospat.testNiche.nat)
+
+inv <- ecospat.testNiche.inv
+nat <- ecospat.testNiche.nat
+
+#The PCA is calibrated on all the sites of the study area
+pca.env <-dudi.pca(rbind(nat,inv)[,3:10],scannf=F,nf=2)
+ecospat.plot.contrib(contrib=pca.env$co, eigen=pca.env$eig) #grafico
+
+# PCA scores for the whole study area
+scores.globclim <- pca.env$li
+# PCA scores for the species native distribution
+scores.sp.nat <- suprow(pca.env,nat[which(nat[,11]==1),3:10])$li
+
+# PCA scores for the species invasive distribution
+scores.sp.inv <- suprow(pca.env,inv[which(inv[,11]==1),3:10])$li
+
+# PCA scores for the whole native study area
+scores.clim.nat <-suprow(pca.env,nat[,3:10])$li
+
+# PCA scores for the whole invaded study area
+scores.clim.inv <- suprow(pca.env,inv[,3:10])$li
+
+# gridding the native niche
+grid.clim.nat <-ecospat.grid.clim.dyn(glob=scores.globclim,glob1=scores.clim.nat,sp=scores.sp.nat, R=100,th.sp=0)
+
+# gridding the invasive niche
+grid.clim.inv <- ecospat.grid.clim.dyn(glob=scores.globclim,glob1=scores.clim.inv,sp=scores.sp.inv, R=100,th.sp=0)
+
+# equivalencia de nicho
+##OBS: Niche equivalency test H1: Is the overlap between the native and invaded niche higher than two random
+#niches?
+eq.test <- ecospat.niche.equivalency.test(grid.clim.nat, grid.clim.inv,rep=10, alternative = "greater")
+
+
+###########
+
+
+
 
 
 ### QUINTA PARTE: construindo graficos dos resultados ###
