@@ -711,8 +711,13 @@ dev.off()
 
 
 ###CASO DA HIENA, Crocuta crocuta
+
+#abrindo os pacotes necessarios
+
 library(raster)
 library(biomod2)
+
+#fixando caminhos das pastas do projeto e carregando funcoes proprias
 
 options(java.parameters = "-Xmx7g") ###set available memmory to java
 projectFolder = "/home/anderson/Documentos/Projetos/Sps artificiais/" #pasta do projeto
@@ -722,6 +727,7 @@ AmSulShape = rgdal::readOGR("/home/anderson/PosDoc/shapefiles/Am_Sul/borders.shp
 maxentFolder = '/home/anderson/Documentos/Projetos/Sps artificiais/Maxent/' #pasta para resultados do maxent
 source("/home/anderson/R/R-Scripts/TSSmaxent.R")
 
+#obtendo pontos de ocorrencia (para o PRESENTE)
 
 occDataRaw = spocc::occ(query='Crocuta crocuta',from='gbif',limit=10000) #baixando os dados
 occDataRawDF = data.frame(occDataRaw$gbif$data$Crocuta_crocuta[,c('name','longitude','latitude','basisOfRecord')])
@@ -733,10 +739,10 @@ occData = data.frame(cbind(species='Crocuta crocuta',occDataRawDFcoord3)) #tabel
 
 ##inspecionado os pontos de ocorrencia
 
-maps::map("world", fill=TRUE, col="white", bg="lightblue", ylim=c(-60, 90), mar=c(0,0,0,0))
-occShape = rgdal::readOGR('/home/anderson/Documentos/Projetos/Sps artificiais/hiena/iucn_distribution/species_5674.shp')
-plot(occShape,add=TRUE,col=rgb(1,0,0,0.5))
-points(occData[,c('longitude','latitude')], col="blue", pch=16)
+maps::map("world", fill=TRUE, col="white", bg="lightblue", ylim=c(-60, 90), mar=c(0,0,0,0)) #plotando o mapa do mundo
+occShape = rgdal::readOGR('/home/anderson/Documentos/Projetos/Sps artificiais/hiena/iucn_distribution/species_5674.shp') #shape IUCN
+plot(occShape,add=TRUE,col=rgb(1,0,0,0.5)) #plotando shape da IUCN para a distribuição da especie
+points(occData[,c('longitude','latitude')], col="blue", pch=16) #plotando os pontos de ocorrencia (meus dados)
 
 ##eliminando os pontos que estao fora do poligono da area de ocorrencia
 
@@ -747,13 +753,57 @@ ptsInside = pts[!is.na(sp::over(pts,as(occShape,"SpatialPolygons")))] #sobrepond
 
 points(ptsInside,pch=20,cex=0.5) #plotando para checar (em cima do ultimo grafico!)
 
+#obtendo pontos de ocorrencia (para o PASSADO)
+
+fossilDataRaw = paleobioDB::pbdb_occurrences(limit="all", base_name="Crocuta crocuta",show=c("coords", "phylo", "ident")) #dados do PBDB
+
+#inspecionando pontos fosseis
+
+X11(width=13, height=7.8); paleobioDB::pbdb_map(fossilDataRaw,pch=19,col.point=c("pink","red"), col.ocean="light blue",main="Crocuta crocuta") #mapa dos pontos 
+X11(width=13, height=7.8); paleobioDB::pbdb_map_occur(fossilDataRaw) #mapa do eforco amostral
+paleobioDB::pbdb_temp_range(fossilDataRaw,rank="species") #range temporal dos registros
+
+#'limpando' os dados de registros fosseis
+
+occDataFossilLatLong = fossilDataRaw[,c("lng","lat")] #pegando apenas long e lat do PBDB data
+occDataFossilRound = round(occDataFossilLatLong, digits=2) #arredondando lat e long para 2 casas decimais
+occDataFossilClean1 = occDataFossilRound[complete.cases(occDataFossilRound),] #retirando dados incompletos
+occDataFossilClean2 = occDataFossilClean1[!duplicated(occDataFossilClean1),] #retirando pontos em sobreposicao
+occDataFossil = occDataFossilClean2 #gravando objeto com o conjundo de dados final
+
 ##salvando dados de ocorrencia "tratados"
 
 write.csv(ptsInside, file="/home/anderson/Documentos/Projetos/Sps artificiais/hiena/Crocuta_crocuta_Occ.csv",row.names=FALSE)
+write.csv(occDataFossil, file="/home/anderson/Documentos/Projetos/Sps artificiais/hiena/Crocuta_crocuta_Fossil.csv",row.names=FALSE)
 
 ##abrindo dados de ocorrencia "tratados"
 
-occData = read.csv(file="/home/anderson/Documentos/Projetos/Sps artificiais/hiena/Crocuta_crocuta_Occ.csv",header=T,stringsAsFactors=FALSE)    
+occData = read.csv(file="/home/anderson/Documentos/Projetos/Sps artificiais/hiena/Crocuta_crocuta_Occ.csv",header=T,stringsAsFactors=FALSE)
+occDataFossil = read.csv(file="/home/anderson/Documentos/Projetos/Sps artificiais/hiena/Crocuta_crocuta_Fossil.csv",header=T,stringsAsFactors=FALSE)    
 
-######CONTINAR:
-######RODAR MAXENT MONOTEMPORAL (PONTOS DO PRESENTE) E MULTITEMPORAL (PONTOS DEO PRESENTE + PONTOS FOSSEIS)
+
+##modelando a distribuição das espécies: MODELO 'MONOTEMPORAL'
+
+library(biomod2)
+
+# the name of studied species
+myRespName <- 'Hiena'
+
+# the XY coordinates of species data
+myRespXY <- occData
+coordinates(myRespXY) <- ~ longitude + latitude #transformando em spatialPoints
+crs(myRespXY) = crs('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0') #transformando em spatialPoints
+
+
+# load the environmental raster layers
+myExpl = raster::stack(list.files(envVarPaths[1],pattern='bioclim',full.names=TRUE))
+
+crs(myExpl) = crs('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0') #transformando em spatialPoints
+
+myBiomodData <- BIOMOD_FormatingData(resp.var = myRespXY,
+                                     expl.var = myExpl,
+                                     resp.name = myRespName,
+                                     PA.nb.rep = 1000)
+
+#inspecionando o objeto gerado pela funcao do biomod2
+myBiomodData
