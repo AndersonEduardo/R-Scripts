@@ -119,10 +119,47 @@ for (i in 1:length(splist)){
             PresBackTrain = PresBackTrainRaw
 
             ##CRIANDO E RODANDO O MODELO (esquema do SWD - sample with data)##    
-            MX <- maxent(x=PresBackTrain[c(-1,-2,-3)],p=PresBackTrain$pres,args=c('responsecurves=true','jackknife=true','randomseed=true','randomtestpoints=0','betamultiplier=1','replicates=1','replicatetype=Subsample','writebackgroundpredictions=true','linear=true','quadratic=true','product=false','threshold=false','hinge=false','maximumiterations=1000','convergencethreshold=1.0E-5','threads=2'))
+            MX <- maxent(x=PresBackTrain[c(-1,-2,-3)],
+						 p=PresBackTrain$pres,args=c(
+													'responsecurves=true',
+													'jackknife=true',
+													'randomseed=true',
+													'randomtestpoints=0',
+													'betamultiplier=1',
+													'replicates=1',
+													'replicatetype=Subsample',
+													'writebackgroundpredictions=true',
+													'linear=true',
+													'quadratic=true',
+													'product=false',
+													'threshold=false',
+													'hinge=false',
+													'maximumiterations=1000',
+													'convergencethreshold=1.0E-5',
+													'threads=2')
+			)
 
             ##fazendo a projecao
-            MX.projection = maxent(x=dataSet[c(-1,-2,-3)],p=dataSet$pres,args=c('responsecurves=true','jackknife=true','randomseed=true','randomtestpoints=0','betamultiplier=1','replicates=1','replicatetype=Subsample','writebackgroundpredictions=true','linear=true','quadratic=true','product=false','threshold=false','hinge=false','maximumiterations=1000','convergencethreshold=1.0E-5','threads=2')) #calibrando o modelo com todos os dados de ocorrência
+            MX.projection = maxent(x=dataSet[c(-1,-2,-3)],
+								   p=dataSet$pres,
+								   args=c(
+										'responsecurves=true',
+										'jackknife=true',
+										'randomseed=true',
+										'randomtestpoints=0',
+										'betamultiplier=1',
+										'replicates=1',
+										'replicatetype=Subsample',
+										'writebackgroundpredictions=true',
+										'linear=true',
+										'quadratic=true',
+										'product=false',
+										'threshold=false',
+										'hinge=false',
+										'maximumiterations=1000',
+										'convergencethreshold=1.0E-5',
+										'threads=2')) #calibrando o modelo com todos os dados de ocorrência
+
             projecaoSuitability = append(projecaoSuitability, predict(predictors,MX.projection))
             
             ##pegando a porcao dos dados separados para a avaliacao (validacao) do modelo

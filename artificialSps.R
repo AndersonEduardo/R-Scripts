@@ -765,26 +765,32 @@ paleobioDB::pbdb_temp_range(fossilDataRaw,rank="species") #range temporal dos re
 
 #'limpando' os dados de registros fosseis
 
-occDataFossilLatLong = fossilDataRaw[,c("lng","lat")] #pegando apenas long e lat do PBDB data
+occDataFossilLatLong = fossilDataRaw[,c("lng","lat","eag","lag")] #pegando apenas long e lat do PBDB data
 occDataFossilRound = round(occDataFossilLatLong, digits=2) #arredondando lat e long para 2 casas decimais
 occDataFossilClean1 = occDataFossilRound[complete.cases(occDataFossilRound),] #retirando dados incompletos
 occDataFossilClean2 = occDataFossilClean1[!duplicated(occDataFossilClean1),] #retirando pontos em sobreposicao
 occDataFossil = occDataFossilClean2 #gravando objeto com o conjundo de dados final
+occDataFossil = cbind(occDataFossil[,c('lng','lat')],age=(occDataFossil$eag-occDataFossil$lag)/2)
 
 ##salvando dados de ocorrencia "tratados"
 
 write.csv(ptsInside, file="/home/anderson/Documentos/Projetos/Sps artificiais/hiena/Crocuta_crocuta_Occ.csv",row.names=FALSE)
 write.csv(occDataFossil, file="/home/anderson/Documentos/Projetos/Sps artificiais/hiena/Crocuta_crocuta_Fossil.csv",row.names=FALSE)
 
-##abrindo dados de ocorrencia "tratados"
 
-occData = read.csv(file="/home/anderson/Documentos/Projetos/Sps artificiais/hiena/Crocuta_crocuta_Occ.csv",header=T,stringsAsFactors=FALSE)
-occDataFossil = read.csv(file="/home/anderson/Documentos/Projetos/Sps artificiais/hiena/Crocuta_crocuta_Fossil.csv",header=T,stringsAsFactors=FALSE)    
+#############################################
+#############################################
+#############################################
 
 
 ##modelando a distribuição das espécies: MODELO 'MONOTEMPORAL'
 
+##pacotes
 library(biomod2)
+
+##abrindo dados de ocorrencia "tratados"
+occData = read.csv(file="/home/anderson/Documentos/Projetos/Sps artificiais/hiena/Crocuta_crocuta_Occ.csv",header=T,stringsAsFactors=FALSE)
+occDataFossil = read.csv(file="/home/anderson/Documentos/Projetos/Sps artificiais/hiena/Crocuta_crocuta_Fossil.csv",header=T,stringsAsFactors=FALSE)    
 
 # the name of studied species
 myRespName <- 'Hiena'
@@ -797,13 +803,13 @@ crs(myRespXY) = crs('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0') #t
 
 # load the environmental raster layers
 myExpl = raster::stack(list.files(envVarPaths[1],pattern='bioclim',full.names=TRUE))
-
 crs(myExpl) = crs('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0') #transformando em spatialPoints
 
 myBiomodData <- BIOMOD_FormatingData(resp.var = myRespXY,
                                      expl.var = myExpl,
-                                     resp.name = myRespName,
-                                     PA.nb.rep = 1000)
+                                     resp.name = myRespName)
+#                                     PA.nb.rep = 1000)
 
 #inspecionando o objeto gerado pela funcao do biomod2
 myBiomodData
+plot(myBiomodData)
