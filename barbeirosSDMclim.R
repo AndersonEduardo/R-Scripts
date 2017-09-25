@@ -20,7 +20,7 @@ source("/home/anderson/R/R-Scripts/TSSmaxent.R")
 #anderson
 envVarFolder = "/home/anderson/Documentos/Projetos/Distribuicao de barbeiros com interacao com humanos/Variaveis Climaticas"
 spOccFolder = "/home/anderson/Documentos/Projetos/Distribuicao de barbeiros com interacao com humanos/Ocorrencias/"
-projectFolder = "/home/anderson/Documentos/Projetos/Distribuicao de barbeiros com interacao com humanos/"
+projectFolder = "/home/anderson/Documentos/Projetos/Distribuicao de barbeiros com interacao com humanos/resultados nicho climatico/"
 
 ##abrindo as variaveis climaticas
 ##abrindo shape da America do Sul
@@ -157,7 +157,7 @@ tabBarb = read.csv("/home/anderson/Documentos/Projetos/macroecologia_de_chagas/T
 
 #sobrepondo distribuicoes para mapa de risco
 #presente
-listaPresente = grep(list.files(paste(projectFolder,"resultados nicho climatico/Projecoes",sep=""),full.names=TRUE),pattern='Otimista|Pessimista',inv=T,value=T)
+listaPresente = grep(list.files(paste(projectFolder,"Projecoes",sep=""),full.names=TRUE),pattern='Otimista|Pessimista',inv=T,value=T)
 listaPresenteBIN = grep(listaPresente,pattern='BIN.asc',value=TRUE)
 camadasPresente = stack(listaPresenteBIN)
 #
@@ -170,10 +170,10 @@ infecIndOrdered = tabBarb$taxaInfeccaonatural[match(listaNomes,tabBarb$sp)]/100 
 mapaRiscoPresente = sum(camadasPresente*infecIndOrdered) 
 mapaRiscoPresente = mapaRiscoPresente/length(infecIndOrdered)
 plot(mapaRiscoPresente)
-writeRaster(x=mapaRiscoPresente,filename=paste(projectFolder,'resultados nicho climatico/Mapas de risco/mapaRiscoPresente.asc',sep=''),overwrite=TRUE)
+writeRaster(x=mapaRiscoPresente,filename=paste(projectFolder,'Mapas de risco/mapaRiscoPresente.asc',sep=''),overwrite=TRUE)
 
 #futuro otimista
-camadasFuturoOtimista = stack(list.files(paste(projectFolder,"resultados nicho climatico/Projecoes",sep=""),pattern = "OtimistaBIN.asc",full.names=TRUE))
+camadasFuturoOtimista = stack(list.files(paste(projectFolder,"Projecoes",sep=""),pattern = "OtimistaBIN.asc",full.names=TRUE))
 listaNomes = names(camadasFuturoOtimista)
 listaNomes = gsub(pattern='OtimistaBIN',replacement='',x=listaNomes)
 infecIndOrdered = tabBarb$taxaInfeccaonatural[match(listaNomes,tabBarb$sp)]/100 #taxa de infeccao natural na ordem dos rasters (de 0 a 1)
@@ -181,10 +181,10 @@ infecIndOrdered = tabBarb$taxaInfeccaonatural[match(listaNomes,tabBarb$sp)]/100 
 mapaRiscoFuturoOtimista = sum(camadasFuturoOtimista*infecIndOrdered)
 mapaRiscoFuturoOtimista = mapaRiscoFuturoOtimista/length(infecIndOrdered)
 plot(mapaRiscoFuturoOtimista)
-writeRaster(x=mapaRiscoFuturoOtimista,filename=paste(projectFolder,'resultados nicho climatico/Mapas de risco/mapaRiscoFuturoOtimista.asc',sep=''),overwrite=TRUE)
+writeRaster(x=mapaRiscoFuturoOtimista,filename=paste(projectFolder,'Mapas de risco/mapaRiscoFuturoOtimista.asc',sep=''),overwrite=TRUE)
 
 #futuro pessimista
-camadasFuturoPessimista = stack(list.files(paste(projectFolder,"resultados nicho climatico/Projecoes",sep=""),pattern = "PessimistaBIN.asc",full.names=TRUE))
+camadasFuturoPessimista = stack(list.files(paste(projectFolder,"Projecoes",sep=""),pattern = "PessimistaBIN.asc",full.names=TRUE))
 listaNomes = names(camadasFuturoOtimista)
 listaNomes = gsub(pattern='OtimistaBIN',replacement='',x=listaNomes)
 infecIndOrdered = tabBarb$taxaInfeccaonatural[match(listaNomes,tabBarb$sp)]/100 #taxa de infeccao natural na ordem dos rasters (de 0 a 1)
@@ -192,19 +192,29 @@ infecIndOrdered = tabBarb$taxaInfeccaonatural[match(listaNomes,tabBarb$sp)]/100 
 mapaRiscoFuturoPessimista = sum(camadasFuturoPessimista*infecIndOrdered)
 mapaRiscoFuturoPessimista = mapaRiscoFuturoPessimista/length(infecIndOrdered)
 plot(mapaRiscoFuturoPessimista)
-writeRaster(x=mapaRiscoFuturoPessimista,filename=paste(projectFolder,'resultados nicho climatico/Mapas de risco/mapaRiscoFuturoPessimista.asc',sep=''),overwrite=TRUE)
+writeRaster(x=mapaRiscoFuturoPessimista,filename=paste(projectFolder,'Mapas de risco/mapaRiscoFuturoPessimista.asc',sep=''),overwrite=TRUE)
 
 
 ###QUINTA PARTE: estatisticas sumarias a partir dos mapas - SEM impacto humano###
 
 
+##definindo a area do Brasil na America do Sul, para os mapas
+areaBR = extent(-80.00635,-31.71555,-37.8679,8.156474) #extent do Brasil
+AmSulBR = crop(AmSulShape, extent(areaBR))  #america do sul recortada para o BR
+
 #presente 
 
+##abrindo
+mapaRiquezaPresente = raster(paste(projectFolder,'Mapas de riqueza/mapaRiquezaPresente.asc',sep=''))
+mapaRiscoPresente = raster(paste(projectFolder,'Mapas de risco/mapaRiscoPresente.asc',sep=''))
+
+##cortando para o Brasil
+mapaRiquezaPresenteBR = mask(mapaRiquezaPresente, mask=(AmSulShape[AmSulShape$CNTRY_NAME=='Brazil',]))
+mapaRiscoPresenteBR = mask(mapaRiscoPresente, mask=(AmSulShape[AmSulShape$CNTRY_NAME=='Brazil',]))
+
 #tamanho da area do quartil superior (para riqueza e risco), para comparar os cenarios
-mapaRiquezaPresente = raster(paste(projectFolder,'resultados nicho climatico/Mapas de riqueza/mapaRiquezaPresente.asc',sep=''))
-mapaRiscoPresente = raster(paste(projectFolder,'resultados nicho climatico/Mapas de risco/mapaRiscoPresente.asc',sep=''))
-hightRiqPres= mapaRiquezaPresente > quantile(mapaRiquezaPresente, 0.75,na.rm=TRUE) #raster quartil superior riqueza
-hightRiscPres = mapaRiscoPresente > quantile(mapaRiscoPresente, 0.75,na.rm=TRUE) #raster quartil superior risco
+hightRiqPres= mapaRiquezaPresenteBR > quantile(mapaRiquezaPresenteBR, 0.75,na.rm=TRUE) #raster quartil superior riqueza
+hightRiscPres = mapaRiscoPresenteBR > quantile(mapaRiscoPresenteBR, 0.75,na.rm=TRUE) #raster quartil superior risco
 
 percCelRiqPres = freq(hightRiqPres,value=1)/(freq(hightRiqPres,value=0)+freq(hightRiqPres,value=1)) #percentagem celulas no quartil sup.
 percCelRiscPres = freq(hightRiscPres,value=1)/(freq(hightRiscPres,value=0)+freq(hightRiscPres,value=1)) #percentagem de celulas no quartil sup.
@@ -216,11 +226,17 @@ corPres <- as.data.frame(cor(test, use="complete.obs",method='spearman'))
 
 #futuro otimista 
 
-#tamanho da area do quartil superior (para riqueza e risco), para comparar os cenarios
-mapaRiquezaFuturoOtimista = raster(paste(projectFolder,'resultados nicho climatico/Mapas de riqueza/mapaRiquezaFuturoOtimista.asc',sep=''))
-mapaRiscoFuturoOtimista = raster(paste(projectFolder,'resultados nicho climatico/Mapas de risco/mapaRiscoFuturoOtimista.asc',sep=''))
-hightRiqOtim= mapaRiquezaFuturoOtimista > quantile(mapaRiquezaFuturoOtimista, 0.75,na.rm=TRUE) #raster quartil superior riqueza
-hightRiscOtim = mapaRiscoFuturoOtimista > quantile(mapaRiscoFuturoOtimista, 0.75,na.rm=TRUE) #raster quartil superior risco
+##abrindo
+mapaRiquezaFuturoOtimista = raster(paste(projectFolder,'Mapas de riqueza/mapaRiquezaFuturoOtimista.asc',sep=''))
+mapaRiscoFuturoOtimista = raster(paste(projectFolder,'Mapas de risco/mapaRiscoFuturoOtimista.asc',sep=''))
+
+##cortando para o BR
+mapaRiquezaFuturoOtimistaBR = mask(mapaRiquezaFuturoOtimista, mask=(AmSulShape[AmSulShape$CNTRY_NAME=='Brazil',]))
+mapaRiscoFuturoOtimistaBR = mask(mapaRiscoFuturoOtimista, mask=(AmSulShape[AmSulShape$CNTRY_NAME=='Brazil',]))
+
+##tamanho da area do quartil superior (para riqueza e risco), para comparar os cenarios
+hightRiqOtim= mapaRiquezaFuturoOtimistaBR > quantile(mapaRiquezaFuturoOtimistaBR, 0.75,na.rm=TRUE) #raster quartil superior riqueza
+hightRiscOtim = mapaRiscoFuturoOtimistaBR > quantile(mapaRiscoFuturoOtimistaBR, 0.75,na.rm=TRUE) #raster quartil superior risco
 
 percCelRiqOtim = freq(hightRiqOtim,value=1)/(freq(hightRiqOtim,value=0)+freq(hightRiqOtim,value=1)) #percentagem celulas no quartil sup.
 percCelRiscOtim =  freq(hightRiscOtim,value=1)/(freq(hightRiscOtim,value=0)+freq(hightRiscOtim,value=1)) #percentagem de celulas no quartil sup.
@@ -230,32 +246,38 @@ test <- getValues(stack(hightRiqOtim,hightRiscOtim))
 corOtim <- as.data.frame(cor(test, use="complete.obs",method='spearman'))
 ##write.csv(cor.matrix,'cor_matrix.csv')
 
-#futuro pessimista 
+##futuro pessimista 
+
+##abrindo
+mapaRiquezaFuturoPessimista = raster(paste(projectFolder,'Mapas de riqueza/mapaRiquezaFuturoPessimista.asc',sep=''))
+mapaRiscoFuturoPessimista = raster(paste(projectFolder,'Mapas de risco/mapaRiscoFuturoPessimista.asc',sep=''))
+
+##cortando para o BR
+mapaRiquezaFuturoPessimistaBR = mask(mapaRiquezaFuturoPessimista, mask=(AmSulShape[AmSulShape$CNTRY_NAME=='Brazil',]))
+mapaRiscoFuturoPessimistaBR = mask(mapaRiscoFuturoPessimista, mask=(AmSulShape[AmSulShape$CNTRY_NAME=='Brazil',]))
 
 #tamanho da area do quartil superior (para riqueza e risco), para comparar os cenarios
-mapaRiquezaFuturoPessimista = raster(paste(projectFolder,'resultados nicho climatico/Mapas de riqueza/mapaRiquezaFuturoPessimista.asc',sep=''))
-mapaRiscoFuturoPessimista = raster(paste(projectFolder,'resultados nicho climatico/Mapas de risco/mapaRiscoFuturoPessimista.asc',sep=''))
-hightRiqPess= mapaRiquezaFuturoPessimista > quantile(mapaRiquezaFuturoPessimista, 0.75,na.rm=TRUE) #raster quartil superior riqueza
-hightRiscPess = mapaRiscoFuturoPessimista > quantile(mapaRiscoFuturoPessimista, 0.75,na.rm=TRUE) #raster quartil superior risco
+hightRiqPess= mapaRiquezaFuturoPessimistaBR > quantile(mapaRiquezaFuturoPessimistaBR, 0.75,na.rm=TRUE) #raster quartil superior riqueza
+hightRiscPess = mapaRiscoFuturoPessimistaBR > quantile(mapaRiscoFuturoPessimistaBR, 0.75,na.rm=TRUE) #raster quartil superior risco
 
 percCelRiqPess = freq(hightRiqPess,value=1)/(freq(hightRiqPess,value=0)+freq(hightRiqPess,value=1)) #percentagem celulas no quartil sup.
 percCelRiscPess = freq(hightRiscPess,value=1)/(freq(hightRiscPess,value=0)+freq(hightRiscPess,value=1))  #percentagem de celulas no quartil sup.
 
-#correlacao entre riqueza e risco
+##correlacao entre riqueza e risco
 test <- getValues(stack(hightRiqPess,hightRiscPess))
 corPess <- as.data.frame(cor(test, use="complete.obs",method='spearman'))
 ##write.csv(cor.matrix,'cor_matrix.csv')
 
 #salvando resultados em tabelas
 tab = data.frame(scenario=c('pres','fut_otim','fut_pess'),
-                 quantile75riq = c(quantile(mapaRiquezaPresente, 0.75,na.rm=TRUE),quantile(mapaRiquezaFuturoOtimista, 0.75,na.rm=TRUE),quantile(mapaRiquezaFuturoPessimista, 0.75,na.rm=TRUE)),
-                 quantile75risc = c(quantile(mapaRiscoPresente, 0.75,na.rm=TRUE),quantile(mapaRiscoFuturoOtimista, 0.75,na.rm=TRUE), quantile(mapaRiscoFuturoPessimista, 0.75,na.rm=TRUE)),
+                 quantile75riq = c(quantile(mapaRiquezaPresenteBR, 0.75,na.rm=TRUE),quantile(mapaRiquezaFuturoOtimistaBR, 0.75,na.rm=TRUE),quantile(mapaRiquezaFuturoPessimistaBR, 0.75,na.rm=TRUE)),
+                 quantile75risc = c(quantile(mapaRiscoPresenteBR, 0.75,na.rm=TRUE),quantile(mapaRiscoFuturoOtimistaBR, 0.75,na.rm=TRUE), quantile(mapaRiscoFuturoPessimistaBR, 0.75,na.rm=TRUE)),
                  percCellRiq = c(percCelRiqPres,percCelRiqOtim,percCelRiqPess),
                  percCellRisc = c(percCelRiscPres,percCelRiscOtim,percCelRiscPess),
                  corRiqRisc = c(corPres[1,2],corOtim[1,2],corPess[1,2])
 )
 
-write.csv(tab,paste(projectFolder,'resultados nicho climatico/statsRes.csv',sep=''),row.names = FALSE)
+write.csv(tab,paste(projectFolder,'statsRes.csv',sep=''),row.names = FALSE)
 
 
 ###SEXTA PARTE: figuras dos mapas - SEM impacto humano###
@@ -263,12 +285,12 @@ write.csv(tab,paste(projectFolder,'resultados nicho climatico/statsRes.csv',sep=
 
 ##abrindo os rasters
 
-mapaRiquezaPresente = raster(paste(projectFolder,'resultados nicho climatico/Mapas de riqueza/mapaRiquezaPresente.asc',sep=''))
-mapaRiquezaFuturoOtimista = raster(paste(projectFolder,'resultados nicho climatico/Mapas de riqueza/mapaRiquezaFuturoPessimista.asc',sep=''))
-mapaRiquezaFuturoPessimista = raster(paste(projectFolder,'resultados nicho climatico/Mapas de riqueza/mapaRiquezaFuturoPessimista.asc',sep=''))
-mapaRiscoPresente = raster(paste(projectFolder,'resultados nicho climatico/Mapas de risco/mapaRiscoPresente.asc',sep=''))
-mapaRiscoFuturoOtimista = raster(paste(projectFolder,'resultados nicho climatico/Mapas de risco/mapaRiscoFuturoOtimista.asc',sep=''))
-mapaRiscoFuturoPessimista = raster(paste(projectFolder,'resultados nicho climatico/Mapas de risco/mapaRiscoFuturoPessimista.asc',sep=''))
+mapaRiquezaPresente = raster(paste(projectFolder,'Mapas de riqueza/mapaRiquezaPresente.asc',sep=''))
+mapaRiquezaFuturoOtimista = raster(paste(projectFolder,'Mapas de riqueza/mapaRiquezaFuturoOtimista.asc',sep=''))
+mapaRiquezaFuturoPessimista = raster(paste(projectFolder,'Mapas de riqueza/mapaRiquezaFuturoPessimista.asc',sep=''))
+mapaRiscoPresente = raster(paste(projectFolder,'Mapas de risco/mapaRiscoPresente.asc',sep=''))
+mapaRiscoFuturoOtimista = raster(paste(projectFolder,'Mapas de risco/mapaRiscoFuturoOtimista.asc',sep=''))
+mapaRiscoFuturoPessimista = raster(paste(projectFolder,'Mapas de risco/mapaRiscoFuturoPessimista.asc',sep=''))
 
 ##definindo a area do Brasil na America do Sul, para os mapas
 
@@ -285,7 +307,7 @@ mapaRiscoFuturoPessimistaBR = mask(mapaRiscoFuturoPessimista, mask=(AmSulShape[A
 
 
 ##salvado os mapas
-jpeg(filename=paste(projectFolder,'resultados nicho climatico/mapas.jpeg',sep=''),width=1750,height=850)
+jpeg(filename=paste(projectFolder,'mapas.jpeg',sep=''),width=1750,height=850)
 par(mfrow=c(2,3), mar=c(5,5,5,20))
 ##riqueza
 plot(crop(mapaRiquezaPresenteBR,areaBR),main='Current climate',legend=FALSE,cex.axis=2,cex.main=4) + plot(AmSulShape[AmSulShape$CNTRY_NAME!='Brazil',],col='lightgray',add=TRUE) + plot(AmSulShape[AmSulShape$CNTRY_NAME=='Brazil',],add=TRUE) + box() + grid()

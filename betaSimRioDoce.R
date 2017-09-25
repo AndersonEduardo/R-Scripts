@@ -4,21 +4,22 @@
 
 ##PARTE 1: abrindo dados e funcoes necessarias
 
+
 ##hora do inicio
 starTime = Sys.time()
 print('Rodando script...')
 
 ##funcoes
-source('/home/anderson/Documentos/Projetos/Rio Doce Isac/FD/__online_2017_02_01/functions/multidimFbetaD.R')
-source('/home/anderson/Documentos/Projetos/Rio Doce Isac/FD/__online_2017_02_01/functions/quality_funct_space.R')
+source('/home/anderson/Documentos/Projetos/Diversidade beta Rio Doce Isaac/FD/__online_2017_02_01/functions/multidimFbetaD.R')
+source('/home/anderson/Documentos/Projetos/Diversidade beta Rio Doce Isaac/FD/__online_2017_02_01/functions/quality_funct_space.R')
 
 ##dados
-matFunc = read.table('/home/anderson/Documentos/Projetos/Rio Doce Isac/Projeto_Rio_Doce/doce_funcional_imputacao.txt') #matriz traits funcionais
-matPres = read.table('/home/anderson/Documentos/Projetos/Rio Doce Isac/Projeto_Rio_Doce/doce.comunidades.txt') #matriz pres-aus
+matFunc = read.table('/home/anderson/Documentos/Projetos/Diversidade beta Rio Doce Isaac/Projeto_Rio_Doce/doce_funcional_imputacao.txt') #matriz traits funcionais
+matPres = read.table('/home/anderson/Documentos/Projetos/Diversidade beta Rio Doce Isaac/Projeto_Rio_Doce/doce.comunidades.txt') #matriz pres-aus
 
 ##crindo objeto para armazenar os resultados e com os cenarios
 outputBetaDiv = list()
-scenarios = c(0.05, 0.25, 0.50, 0.75, 1.00)
+scenarios = c(0.25, 0.50, 0.75, 1.00) # c(0.05, 0.25, 0.50, 0.75, 1.00)
 
 
 ##PARTE 2: realizando as iteracoes dos cenarios e o calculo da beta div para cada um
@@ -33,12 +34,12 @@ for (s in scenarios){
     doceCommScen = rep(0, length(doceComm)) #vetor de zeros para o Rio Doce
     doceCommScen[sample(which(doceComm==1))[1:round(s*length(doceComm[which(doceComm==1)]))]] = 1 #eliminacao aleatoria de especies para o cenario atual
 
-        for (i in 1:100){ #for (i in 1:100){
+        for (i in 1:69){ #for (i in 1:100){
         
         ##PARTE 2B: aleatorizacao
 
         ##sistema de diretorios para a iteracao atual
-        mainDir = "/home/anderson/Documentos/Projetos/Rio Doce Isac" #diretorio principal
+        mainDir = "/home/anderson/Documentos/Projetos/Diversidade beta Rio Doce Isaac" #diretorio principal
         scenarioDir = paste('outputs/','scenario_',(1-s)*100,sep='') #diretorio dos resultados da s-esimo cenario
         iterationDir = paste('iteration_',i,sep='') #diretorio dos resultados da i-esima iteracao
         dir.create(path=file.path(mainDir, scenarioDir, iterationDir), showWarnings=FALSE, recursive=TRUE) #criando diretorio (se ele nao existe)
@@ -75,4 +76,3 @@ for (s in scenarios){
 print('Concluido com sucesso!')         
 timeTaken = Sys.time() - starTime
 round(timeTaken,2)
-
