@@ -120,7 +120,7 @@ for (i in 1:length(splist)){
 write.csv(tabRes,file=paste(projectFolder,'tabela_resultados.csv',sep=''))
 
 
-###TERCEIRA PARTE: gerando mapas de sobreposicao (riqueza) - SEM impacto humano###
+###TERCEIRA PARTE: gerando mapas de sobreposicao (i.e. mapa de riqueza) - SEM impacto humano###
 
 
 #sobrepondo distribuicoes para mapa de riqueza
@@ -219,7 +219,8 @@ hightRiscPres = mapaRiscoPresenteBR > quantile(mapaRiscoPresenteBR, 0.75,na.rm=T
 percCelRiqPres = freq(hightRiqPres,value=1)/(freq(hightRiqPres,value=0)+freq(hightRiqPres,value=1)) #percentagem celulas no quartil sup.
 percCelRiscPres = freq(hightRiscPres,value=1)/(freq(hightRiscPres,value=0)+freq(hightRiscPres,value=1)) #percentagem de celulas no quartil sup.
 
-#correlacao entre riqueza e risco
+##correlacao entre riqueza e risco
+rm(test)
 test <- getValues(stack(hightRiqPres,hightRiscPres))
 corPres <- as.data.frame(cor(test, use="complete.obs",method='spearman'))
 ##write.csv(cor.matrix,'cor_matrix.csv')
@@ -241,7 +242,8 @@ hightRiscOtim = mapaRiscoFuturoOtimistaBR > quantile(mapaRiscoFuturoOtimistaBR, 
 percCelRiqOtim = freq(hightRiqOtim,value=1)/(freq(hightRiqOtim,value=0)+freq(hightRiqOtim,value=1)) #percentagem celulas no quartil sup.
 percCelRiscOtim =  freq(hightRiscOtim,value=1)/(freq(hightRiscOtim,value=0)+freq(hightRiscOtim,value=1)) #percentagem de celulas no quartil sup.
 
-#correlacao entre riqueza e risco
+##correlacao entre riqueza e risco
+rm(test)
 test <- getValues(stack(hightRiqOtim,hightRiscOtim))
 corOtim <- as.data.frame(cor(test, use="complete.obs",method='spearman'))
 ##write.csv(cor.matrix,'cor_matrix.csv')
@@ -257,18 +259,22 @@ mapaRiquezaFuturoPessimistaBR = mask(mapaRiquezaFuturoPessimista, mask=(AmSulSha
 mapaRiscoFuturoPessimistaBR = mask(mapaRiscoFuturoPessimista, mask=(AmSulShape[AmSulShape$CNTRY_NAME=='Brazil',]))
 
 #tamanho da area do quartil superior (para riqueza e risco), para comparar os cenarios
-hightRiqPess= mapaRiquezaFuturoPessimistaBR > quantile(mapaRiquezaFuturoPessimistaBR, 0.75,na.rm=TRUE) #raster quartil superior riqueza
+hightRiqPess = mapaRiquezaFuturoPessimistaBR > quantile(mapaRiquezaFuturoPessimistaBR, 0.75,na.rm=TRUE) #raster quartil superior riqueza
 hightRiscPess = mapaRiscoFuturoPessimistaBR > quantile(mapaRiscoFuturoPessimistaBR, 0.75,na.rm=TRUE) #raster quartil superior risco
 
 percCelRiqPess = freq(hightRiqPess,value=1)/(freq(hightRiqPess,value=0)+freq(hightRiqPess,value=1)) #percentagem celulas no quartil sup.
 percCelRiscPess = freq(hightRiscPess,value=1)/(freq(hightRiscPess,value=0)+freq(hightRiscPess,value=1))  #percentagem de celulas no quartil sup.
 
 ##correlacao entre riqueza e risco
+rm(test)
 test <- getValues(stack(hightRiqPess,hightRiscPess))
 corPess <- as.data.frame(cor(test, use="complete.obs",method='spearman'))
 ##write.csv(cor.matrix,'cor_matrix.csv')
 
-#salvando resultados em tabelas
+##salvando resultados em tabelas
+
+rm(tam)
+
 tab = data.frame(scenario=c('pres','fut_otim','fut_pess'),
                  quantile75riq = c(quantile(mapaRiquezaPresenteBR, 0.75,na.rm=TRUE),quantile(mapaRiquezaFuturoOtimistaBR, 0.75,na.rm=TRUE),quantile(mapaRiquezaFuturoPessimistaBR, 0.75,na.rm=TRUE)),
                  quantile75risc = c(quantile(mapaRiscoPresenteBR, 0.75,na.rm=TRUE),quantile(mapaRiscoFuturoOtimistaBR, 0.75,na.rm=TRUE), quantile(mapaRiscoFuturoPessimistaBR, 0.75,na.rm=TRUE)),

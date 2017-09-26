@@ -21,11 +21,9 @@ envVarFolder = "/home/anderson/Documentos/Projetos/Distribuicao de barbeiros com
 spOccFolder = "/home/anderson/Documentos/Projetos/Distribuicao de barbeiros com interacao com humanos/Ocorrencias/"
 projectFolder = "/home/anderson/Documentos/Projetos/Distribuicao de barbeiros com interacao com humanos/resultados nicho climatico + impacto humano/"
 
-
-
 ##abrindo as variaveis climaticas
 ##abrindo shape da America do Sul
-AmSulShape = readShapePoly("/home/anderson/PosDoc/shapefiles/Am_Sul/borders.shp")
+AmSulShape = rgdal::readOGR("/home/anderson/PosDoc/shapefiles/Am_Sul/borders.shp")
 
 ##abrindo e cortando camadas de variaveis ambientais para o presente
 filesRaw <- stack(list.files(path=envVarFolder, pattern='.asc', full.names=TRUE)) #modificar a extensao .bil de acordo com os arquivos
@@ -123,7 +121,7 @@ for (i in 1:length(splist)){
 write.csv(tabRes,file=paste(projectFolder,'tabela_resultados.csv',sep=''))
 
 
-###TERCEIRA PARTE: gerando mapas de sobreposicao (riqueza) - COM impacto humano###
+###TERCEIRA PARTE: gerando mapas de sobreposicao (i.e. mapas de riqueza de especies) - COM impacto humano###
 
 #sobrepondo distribuicoes para mapa de riqueza
 #presente
@@ -220,7 +218,8 @@ hightRiscPres = mapaRiscoPresenteBR > quantile(mapaRiscoPresenteBR, 0.75,na.rm=T
 percCelRiqPres = freq(hightRiqPres,value=1)/(freq(hightRiqPres,value=0)+freq(hightRiqPres,value=1)) #percentagem celulas no quartil sup.
 percCelRiscPres = freq(hightRiscPres,value=1)/(freq(hightRiscPres,value=0)+freq(hightRiscPres,value=1)) #percentagem de celulas no quartil sup.
 
-#correlacao entre riqueza e risco
+##correlacao entre riqueza e risco
+rm(test)
 test <- getValues(stack(hightRiqPres,hightRiscPres))
 corPres <- as.data.frame(cor(test, use="complete.obs",method='spearman'))
 ##write.csv(cor.matrix,'cor_matrix.csv')
@@ -242,7 +241,8 @@ hightRiscOtim = mapaRiscoFuturoOtimistaBR > quantile(mapaRiscoFuturoOtimistaBR, 
 percCelRiqOtim = freq(hightRiqOtim,value=1)/(freq(hightRiqOtim,value=0)+freq(hightRiqOtim,value=1)) #percentagem celulas no quartil sup.
 percCelRiscOtim =  freq(hightRiscOtim,value=1)/(freq(hightRiscOtim,value=0)+freq(hightRiscOtim,value=1)) #percentagem de celulas no quartil sup.
 
-#correlacao entre riqueza e risco
+##correlacao entre riqueza e risco
+rm(test)
 test <- getValues(stack(hightRiqOtim,hightRiscOtim))
 corOtim <- as.data.frame(cor(test, use="complete.obs",method='spearman'))
 ##write.csv(cor.matrix,'cor_matrix.csv')
@@ -258,18 +258,20 @@ mapaRiquezaFuturoPessimistaBR = mask(mapaRiquezaFuturoPessimista, mask=(AmSulSha
 mapaRiscoFuturoPessimistaBR = mask(mapaRiscoFuturoPessimista, mask=(AmSulShape[AmSulShape$CNTRY_NAME=='Brazil',]))
 
 ##tamanho da area do quartil superior (para riqueza e risco), para comparar os cenarios
-hightRiqPess= mapaRiquezaFuturoPessimistaBR > quantile(mapaRiquezaFuturoPessimistaBR, 0.75,na.rm=TRUE) #raster quartil superior riqueza
+hightRiqPess = mapaRiquezaFuturoPessimistaBR > quantile(mapaRiquezaFuturoPessimistaBR, 0.75,na.rm=TRUE) #raster quartil superior riqueza
 hightRiscPess = mapaRiscoFuturoPessimistaBR > quantile(mapaRiscoFuturoPessimistaBR, 0.75,na.rm=TRUE) #raster quartil superior risco
 
 percCelRiqPess = freq(hightRiqPess,value=1)/(freq(hightRiqPess,value=0)+freq(hightRiqPess,value=1)) #percentagem celulas no quartil sup.
 percCelRiscPess = freq(hightRiscPess,value=1)/(freq(hightRiscPess,value=0)+freq(hightRiscPess,value=1))  #percentagem de celulas no quartil sup.
 
-#correlacao entre riqueza e risco
+##correlacao entre riqueza e risco
+rm(test)
 test <- getValues(stack(hightRiqPess,hightRiscPess))
 corPess <- as.data.frame(cor(test, use="complete.obs",method='spearman'))
 ##write.csv(cor.matrix,'cor_matrix.csv')
 
-#salvando resultados em tabelas
+##salvando resultados em tabelas
+rm(tab)
 tab = data.frame(scenario=c('pres','fut_otim','fut_pess'),
                  quantile75riq = c(quantile(mapaRiquezaPresenteBR, 0.75,na.rm=TRUE),quantile(mapaRiquezaFuturoOtimistaBR, 0.75,na.rm=TRUE),quantile(mapaRiquezaFuturoPessimistaBR, 0.75,na.rm=TRUE)),
                  quantile75risc = c(quantile(mapaRiscoPresenteBR, 0.75,na.rm=TRUE),quantile(mapaRiscoFuturoOtimistaBR, 0.75,na.rm=TRUE), quantile(mapaRiscoFuturoPessimistaBR, 0.75,na.rm=TRUE)),
@@ -316,7 +318,8 @@ plot(mapaRiquezaFuturoPessimistaBR,legend.only=TRUE,legend.width=3,axis.args=lis
 plot(crop(mapaRiscoPresenteBR,areaBR),main='Current climate',legend=FALSE,cex.axis=2,cex.main=4) + plot(AmSulShape[AmSulShape$CNTRY_NAME!='Brazil',],col='lightgray',add=TRUE) + plot(AmSulShape[AmSulShape$CNTRY_NAME=='Brazil',],add=TRUE) + box() + grid()
 plot(crop(mapaRiscoFuturoOtimistaBR,areaBR),main='2070 optmistic',legend=FALSE,cex.axis=2,cex.main=4) + plot(AmSulShape[AmSulShape$CNTRY_NAME!='Brazil',],col='lightgray',add=TRUE) + plot(AmSulShape[AmSulShape$CNTRY_NAME=='Brazil',],add=TRUE) + box() + grid()
 plot(crop(mapaRiscoFuturoPessimistaBR,areaBR),main='2070 pessimistic',legend=FALSE,cex.axis=2,cex.main=4) + plot(AmSulShape[AmSulShape$CNTRY_NAME!='Brazil',],col='lightgray',add=TRUE) + plot(AmSulShape[AmSulShape$CNTRY_NAME=='Brazil',],add=TRUE) + box() + grid()
-plot(mapaRiscoFuturoPessimistaBR,legend.only=TRUE,legend.width=3,axis.args=list(cex.axis=2),legend.args=list(text='Risk of infected vector',font=2,side=4,line=6.5,cex=2.2,cex.axis=0.2)) #legenda
+##legenda
+plot(mapaRiscoFuturoPessimistaBR,legend.only=TRUE,legend.width=3,axis.args=list(cex.axis=2),legend.args=list(text='Risk of infected vector',font=2,side=4,line=6.5,cex=2.2,cex.axis=0.2))
 dev.off()
 
 
@@ -337,8 +340,8 @@ mapaRiquezaPresenteBR = mask(mapaRiquezaPresente, mask=(AmSulShape[AmSulShape$CN
 mapaRiquezaPresenteHiiBR = mask(mapaRiquezaPresenteHii, mask=(AmSulShape[AmSulShape$CNTRY_NAME=='Brazil',]))
 
 ##areas de alta riqueza
-hightRiqPres= mapaRiquezaPresenteBR > quantile(mapaRiquezaPresenteBR, 0.75,na.rm=TRUE) #raster quartil superior riqueza
-hightRiqPresHii= mapaRiquezaPresenteHiiBR > quantile(mapaRiquezaPresenteHiiBR, 0.75,na.rm=TRUE) #raster quartil superior riqueza
+hightRiqPres = mapaRiquezaPresenteBR > quantile(mapaRiquezaPresenteBR, 0.75, na.rm=TRUE) #raster quartil superior riqueza
+hightRiqPresHii = mapaRiquezaPresenteHiiBR > quantile(mapaRiquezaPresenteHiiBR, 0.75, na.rm=TRUE) #raster quartil superior riqueza
 
 ##futuro otimista
 
@@ -373,16 +376,16 @@ hightRiqPresUni = hightRiqPres*1 + hightRiqPresHii*2
 hightRiqOtimUni = hightRiqOtim*1 + hightRiqOtimHii*2
 hightRiqPessUni = hightRiqPess*1 + hightRiqPessHii*2
 
-##correlacao areas alta riqueza modelos com e sem HII
-##presente
-testRiqPres <- getValues(stack(hightRiqPres,hightRiqPresHii))
-corRiqPres <- as.data.frame(cor(testRiqPres, use="complete.obs",method='spearman'))
-##futuro otimista
-testRiqOtim <- getValues(stack(hightRiqOtim,hightRiqOtimHii))
-corRiqOtim <- as.data.frame(cor(testRiqOtim, use="complete.obs",method='spearman'))
-##futuro pessimista
-testRiqPess <- getValues(stack(hightRiqPess,hightRiqPessHii))
-corRiqPess <- as.data.frame(cor(testRiqPess, use="complete.obs",method='spearman'))
+## ##correlacao areas alta riqueza modelos com e sem HII
+## ##presente
+## testRiqPres <- getValues(stack(hightRiqPres,hightRiqPresHii))
+## corRiqPres <- as.data.frame(cor(testRiqPres, use="complete.obs",method='spearman'))
+## ##futuro otimista
+## testRiqOtim <- getValues(stack(hightRiqOtim,hightRiqOtimHii))
+## corRiqOtim <- as.data.frame(cor(testRiqOtim, use="complete.obs",method='spearman'))
+## ##futuro pessimista
+## testRiqPess <- getValues(stack(hightRiqPess,hightRiqPessHii))
+## corRiqPess <- as.data.frame(cor(testRiqPess, use="complete.obs",method='spearman'))
 
 ##correlacao mapa riqueza modelos com e sem HII## OBS: ACHEI MELHOR USAR ESSE NO MANUSCRITO
 ##presente
@@ -394,6 +397,8 @@ corRiqOtim <- as.data.frame(cor(testRiqOtim, use="complete.obs",method='pearson'
 ##futuro pessimista
 testRiqPess <- getValues(stack(mapaRiquezaFuturoPessimistaBR, mapaRiquezaFuturoPessimistaHiiBR))
 corRiqPess <- as.data.frame(cor(testRiqPess, use="complete.obs",method='pearson'))
+
+rm(tabSobreposicaoRiqueza)
 
 tabSobreposicaoRiqueza = data.frame(
     cenario = c('presente','futuroOtimista','futuroPessimista'),
@@ -502,27 +507,29 @@ hightRiscPresUni = hightRiscPres*1 + hightRiscPresHii*2
 hightRiscOtimUni = hightRiscOtim*1 + hightRiscOtimHii*2
 hightRiscPessUni = hightRiscPess*1 + hightRiscPessHii*2
 
-##correlacao areas alta riqueza modelos com e sem HII
-##presente
-testRiscPres <- getValues(stack(hightRiscPres,hightRiscPresHii))
-corRiscPres <- as.data.frame(cor(testRiscPres, use="complete.obs",method='spearman'))
-##futuro otimista
-testRiscOtim <- getValues(stack(hightRiscOtim,hightRiscOtimHii))
-corRiscOtim <- as.data.frame(cor(testRiscOtim, use="complete.obs",method='spearman'))
-##futuro pessimista
-testRiscPess <- getValues(stack(hightRiscPess,hightRiscPessHii))
-corRiscPess <- as.data.frame(cor(testRiscPess, use="complete.obs",method='spearman'))
+## ##correlacao areas alta riqueza modelos com e sem HII
+## ##presente
+## testRiscPres <- getValues(stack(hightRiscPres,hightRiscPresHii))
+## corRiscPres <- as.data.frame(cor(testRiscPres, use="complete.obs",method='spearman'))
+## ##futuro otimista
+## testRiscOtim <- getValues(stack(hightRiscOtim,hightRiscOtimHii))
+## corRiscOtim <- as.data.frame(cor(testRiscOtim, use="complete.obs",method='spearman'))
+## ##futuro pessimista
+## testRiscPess <- getValues(stack(hightRiscPess,hightRiscPessHii))
+## corRiscPess <- as.data.frame(cor(testRiscPess, use="complete.obs",method='spearman'))
 
 ##correlacao mapa risco modelos com e sem HII## OBS: ACHEI MELHOR USAR ESSE NO MANUSCRITO
 ##presente
 testRiscPres <- getValues(stack(mapaRiscoPresenteBR,mapaRiscoPresenteHiiBR))
-corRiscPres <- as.data.frame(cor(testRiqPres, use="complete.obs",method='pearson'))
+corRiscPres <- as.data.frame(cor(testRiscPres, use="complete.obs",method='pearson'))
 ##futuro otimista
 testRiscOtim <- getValues(stack(mapaRiscoFuturoOtimistaBR,mapaRiscoFuturoOtimistaHiiBR))
-corRiscOtim <- as.data.frame(cor(testRiqOtim, use="complete.obs",method='pearson'))
+corRiscOtim <- as.data.frame(cor(testRiscOtim, use="complete.obs",method='pearson'))
 ##futuro pessimista
 testRiscPess <- getValues(stack(mapaRiscoFuturoPessimistaBR,mapaRiscoFuturoPessimistaHiiBR))
-corRiscPess <- as.data.frame(cor(testRiqPess, use="complete.obs",method='pearson'))
+corRiscPess <- as.data.frame(cor(testRiscPess, use="complete.obs",method='pearson'))
+
+rm(tabSobreposicaoRisco)
 
 tabSobreposicaoRisco = data.frame(
     cenario = c('Current','2070 optimistic','2070 pessimistic'),
@@ -552,7 +559,7 @@ tabSobreposicaoRisco = data.frame(
     pearson = c(corRiscPres[2,1],corRiscOtim[2,1],corRiscPess[2,1])
 )
 
-write.csv(tabSobreposicaoRisco,paste(projectFolder,'tabSobreposicaoRicoBR.csv',sep=''),row.names=FALSE)
+write.csv(tabSobreposicaoRisco,paste(projectFolder,'tabSobreposicaoRiscoBR.csv',sep=''),row.names=FALSE)
 
 ##mapas de sobreposicao
 
@@ -580,40 +587,32 @@ dev.off()
 ##graficos das tendencias: percentual de cobertura da america do sul
 
 ##abrindo dados
-tabSobreposicaoRisco = read.csv(paste(projectFolder,'tabSobreposicaoRicoBR.csv',sep=''), header=TRUE)
+tabSobreposicaoRisco = read.csv(paste(projectFolder,'tabSobreposicaoRiscoBR.csv',sep=''), header=TRUE)
 tabSobreposicaoRiqueza = read.csv(paste(projectFolder,'tabSobreposicaoRiquezaBR.csv',sep=''), header=TRUE)
 
-##data.frame para o stripchart
-dfdados = data.frame(scenario=factor(c('Current','2070','2070')), percentageRiq=tabSobreposicaoRiqueza$percentual_do_Brasil, percentageRisk=tabSobreposicaoRisco$percentual_do_Brasil)
-
 ##grafico
-jpeg(filename=paste(projectFolder,'tendenciasCoberturaBR.jpeg'))
-
-
-
-####CONTINUAR DAQUI######3
-
-
-
-
-stripchart(percentageRiq~scenario, dfdados, xlab='Scenario', vertical=TRUE, ylab='Extent of Brazil (in %)', pch=c(15,16,17), ylim=c(0,50), xlim=c(0.5,2.5), cex=3, col=rgb(1,0,0,0.5)); grid()
-
-abline(lm(tabSobreposicaoRisco$percentual_do_Brasil~c(1,2,2)), col='red')
-points(tabSobreposicaoRiqueza$percentual_do_Brasil~c(1,2,2), xlabel='', ylabel='', pch=c(15,16,17), ylim=c(0,50), xlim=c(0.5,2.5), cex=3, col=rgb(0,1,0,0.5)); grid()
-abline(lm(tabSobreposicaoRiqueza$percentual_do_Brasil~c(1,2,2)), col='green')
-#
+jpeg(filename=paste(projectFolder,'tendenciasCoberturaBR.jpeg'),width=500,height=500)
+##riqueza SDMclim
+plot.default(c(1,2,2),tabSobreposicaoRiqueza$percentual_do_Brasil,axe=FALSE,xlim=c(0.75,2.25), ylim=c(0,40), pch=c(15,16,17), cex=3, lwd=2, col=rgb(0,1,0,0.5), xlab='Scenario', ylab='Extent of Brazil (in %)') + axis(side=1, at=c(1,2,2), labels=c('Current climate','Future climate (2070)','Future climate (2070)')) + axis(side=2, at=c(c(0:5)*10), labels=c(c(0:5)*10)) + box() + grid()
+abline(lm(tabSobreposicaoRiqueza$percentual_do_Brasil~c(1,2,2)), col='green',lty=1, lwd=2)
+##riqueza SDMhii
+points(c(1,2,2),tabSobreposicaoRiqueza$percentual_do_Brasil.1, xlabel='', ylabel='', pch=c(15,16,17), ylim=c(0,50), xlim=c(0.5,2.5), cex=3, col=rgb(0,1,0,0.5)); grid()
+abline(lm(tabSobreposicaoRiqueza$percentual_do_Brasil.1~c(1,2,2)), col='green', lty=2, lwd=2)
+##risco SDMclim
+points(tabSobreposicaoRisco$percentual_do_Brasil~c(1,2,2), xlab='', ylab='', pch=c(15,16,17), ylim=c(0,50), xlim=c(0.5,2.5), cex=3, lwd=2, col=rgb(1,0,0,0.5)); grid()
+abline(lm(tabSobreposicaoRisco$percentual_do_Brasil~c(1,2,2)), col='red', lty=1, lwd=2)
+##risco SDMhii
 points(tabSobreposicaoRisco$percentual_do_Brasil.1~c(1,2,2), xlab='', ylab='', pch=c(15,16,17), ylim=c(0,50), xlim=c(0.5,2.5), cex=3, lwd=2, col=rgb(1,0,0,0.5)); grid()
 abline(lm(tabSobreposicaoRisco$percentual_do_Brasil.1~c(1,2,2)), col='red', lty=2, lwd=2)
-points(tabSobreposicaoRiqueza$percentual_do_Brasil.1~c(1,2,2), xlab='', ylab='', pch=c(15,16,17), ylim=c(0,50), xlim=c(0.5,2.5), cex=3, lwd=2, col=rgb(0,1,0,0.5)); grid()
-abline(lm(tabSobreposicaoRiqueza$percentual_do_Brasil.1~c(1,2,2)), col='green', lty=2, lwd=2)
+##legenda
 legend('topleft', legend=c('Presente','2070 optimistic','2070 pessimistic',expression(SDM[clim]),expression(SDM[HII]),'Richness','Risk'),pch=c(0,1,2,NA,NA,21,21), lty=c(NA,NA,NA,1,2,NA,NA), col=c(1,1,1,1,1,0,0), pt.bg=c(0,0,0,0,0,'green','red') ,text.col=c('black','black','black','black','black','green','red'))
 dev.off()
 
 ##graficos das tendencias: correlacao
-jpeg(filename=paste(projectFolder,'tendenciasCorrelacao.jpeg'))
-plot(tabSobreposicaoRisco$spearman~c(1,2,2),main='Percentual de cobertura da Am. do Sul',xlab='Cenário',ylab='Percentual',pch=c(15,16,17),ylim=c(0,1),xlim=c(0.5,2.5),cex=3,col=rgb(1,0,0,0.5));grid()
-abline(lm(tabSobreposicaoRisco$spearman~c(1,2,2)),col='red')
-points(tabSobreposicaoRiqueza$spearman~c(1,2,2),xlabel='',ylabel='',pch=c(15,16,17),ylim=c(0,50),xlim=c(0.5,2.5),cex=3,col=rgb(0,1,0,0.5));grid()
-abline(lm(tabSobreposicaoRiqueza$spearman~c(1,2,2)),col='green')
-legend('topright',legend=c('Presente','2070 otimista','2070 pessimista','Riqueza','Risco'),pch=c(0,1,2,NA,NA),text.col=c('black','black','black','green','red'))
+jpeg(filename=paste(projectFolder,'tendenciasCorrelacaoBR.jpeg'),width=500,height=500)
+plot.default(c(1,2,2),tabSobreposicaoRisco$pearson,axe=FALSE,xlim=c(0.75,2.25), ylim=c(0,1), pch=c(15,16,17), cex=3, lwd=2, col=rgb(1,0,0,0.5), xlab='Scenario', ylab='Pearson correlation') + axis(side=1, at=c(1,2,2), labels=c('Current climate','Future climate (2070)','Future climate (2070)')) + axis(side=2, at=c(0,0.2,0.4,0.6,0.8,1.0), labels=c(0,0.2,0.4,0.6,0.8,1.0)) + box() + grid()
+abline(lm(tabSobreposicaoRisco$pearson~c(1,2,2)),col='red',lwd=2)
+points(tabSobreposicaoRiqueza$pearson~c(1,2,2),pch=c(15,16,17),ylim=c(0,50),xlim=c(0.5,2.5),cex=3,col=rgb(0,1,0,0.5));grid()
+abline(lm(tabSobreposicaoRiqueza$pearson~c(1,2,2)),col='green',lwd=2)
+legend('topright',legend=c('Current climate','2070 optimistic','2070 pessimistic','Richness','Risk'),pch=c(0,1,2,21,21), pt.bg=c(NA,NA,NA,'green','red'), text.col=c('black','black','black','green','red'))
 dev.off()
