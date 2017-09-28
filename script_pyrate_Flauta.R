@@ -122,8 +122,12 @@ L_mean=c(NA, 0.134625878596,0.134369867639,0.1341601135,0.13404832311,0.13395536
 
 M_mean=c(NA, 0.880398646278,0.843037987828,0.582481497748,0.151049693127,0.0802738206705,0.074940348817,0.0744441128617,0.0743418241698,0.074279512379,0.0742015840324,0.0741144589784,0.0740054844281,0.0738754124884,0.0737615049263,0.0736967866103,0.0736821306755,0.0737105151112,0.0737600346443,0.0738564386283,0.074079378024,0.0744698052286,0.0750143618948,0.0757560764573,0.0765445874217,0.0774698912068,0.0786422428222,0.0799438344736,0.0813473497762,0.0826857845648,0.0837437659928,0.0847188484718,0.0858493530629,0.0869081134691,0.0874955862646,0.0880480167799,0.0887723005725,0.0899059351354,0.0912921971094,0.092655866673,0.093975473729,0.0951741312513,0.096136489364,0.0969960791467,0.0976298876344,0.0983472099588,0.0990127119268,0.0995575309364,0.100151183004,0.100730743926,0.101559881344,0.102220187375,0.102665516683,0.103065053588,0.103728451351,0.104651981235,0.105843490096,0.107453553464,0.108926297189,0.109474733904,0.109491679093,0.109507230347,0.109513429663)
 
-speciationRate = data.frame(age=rev(age)*-1, lambda=rev(L_mean))
-extinctionRate = data.frame(age=rev(age)*-1, mu=rev(M_mean))
+
+trans = 0.5
+age = (0:(63-1))* -1
+
+speciationRate = data.frame(age=rev(age), lambda=rev(L_mean))
+extinctionRate = data.frame(age=rev(age), mu=rev(M_mean))
 
 ##combinando os dados (pareando pela idade taxas (de extincao e especiacao) com o CO2)
 
@@ -131,11 +135,11 @@ pairedDataCorSpeciation = data.frame()
 pairedDataCorExtinction = data.frame()
 
 ##pareando CO2 com idades de especiacao
-index = match(round(speciationRate$age,0), round(covar$time,0))
+index = match(round(speciationRate$age,0)*-1, round(covar$time,0))
 pairedDataCorSpeciation = rbind(pairedDataCorSpeciation, data.frame(lambda=speciationRate$lambda, co2=covar$co2[index]))
 
 ##pareando CO2 com idades de extincao
-index = match(round(extinctionRate$age,0), round(covar$time,0))
+index = match(round(extinctionRate$age,0)*-1, round(covar$time,0))
 pairedDataCorExtinction = rbind(pairedDataCorExtinction, data.frame(mu=extinctionRate$mu, co2=covar$co2[index]))
 
 ##agora, com os data.frames gerados cria-se os graficos de dispersao
