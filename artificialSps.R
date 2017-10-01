@@ -58,11 +58,13 @@ for (i in 1:length(caminhosCamadasTemp)){
 
 ###SEGUNDA PARTE: amostragem de pontos de ocorrencia em diferentes camadas de tempo###
 
+
 ##definindo variaveis e parametros
 envVarFolder = "/home/anderson/PosDoc/dados_ambientais/dados_projeto/" #pasta com as variaveis ambientais
 projectFolder = "/home/anderson/Documentos/Projetos/Sps artificiais/" #pasta do projeto
 mainSampleFolder = '/home/anderson/Documentos/Projetos/Sps artificiais/Amostras/' #caminho para pasta onde a planilha com os pontos amostrados sera salva
-AmSulShape = readShapePoly("/home/anderson/PosDoc/Am_Sul/borders.shp") #shape da America do Sul
+AmSulShape = rgdal::readOGR("/home/anderson/PosDoc/shapefiles/Am_Sul/borders.shp") #shape da America do Sul
+crs(AmSulShape) = CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0')
 biasLayer = raster('/home/anderson/Documentos/Projetos/Sps artificiais/biasLayer.grd')
 biomodFolder = '/home/anderson/Documentos/Projetos/Sps artificiais/biomod/' #pasta para resultados do maxent
 spsTypes = c('spHW', 'spHD', 'spCD') #nomes das especies
@@ -70,18 +72,24 @@ sampleSizes = c(5,15,25,35,45,55,65,75,85,95) #tamanhos das amostras
 NumRep = 10 #numero de replicas (de cada cenario amostral)
 Tmax = 22 #idade maxima (no passado)
 bgPoints = 1000 #numero de pontos de background
-sampleData = data.frame()
 
 
-##PARA SDM MULTITEMPORAL
+##PARA SDM MULTITEMPORAL E SEM VIES AMOSTRAL
+
 
 ##ocorrencias
+
+sampleData = data.frame()
+
 for (i in 1:length(spsTypes)){ #loop sobre os 'tipos de especies'
+    
     for (sSize in sampleSizes){ #numero de pontos (registros, dados) na amostra
+        
         sampledAges = vector()
         sampledAges = round(runif(sSize,0,Tmax)) #selecionando 'n' camadas de tempo aleatoriamente
         nicheRealFolder = paste(projectFolder,'NichoReal/',spsTypes[i],sep='') #pasta com os mapas de nicho real da sp
         nicheRealPath = list.files(path=nicheRealFolder, full.names=TRUE, pattern='.asc') #lista com os enderecos dos mapas de distribuicao da
+        
         for (j in 1:NumRep){ #replicas do cenario amostral
 
             for (sAge in sampledAges){ #amostrando em cada camada de tempo que consta na amostra
@@ -97,7 +105,7 @@ for (i in 1:length(spsTypes)){ #loop sobre os 'tipos de especies'
             }
             
             names(sampleData) = c('lon','lat',names(as.data.frame(layers_i)),'kyrBP') #ajustando os nomes
-            write.csv(sampleData,paste(projectFolder,'Amostras/',spsTypes[i],'/occ',sSize,'pts', j ,'rep.csv',sep=''),row.names=FALSE) #salvando
+            write.csv(sampleData,paste(projectFolder,'Amostras/multitemporal/',spsTypes[i],'/occ_',sSize,'pts_multitemporal_', j ,'rep.csv',sep=''),row.names=FALSE) #salvando
             sampleData = data.frame() #devolvendo data.frame vazio para proxima rodada
             
         }
@@ -105,6 +113,9 @@ for (i in 1:length(spsTypes)){ #loop sobre os 'tipos de especies'
 }
 
 ##background points
+
+sampleData = data.frame()
+
 for (i in 1:length(spsTypes)){ #loop sobre os 'tipos de especies'
 
     for (sSize in sampleSizes){ #numero de pontos de ocoorrencia (que parearah com a amostra de background dessa  iteracao)
@@ -125,34 +136,40 @@ for (i in 1:length(spsTypes)){ #loop sobre os 'tipos de especies'
                     x=stack(list.files(path=paste(envVarFolder,scenarioName,sep=''), pattern='asc', full.names=TRUE)),
                     y=sampleData_i) #extraindo variaveis ambientais do ponto, em sua respectiva camada de tempo
                 sampleData = rbind(sampleData, cbind(sampleData_i,layers_i,sAge)) #juntando com os dados das outras camadas de tempo amostradas
+                
             }
+            
             names(sampleData) = c('lon','lat',names(as.data.frame(layers_i)),'kyrBP') #ajustando os nomes
-            write.csv(sampleData,paste(projectFolder,'Amostras/',spsTypes[i],'/bg',sSize,'pts', j ,'rep.csv',sep=''),row.names=FALSE) #salvando
+            write.csv(sampleData,paste(projectFolder,'Amostras/multitemporal/',spsTypes[i],'/bg_',sSize, 'pts_multitemporal_', j ,'rep.csv',sep=''),row.names=FALSE) #salvando
             sampleData = data.frame() #devolvendo data.frame vazio para proxima rodada
+            
         }
     }
 }
 
 
-##PARA SDM MONOTEMPORAL (SO PONTOS DO TEMPO PRESENTE)
+##PARA SDM MULTITEMPORAL E COM VIES AMOSTRAL
+
+
+##ocorrencias
+
+sampleData = data.frame()
 
 for (i in 1:length(spsTypes)){ #loop sobre os 'tipos de especies'
     
     for (sSize in sampleSizes){ #numero de pontos (registros, dados) na amostra
-
-        for (i in 1:NumRep){ #replicas do cenario amostral
-
-
-
+        
+        sampledAges = vector()
+        sampledAges = round(runif(sSize,0,Tmax)) #selecionando 'n' camadas de tempo aleatoriamente
+        nicheRealFolder = paste(projectFolder,'NichoReal/',spsTypes[i],sep='') #pasta com os mapas de nicho real da sp
+        nicheRealPath = list.files(path=nicheRealFolder, full.names=TRUE, pattern='.asc') #lista com os enderecos dos mapas de distribuicao da
+        biasLayerAdjusted = projectRaster(biasLayer,raster(nicheRealPath[1])) #alinhando o biasLayer com os rasters do projeto
             
-###CONTINUAR DAQUI: USAR bgPoints MESMO (O SAMPLE OCCURRENCE NUNCA AMOSTRA DENTRO DA AREA DE SUITABILITY)
+        for (j in 1:NumRep){ #replicas do cenario amostral
 
+            for (sAge in sampledAges){ #amostrando em cada camada de tempo que consta na amostra
 
-
-            
-            
-                sampleData_i = sampleOccurrences(x=raster(nicheRealPath[1])>0.1, n=bgPoints, type='presence-absence', sample.prevalence=sSize/bgPoints, plot=TRUE) #amostra d ponto somente no presente
-                
+                sampleData_i = randomPoints(mask=raster(nicheRealPath[sAge+1])*biasLayerAdjusted, n=1, prob=TRUE) #amostra d ponto
                 scenarioName = basename(nicheRealPath[1:24][sAge+1]) #tempo vinculado ao cenario para variaveis ambientais
                 scenarioName = gsub('.asc','',scenarioName) #retirando do nome o '.asc'
                 layers_i = extract(
@@ -163,7 +180,104 @@ for (i in 1:length(spsTypes)){ #loop sobre os 'tipos de especies'
             }
             
             names(sampleData) = c('lon','lat',names(as.data.frame(layers_i)),'kyrBP') #ajustando os nomes
-            write.csv(sampleData,paste(projectFolder,'Amostras/',spsTypes[i],'/occ',sSize,'pts', j ,'rep.csv',sep=''),row.names=FALSE) #salvando
+            write.csv(sampleData,paste(projectFolder,'Amostras/multitemporal/',spsTypes[i],'/occ_',sSize,'pts_multitemporal_comVIES_', j ,'rep.csv',sep=''),row.names=FALSE) #salvando
+            sampleData = data.frame() #devolvendo data.frame vazio para proxima rodada
+
+        }
+    }
+}
+
+##background points
+
+sampleData = data.frame()
+
+for (i in 1:length(spsTypes)){ #loop sobre os 'tipos de especies'
+
+    for (sSize in sampleSizes){ #numero de pontos de ocoorrencia (que parearah com a amostra de background dessa  iteracao)
+
+        sampledAges = vector()
+        sampledAges = round(runif(bgPoints,0,Tmax)) #selecionando 'n' camadas de tempo aleatoriamente ('n' = bgPoints)
+#        nicheRealFolder = paste(projectFolder,'NichoReal/',spsTypes[i],sep='') #pasta com os mapas de nicho real da sp
+
+        for (j in 1:NumRep){ #replicas do cenario amostral
+
+            for (sAge in sampledAges){ #amostrando em cada camada de tempo que consta na amostra
+
+                envVarPath = list.files(path=paste(envVarFolder,list.files(path=paste(envVarFolder))[sAge+1],sep=''), full.names=TRUE, pattern='.asc') #lista com os enderecos das variaveis ambientais no tempo corresposndente a interacao 
+                
+                sampleData_i = randomPoints(mask=raster(envVarPath[1],crs=CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0')),n=1) #amostra do ponto
+                scenarioName = list.files(path=paste(envVarFolder))[sAge+1] #nome do cenario
+                layers_i = extract(
+                    x=stack(list.files(path=paste(envVarFolder,scenarioName,sep=''), pattern='.asc', full.names=TRUE)),
+                    y=sampleData_i) #extraindo variaveis ambientais do ponto, em sua respectiva camada de tempo
+                sampleData = rbind(sampleData, cbind(sampleData_i,layers_i,sAge)) #juntando com os dados das outras camadas de tempo amostradas
+                
+            }
+            
+            names(sampleData) = c('lon','lat',names(as.data.frame(layers_i)),'kyrBP') #ajustando os nomes
+            write.csv(sampleData,paste(projectFolder,'Amostras/multitemporal/',spsTypes[i],'/bg_',sSize,'pts_multitemporal_comVIES_', j ,'rep.csv',sep=''),row.names=FALSE) #salvando
+            sampleData = data.frame() #devolvendo data.frame vazio para proxima rodada
+            
+        }
+    }
+}
+
+
+##PARA SDM MONOTEMPORAL (SO PONTOS DO TEMPO PRESENTE) E SEM VIES AMOSTRAL
+
+
+##ocorrencias
+for (i in 1:length(spsTypes)){ #loop sobre os 'tipos de especies'
+
+    ##criando uma pasta da especie, se nao exisitir
+    if(!file.exists(file.path(projectFolder,'Amostras','monotemporal',spsTypes[i],sep='')))
+        dir.create(file.path(projectFolder,'Amostras','monotemporal',spsTypes[i],sep=''))
+    
+    for (sSize in sampleSizes){ #numero de pontos (registros, dados) na amostra
+        
+        nicheRealFolder = paste(projectFolder,'NichoReal/',spsTypes[i],sep='') #pasta com os mapas de nicho real da sp
+        nicheRealPath = list.files(path=nicheRealFolder, full.names=TRUE, pattern='.asc') #lista com os enderecos dos mapas de distribuicao da
+        
+        for (i in 1:NumRep){ #replicas do cenario amostral
+
+            sampleData_i = randomPoints(mask=raster(nicheRealPath[1],crs=CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0')), n=sSize) #amostra do ponto
+            scenarioName = basename(nicheRealPath[1:24][1]) #tempo vinculado ao cenario para variaveis ambientais
+            scenarioName = gsub('.asc','',scenarioName) #retirando do nome o '.asc'
+            layers_i = extract(
+                x=stack(list.files(path=paste(envVarFolder,scenarioName,sep=''), pattern='asc', full.names=TRUE)),
+                y=sampleData_i) #extraindo variaveis ambientais do ponto, em sua respectiva camada de tempo
+            sampleData = rbind(sampleData, cbind(sampleData_i,layers_i,sAge)) #juntando com os dados das outras camadas de tempo amostradas
+            names(sampleData) = c('lon','lat',names(as.data.frame(layers_i)),'kyrBP') #ajustando os nomes
+            write.csv(sampleData,paste(projectFolder,'Amostras/monotemporal/',spsTypes[i],'/occ_',sSize,'pts_monotemporal_','rep',i,'.csv',sep=''),row.names=FALSE) #salvando
+            sampleData = data.frame() #devolvendo data.frame vazio para proxima rodada
+            
+        }
+    }
+}
+
+##background points
+for (i in 1:length(spsTypes)){ #loop sobre os 'tipos de especies'
+
+    ##criando uma pasta da especie, se nao exisitir
+    if(!file.exists(file.path(projectFolder,'Amostras','monotemporal',spsTypes[i],sep='')))
+        dir.create(file.path(projectFolder,'Amostras','monotemporal',spsTypes[i],sep=''))
+    
+    for (sSize in sampleSizes){ #numero de pontos (registros, dados) na amostra
+        
+        nicheRealFolder = paste(projectFolder,'NichoReal/',spsTypes[i],sep='') #pasta com os mapas de nicho real da sp
+        nicheRealPath = list.files(path=nicheRealFolder, full.names=TRUE, pattern='.asc') #lista com os enderecos dos mapas de distribuicao da
+        
+        for (i in 1:NumRep){ #replicas do cenario amostral
+
+            sampleData_i = randomPoints(mask=raster(envVarPath[1],crs=CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0')), n=bgPoints) #amostra do ponto
+            scenarioName = basename(nicheRealPath[1:24][1]) #tempo vinculado ao cenario para variaveis ambientais
+            scenarioName = gsub('.asc','',scenarioName) #retirando do nome o '.asc'
+            layers_i = extract(
+                x=stack(list.files(path=paste(envVarFolder,scenarioName,sep=''), pattern='asc', full.names=TRUE)),
+                y=sampleData_i) #extraindo variaveis ambientais do ponto, em sua respectiva camada de tempo
+            sampleData = rbind(sampleData, cbind(sampleData_i,layers_i,sAge)) #juntando com os dados das outras camadas de tempo amostradas
+            names(sampleData) = c('lon','lat',names(as.data.frame(layers_i)),'kyrBP') #ajustando os nomes
+            write.csv(sampleData,paste(projectFolder,'Amostras/monotemporal/',spsTypes[i],'/bg_',sSize,'pts_monotemporal_','rep',i,'.csv',sep=''),row.names=FALSE) #salvando
             sampleData = data.frame() #devolvendo data.frame vazio para proxima rodada
             
         }
@@ -816,18 +930,52 @@ myRespName <- 'Hiena'
 # the XY coordinates of species data
 myRespXY <- occData
 coordinates(myRespXY) <- ~ longitude + latitude #transformando em spatialPoints
-crs(myRespXY) = crs('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0') #transformando em spatialPoints
+crs(myRespXY) = CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0') #transformando em spatialPoints
 
 
 # load the environmental raster layers
 myExpl = raster::stack(list.files(envVarPaths[1],pattern='bioclim',full.names=TRUE))
-crs(myExpl) = crs('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0') #transformando em spatialPoints
+crs(myExpl) = CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0') #transformando em spatialPoints
 
 myBiomodData <- BIOMOD_FormatingData(resp.var = myRespXY,
                                      expl.var = myExpl,
-                                     resp.name = myRespName)
-#                                     PA.nb.rep = 1000)
+                                     resp.name = myRespName,
+                                     PA.nb.rep = 1)
 
 #inspecionando o objeto gerado pela funcao do biomod2
 myBiomodData
 plot(myBiomodData)
+
+
+
+myBiomodOption <- BIOMOD_ModelingOptions(MAXENT.Phillips=list(path_to_maxent.jar="/home/anderson/R/x86_64-pc-linux-gnu-library/3.3/dismo/java",maximumiterations=2000,memory_allocated=NULL))
+    
+myBiomodModelOut <- BIOMOD_Modeling(
+    myBiomodData,
+    models = c('MAXENT.Phillips'),
+    models.options = myBiomodOption,
+    NbRunEval = 3,
+    DataSplit = 75,
+    VarImport = 3,
+    models.eval.meth = c('TSS','ROC'),
+    SaveObj = TRUE,
+    rescal.all.models = TRUE,
+    do.full.models = FALSE,
+    modeling.id = paste(myRespName,"FirstModeling",sep=""))
+    
+###PROJECAO PARA O PRESENTE###
+    myBiomodProj <- BIOMOD_Projection(
+        modeling.output = myBiomodModelOut,
+        new.env = myExpl,
+        proj.name = '000kyrBP',
+        selected.models = paste(myBiomodModelOut@models.computed,sep=''),
+        binary.meth = 'TSS',
+        compress = FALSE,
+        clamping.mask = TRUE,
+        output.format = '.grd',
+        on_0_1000 = FALSE)
+
+    ##My output data
+    projStack = get_predictions(myBiomodProj)
+    varImportance = get_variables_importance(myBiomodModelOut)
+    evaluationScores = get_evaluations(myBiomodModelOut)

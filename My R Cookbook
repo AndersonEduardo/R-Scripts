@@ -112,4 +112,28 @@ points(fitted(modelo)~var.pass[,2],pch=1,col='blue') #valores modelados para o p
 qqplot(proj,fitted(modelo)) #comparando a distribuicao dos dados para presente e passado
 points(proj,proj,type='l',col='red') #linha de referencia (linha de 45 graus)
 
+##deixando dois rasters com mesma extent, origin e resolution## 
+##30/set/2017
+
+library(raster)
+newLayer = projectRaster(rasterProblema, rasterReferencia) 
+
+##excluir da amostra aqueles pontos que estiverem fora do poligono do shapefile
+##30/set/2017
+##fonte: http://robinlovelace.net/r/2014/07/29/clipping-with-r.html
+
+library(rgdal)
+stations <- readOGR("data", "lnd-stns") #pontos
+zones <- readOGR("data", "london_sport") #poligono
+
+stations <- spTransform(stations, CRS(proj4string(zones))) # transform CRS
+
+plot(zones)
+points(stations)
+
+stations_subset <- stations[zones, ] ##proceidmento de cliping with poligon
+
+plot(zones)
+points(stations_subset)
+
 
