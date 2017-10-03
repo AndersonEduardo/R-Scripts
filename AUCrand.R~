@@ -1,0 +1,9 @@
+##funcção para calcular uma distribuição estocastica de valores de AUC a partir de background points##
+
+AUCrand =  function(x,p,path,args){
+    sampleSize = nrow(x) #tamanho da amostra de BG
+    Nocc = sum(p) #numero de registros de ocorrencias
+    randomSample = sample(sampleSize,Nocc) #amostra aleatoria  de presencas a partir da amostra de BG
+    occData = dataSet[randomSample==(1:nrow(x))]
+    bgData = dataSet[randomSample!=(1:nrow(x))]
+    dataSet = data.frame(rbind(occData,bgData),pres=c(rep(1,nrow(occData)),rep(0,nrow(bgData))))

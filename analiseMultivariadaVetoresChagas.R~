@@ -1,0 +1,19 @@
+library(raster)
+library(rgdal)
+
+projectFolder = "/home/anderson/Documentos/Projetos/Barbeiros_Lucas/resultados nicho climatico/"
+municipios = readOGR(dsn='/home/anderson/PosDoc/shapefiles/br_municipios/BRMUE250GC_SIR.shp',layer='BRMUE250GC_SIR')
+
+#presente
+listaPresente = grep(list.files(paste(projectFolder,"Projecoes",sep=""),full.names=TRUE),pattern='Otimista|Pessimista',inv=T,value=T)
+listaPresenteBIN = grep(listaPresente,pattern='BIN.asc',value=TRUE)
+camadasPresente = stack(listaPresenteBIN)
+
+extractedData = sapply(extract(camadasPresente,municipios[municipios$NM_MUNICIP[1:3],],na.rm=TRUE), max, na.rm=TRUE)
+
+#distancia Sørensen 
+distancia = vegdist(x3,binary=TRUE)
+
+cidadeCluster <- hclust(distancia, method = "average")
+
+plot(cidadeCluster,)
