@@ -68,9 +68,11 @@ dev.off()
 mod = lm(y1 ~ x1)
 summary(mod)
 
+
 ###########################
 ### Framework da matriz ###
 ###########################
+
 
 ##abrindo pacotes
 library(raster)
@@ -179,11 +181,11 @@ for (i in 1:Nsp){
     datMat = data.frame(cbind(datMat,fSp=fBio1Sp_i*fBio12Sp_i)) #adicionando ao data.frame
     names(datMat)[ncol(datMat)] = paste('sp',i,sep='') #ajustando os nomes das especies no data.farme
     ##salvando graficos das equacoes de cada especie
-    jpeg(filename=paste('/home/anderson/Documentos/Projetos/divSpsSid/','functions_sp',i,'.jpeg',sep=''))
+#    jpeg(filename=paste('/home/anderson/Documentos/Projetos/divSpsSid/','functions_sp',i,'.jpeg',sep=''))
     par(mfrow=c(1,2))
     plot(fBio1Sp_i~varBio1,xlab='Bioclim 01',ylab='Suitability',ylim=c(0,1))
     plot(fBio12Sp_i~varBio12,xlab='Bioclim 12',ylab='Suitability',ylim=c(0,1))
-    dev.off()
+#    dev.off()
 }
 
 ##criando a coluna de riqueza de especies##
@@ -197,9 +199,9 @@ for(i in 1:Nsp){
     proj4string(SpDist) = '+proj=lcc +lat_1=48 +lat_2=33 +lon_0=-100 +ellps=WGS84' #definindo proj
     rasterSpDist = raster(SpDist) #criando objeto raster
     ##criando imagem da distribuicao de cada especie
-    jpeg(filename=paste('/home/anderson/Documentos/Projetos/divSpsSid/','sp',i,'.jpeg',sep=''))
+#    jpeg(filename=paste('/home/anderson/Documentos/Projetos/divSpsSid/','sp',i,'.jpeg',sep=''))
     plot(rasterSpDist)
-    dev.off()
+#    dev.off()
 }
 
 ##rater da riqueza
@@ -218,9 +220,11 @@ dev.off()
 
 write.csv(x=datMat,file='/home/anderson/Documentos/Projetos/divSpsSid/datMat.csv',row.names=FALSE)
 
+
 #################################
 ###ajusando funcao assintotica###
 #################################
+
 
 dados = data.frame(x=1:10,y=c(2,9,12,15,16,16,17,17,19,21))
 

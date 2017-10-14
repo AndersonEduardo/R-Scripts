@@ -60,7 +60,7 @@ for (i in 1:length(caminhosCamadasTemp)){
 
 
 ##definindo variaveis e parametros
-envVarFolder = "/home/anderson/PosDoc/dados_ambientais/dados_projeto/" #pasta com as variaveis ambientais
+envVarFolder = "/home/anderson/PosDoc/dados_ambientais/dados_projeto" #pasta com as variaveis ambientais
 projectFolder = "/home/anderson/Documentos/Projetos/Sps artificiais/" #pasta do projeto
 mainSampleFolder = '/home/anderson/Documentos/Projetos/Sps artificiais/Amostras/' #caminho para pasta onde a planilha com os pontos amostrados sera salva
 AmSulShape = rgdal::readOGR("/home/anderson/PosDoc/shapefiles/Am_Sul/borders.shp") #shape da America do Sul
@@ -70,7 +70,7 @@ biomodFolder = '/home/anderson/Documentos/Projetos/Sps artificiais/biomod/' #pas
 spsTypes = c('spHW', 'spHD', 'spCD') #nomes das especies
 sampleSizes = c(5,15,25,35,45,55,65,75,85,95) #tamanhos das amostras
 NumRep = 10 #numero de replicas (de cada cenario amostral)
-Tmax = 1  22 #idade maxima (no passado)
+Tmax = 22 #idade maxima (no passado)
 bgPoints = 1000 #numero de pontos de background
 
 
@@ -96,13 +96,14 @@ for (i in 1:length(spsTypes)){ #loop sobre os 'tipos de especies'
         
         for (j in 1:NumRep){ #replicas do cenario amostral
 
-            for (sAge in sampledAges){ #amostrando em cada camada de tempo que consta na amostra
+            for (sAge in unique(sampledAges)){ #amostrando em cada camada de tempo que consta na amostra
 
-                sampleData_i = randomPoints(mask=raster(nicheRealPath[sAge+1]), n=1) #amostra d ponto
+                sampleData_i = randomPoints(mask=raster(nicheRealPath[sAge+1]), n=sum(sAge==sampledAges)) #amostra d ponto
+                #sampleData_i = randomPoints(mask=raster(nicheRealPath[sAge+1]), n=1) #amostra d ponto
                 scenarioName = basename(nicheRealPath[1:24][sAge+1]) #tempo vinculado ao cenario para variaveis ambientais
                 scenarioName = gsub('.asc','',scenarioName) #retirando do nome o '.asc'
                 layers_i = extract(
-                    x=stack(list.files(path=paste(envVarFolder,scenarioName,sep=''), pattern='asc', full.names=TRUE)),
+                    x=stack(list.files(path=paste(envVarFolder,'/',scenarioName,sep=''), pattern='asc', full.names=TRUE)),
                     y=sampleData_i) #extraindo variaveis ambientais do ponto, em sua respectiva camada de tempo
                 sampleData = rbind(sampleData, cbind(sampleData_i,layers_i,sAge)) #juntando com os dados das outras camadas de tempo amostradas
                 
@@ -134,20 +135,19 @@ for (i in 1:length(spsTypes)){ #loop sobre os 'tipos de especies'
 
         for (j in 1:NumRep){ #replicas do cenario amostral
 
-            for (sAge in sampledAges){ #amostrando em cada camada de tempo que consta na amostra
+            for (sAge in unique(sampledAges)){ #amostrando em cada camada de tempo que consta na amostra
 
-                envVarPath = list.files(path=paste(envVarFolder,list.files(path=paste(envVarFolder))[sAge+1],sep=''), full.names=TRUE, pattern='.asc') #lista com os enderecos das variaveis ambientais no tempo corresposndente a interacao 
-                
-                sampleData_i = randomPoints(mask=raster(envVarPath[1],crs=CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0')),n=1) #amostra do ponto
+                envVarPath = list.files(path=envVarFolder,full.names=TRUE)[sAge+1] #lista com os enderecos das variaveis ambientais no tempo corresposndente a interacao
+                envData = list.files(envVarPath,full.names=TRUE)
+                sampleData_i = randomPoints(mask=raster(envData[1],crs=CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0')),n=sum(sAge==sampledAges)) #amostra do ponto
                 scenarioName = list.files(path=paste(envVarFolder))[sAge+1] #nome do cenario
                 layers_i = extract(
-                    x=stack(list.files(path=paste(envVarFolder,scenarioName,sep=''), pattern='asc', full.names=TRUE)),
+                    x=stack(list.files(path=paste(envVarFolder,'/',scenarioName,sep=''), pattern='asc', full.names=TRUE)),
                     y=sampleData_i) #extraindo variaveis ambientais do ponto, em sua respectiva camada de tempo
-                sampleData = rbind(sampleData, cbind(sampleData_i,layers_i,sAge)) #juntando com os dados das outras camadas de tempo amostradas
+                sampleData = rbind(sampleData, data.frame(lon=sampleData_i[,1],lat=sampleData_i[,2],layers_i,kyrBP=sAge)) #juntando com os dados das outras camadas de tempo amostradas
                 
             }
-            
-            names(sampleData) = c('lon','lat',names(as.data.frame(layers_i)),'kyrBP') #ajustando os nomes
+
             write.csv(sampleData,paste(projectFolder,'Amostras/multitemporal/',spsTypes[i],'/bg_',sSize, 'pts_multitemporal_', j ,'rep.csv',sep=''),row.names=FALSE) #salvando
             sampleData = data.frame() #devolvendo data.frame vazio para proxima rodada
             
@@ -179,9 +179,10 @@ for (i in 1:length(spsTypes)){ #loop sobre os 'tipos de especies'
             
         for (j in 1:NumRep){ #replicas do cenario amostral
 
-            for (sAge in sampledAges){ #amostrando em cada camada de tempo que consta na amostra
+            for (sAge in unique(sampledAges)){ #amostrando em cada camada de tempo que consta na amostra
 
-                sampleData_i = randomPoints(mask=raster(nicheRealPath[sAge+1])*biasLayerAdjusted, n=1, prob=TRUE) #amostra d ponto
+                sampleData_i = randomPoints(mask=raster(nicheRealPath[sAge+1])*biasLayerAdjusted, n=sum(sAge==sampledAges)) #amostra d ponto
+                #sampleData_i = randomPoints(mask=raster(nicheRealPath[sAge+1])*biasLayerAdjusted, n=1, prob=TRUE) #amostra d ponto
                 scenarioName = basename(nicheRealPath[1:24][sAge+1]) #tempo vinculado ao cenario para variaveis ambientais
                 scenarioName = gsub('.asc','',scenarioName) #retirando do nome o '.asc'
                 layers_i = extract(
@@ -217,20 +218,19 @@ for (i in 1:length(spsTypes)){ #loop sobre os 'tipos de especies'
 
         for (j in 1:NumRep){ #replicas do cenario amostral
 
-            for (sAge in sampledAges){ #amostrando em cada camada de tempo que consta na amostra
+            for (sAge in unique(sampledAges)){ #amostrando em cada camada de tempo que consta na amostra
 
-                envVarPath = list.files(path=paste(envVarFolder,list.files(path=paste(envVarFolder))[sAge+1],sep=''), full.names=TRUE, pattern='.asc') #lista com os enderecos das variaveis ambientais no tempo corresposndente a interacao 
-                
-                sampleData_i = randomPoints(mask=raster(envVarPath[1],crs=CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0')),n=1) #amostra do ponto
+                envVarPath = list.files(path=envVarFolder,full.names=TRUE)[sAge+1] #lista com os enderecos das variaveis ambientais no tempo corresposndente a interacao
+                envData = list.files(envVarPath,full.names=TRUE)
+                sampleData_i = randomPoints(mask=raster(envData[1],crs=CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0')),n=sum(sAge==sampledAges)) #amostra do ponto
                 scenarioName = list.files(path=paste(envVarFolder))[sAge+1] #nome do cenario
                 layers_i = extract(
-                    x=stack(list.files(path=paste(envVarFolder,scenarioName,sep=''), pattern='.asc', full.names=TRUE)),
+                    x=stack(list.files(path=paste(envVarFolder,'/',scenarioName,sep=''), pattern='asc', full.names=TRUE)),
                     y=sampleData_i) #extraindo variaveis ambientais do ponto, em sua respectiva camada de tempo
-                sampleData = rbind(sampleData, cbind(sampleData_i,layers_i,sAge)) #juntando com os dados das outras camadas de tempo amostradas
+                sampleData = rbind(sampleData, data.frame(lon=sampleData_i[,1],lat=sampleData_i[,2],layers_i,kyrBP=sAge)) #juntando com os dados das outras camadas de tempo amostradas
                 
             }
             
-            names(sampleData) = c('lon','lat',names(as.data.frame(layers_i)),'kyrBP') #ajustando os nomes
             write.csv(sampleData,paste(projectFolder,'Amostras/multitemporal/',spsTypes[i],'/bg_',sSize,'pts_multitemporal_comVIES_', j ,'rep.csv',sep=''),row.names=FALSE) #salvando
             sampleData = data.frame() #devolvendo data.frame vazio para proxima rodada
             
@@ -257,7 +257,7 @@ for (i in 1:length(spsTypes)){ #loop sobre os 'tipos de especies'
         
         for (i in 1:NumRep){ #replicas do cenario amostral
 
-            sampleData_i = randomPoints(mask=raster(nicheRealPath[1],crs=CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0')), n=sSize) #amostra do ponto
+            sampleData_i = randomPoints(mask=raster(nicheRealPath[1]), n=sSize) #amostra do ponto
             scenarioName = basename(nicheRealPath[1:24][1]) #tempo vinculado ao cenario para variaveis ambientais
             scenarioName = gsub('.asc','',scenarioName) #retirando do nome o '.asc'
             layers_i = extract(
