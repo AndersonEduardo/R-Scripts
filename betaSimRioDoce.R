@@ -12,6 +12,7 @@ print('Rodando script...')
 ##carregando funcoes
 source('/home/anderson/Documentos/Projetos/Diversidade beta Rio Doce Isaac/FD/__online_2017_02_01/functions/multidimFbetaD.R')
 source('/home/anderson/Documentos/Projetos/Diversidade beta Rio Doce Isaac/FD/__online_2017_02_01/functions/quality_funct_space.R')
+source("http://villeger.sebastien.free.fr/R%20scripts/GFD_matcomm.R"); GFD<-GFD_matcomm
 
 ##dados
 matFunc = read.table('/home/anderson/Documentos/Projetos/Diversidade beta Rio Doce Isaac/Projeto_Rio_Doce/doce_funcional_imputacao.txt') #matriz traits funcionais
@@ -19,7 +20,7 @@ matPres = read.table('/home/anderson/Documentos/Projetos/Diversidade beta Rio Do
 
 ##crindo objeto para armazenar os resultados e com os cenarios
 #outputBetaDiv = list()
-scenarios = c(0.05, 0.25, 0.50, 0.75, 1.00)
+scenarios = 0.5 #c(0.05, 0.25, 0.50, 0.75, 1.00)
 
 
 ##PARTE 2: realizando as iteracoes dos cenarios e o calculo da beta div para cada um
@@ -34,7 +35,7 @@ for (s in scenarios){
     doceCommScen = rep(0, length(doceComm)) #vetor de zeros para o Rio Doce
     doceCommScen[sample(which(doceComm==1))[1:round(s*length(doceComm[which(doceComm==1)]))]] = 1 #eliminacao aleatoria de especies para o cenario atual
 
-        for (i in 1:100){
+        for (i in 48:70){  #(i in 1:100){
         
         ##PARTE 2B: aleatorizacao
 
@@ -109,13 +110,17 @@ for (s in scenarios){
         output_i = file.path(mainDir, scenarioDir, iterationDir) #diretorio com os resultados
 
         ##carregando os dados salvos
-        rm(statsBeta) #garatindo que nao ocorra confusao...
-
-        if(file.exists(paste(output_i,'/cenario_',(1-s)*100,'_iteracao_',i,sep=''))){
-            load(paste(output_i,'/cenario_',(1-s)*100,'_iteracao_',i,sep='')) #abrindo
+        if(exists('statsBeta')){
+            rm(statsBeta) #garatindo que nao ocorra confusao...
         }else{
             next
         }
+
+#        if(file.exists(paste(output_i,'/cenario_',(1-s)*100,'_iteracao_',i,sep=''))){
+            load(paste(output_i,'/cenario_',(1-s)*100,'_iteracao_',i,sep='')) #abrindo
+#        }else{
+#            next
+#        }
         
         ##transformando as matrizes em vetores (i.e. pegando todas as metricas da matriz e colocando juntas num vetor)
         nestVec = append(x=nestVec, values=as.vector(statsBeta$F_nest_res))
