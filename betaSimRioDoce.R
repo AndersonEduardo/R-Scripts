@@ -20,7 +20,7 @@ matPres = read.table('/home/anderson/Documentos/Projetos/Diversidade beta Rio Do
 
 ##crindo objeto para armazenar os resultados e com os cenarios
 #outputBetaDiv = list()
-scenarios = 0.5 #c(0.05, 0.25, 0.50, 0.75, 1.00)
+scenarios = 0.05 #c(0.05, 0.25, 0.50, 0.75, 1.00)
 
 
 ##PARTE 2: realizando as iteracoes dos cenarios e o calculo da beta div para cada um
@@ -35,7 +35,7 @@ for (s in scenarios){
     doceCommScen = rep(0, length(doceComm)) #vetor de zeros para o Rio Doce
     doceCommScen[sample(which(doceComm==1))[1:round(s*length(doceComm[which(doceComm==1)]))]] = 1 #eliminacao aleatoria de especies para o cenario atual
 
-        for (i in 48:70){  #(i in 1:100){
+        for (i in 28:100){
         
         ##PARTE 2B: aleatorizacao
 
@@ -110,11 +110,11 @@ for (s in scenarios){
         output_i = file.path(mainDir, scenarioDir, iterationDir) #diretorio com os resultados
 
         ##carregando os dados salvos
-        if(exists('statsBeta')){
-            rm(statsBeta) #garatindo que nao ocorra confusao...
-        }else{
-            next
-        }
+        ## if(exists('statsBeta')){
+        ##     rm(statsBeta) #garatindo que nao ocorra confusao...
+        ## }else{
+        ##     next
+        ## }
 
 #        if(file.exists(paste(output_i,'/cenario_',(1-s)*100,'_iteracao_',i,sep=''))){
             load(paste(output_i,'/cenario_',(1-s)*100,'_iteracao_',i,sep='')) #abrindo
@@ -128,6 +128,8 @@ for (s in scenarios){
         turnVec = append(x=turnVec, values=as.vector(statsBeta$F_turn))
         pturnVec = append(x=turnVec, values=as.vector(statsBeta$F_pturn))
 
+        rm(statsBeta) #garatindo que nao ocorra confusao...
+        
     }
     
     nestDF = rbind(nestDF, data.frame(scenario=rep(paste('Nes',(1-s)*100,sep=''),length(nestVec)), Nestedness=nestVec))
@@ -141,13 +143,13 @@ for (s in scenarios){
 diretorio = '/home/anderson/Documentos/Projetos/Diversidade beta Rio Doce Isaac' #especificar diretorio onde salvar
 
 write.csv(nestDF, file=file.path(diretorio,'nestData.csv'), row.names=FALSE)
-write.csv(betaVec, file=file.path(diretorio,'betaData.csv'), row.names=FALSE)
+write.csv(betaDF, file=file.path(diretorio,'betaData.csv'), row.names=FALSE)
 write.csv(turnDF, file=file.path(diretorio,'turnData.csv'), row.names=FALSE)
 write.csv(pturnDF, file=file.path(diretorio,'pturnData.csv'), row.names=FALSE)
 
 ##importando arquivos csv
 nestDF = read.csv(file=file.path(diretorio,'nestData.csv'), header = TRUE)
-betaVec = read.csv(file=file.path(diretorio,'betaData.csv'), header = TRUE)
+betaDF = read.csv(file=file.path(diretorio,'betaData.csv'), header = TRUE)
 turnDF = read.csv(file=file.path(diretorio,'turnData.csv'), header = TRUE)
 pturnDF = read.csv(file=file.path(diretorio,'pturnData.csv'), header = TRUE)
 
@@ -196,54 +198,54 @@ turnDens0 = density(turnDF[complete.cases(turnDF$Turn) & turnDF$scenario=='Tur0'
 ##graficos juntos
 jpeg(file.path(diretorio,'densidadeUni.jpg'), width=600, height=600)
 par(family='times', cex.axis=1.5, cex.lab=1.5)
-plot(nestDens95, lty=3, lwd=2, col='yellow', ylim=c(0,10), main = '', ylab='Density', xlab='Beta Diversity')
+plot(nestDens95, lty=3, lwd=2, col='red', ylim=c(0,10), main = '', ylab='Density', xlab='Beta Diversity')
 lines(nestDens75, lty=3, lwd=2, col='purple')
-lines(nestDens50, lty=3,lwd=2, col='red')
+lines(nestDens50, lty=3,lwd=2, col='green')
 lines(nestDens25, lty=3, lwd=2, col='blue')
 lines(nestDens0,lty=3, lwd=2, col='black')
 #
-lines(betaDens95, lty=1, lwd=2, col='yellow')
+lines(betaDens95, lty=1, lwd=2, col='red')
 lines(betaDens75, lty=1, lwd=2, col='purple')
-lines(betaDens50, lty=1, lwd=2, col='red')
+lines(betaDens50, lty=1, lwd=2, col='green')
 lines(betaDens25, lty=1, lwd=2, col='blue')
 lines(betaDens0, lty=1, lwd=2, col='black')
 #
-lines(turnDens95, lty=4, lwd=2, col='yellow')
+lines(turnDens95, lty=4, lwd=2, col='red')
 lines(turnDens75, lty=4, lwd=2, col='purple')
-lines(turnDens50, lty=4, lwd=2, col='red')
+lines(turnDens50, lty=4, lwd=2, col='green')
 lines(turnDens25, lty=4, lwd=2, col='blue')
 lines(turnDens0, lty=4, lwd=2, col='black')
 #
-legend(x='topright',legend=c('0% of extinction','25% of extinction','50% of extinction','75% of extinction','95% of extinction'), pch=c(22,22,22,22,22), col=c(0,0,0,0,0) , pt.bg=c('black','blue','red','purple','yellow'), cex=1.5)
+legend(x='topright',legend=c('0% of extinction','25% of extinction','50% of extinction','75% of extinction','95% of extinction'), pch=c(22,22,22,22,22), col=c(0,0,0,0,0) , pt.bg=c('black','blue','green','purple','red'), cex=1.5)
 dev.off()
 
 ##graficos separados
 jpeg(file.path(diretorio,'densidadeSep_Nest.jpg'), width=600, height=600)
 par(family='times', cex.axis=1.5, cex.lab=1.5)
-plot(nestDens95, lty=3, lwd=2, col='yellow', ylim=c(0,5), main = '', ylab='Density', xlab='Beta Diversity')
-lines(nestDens75, lty=3, lwd=2, col='purple')
-lines(nestDens50, lty=3,lwd=2, col='red')
-lines(nestDens25, lty=3, lwd=2, col='blue')
-lines(nestDens0,lty=3, lwd=2, col='black')
-legend(x='topright',legend=c('0% of extinction','25% of extinction','50% of extinction','75% of extinction','95% of extinction'), pch=c(22,22,22,22,22), col=c(0,0,0,0,0) , pt.bg=c('black','blue','red','purple','yellow'), cex=1.5)
+plot(nestDens95, lty=1, lwd=2, col='red', ylim=c(0,5), main = '', ylab='Density', xlab='Nestedness')
+lines(nestDens75, lty=1, lwd=2, col='purple')
+lines(nestDens50, lty=1,lwd=2, col='green')
+lines(nestDens25, lty=1, lwd=2, col='blue')
+lines(nestDens0,lty=1, lwd=2, col='black')
+legend(x='topright',legend=c('0% of extinction','25% of extinction','50% of extinction','75% of extinction','95% of extinction'), pch=c(22,22,22,22,22), col=c(0,0,0,0,0) , pt.bg=c('black','blue','green','purple','red'), cex=1.5)
 dev.off()
 
 jpeg(file.path(diretorio,'densidadeSep_Beta.jpg'), width=600, height=600)
 par(family='times', cex.axis=1.5, cex.lab=1.5)
-plot(betaDens95, lty=1, lwd=2, col='yellow', ylim=c(0,6), main = '', ylab='Density', xlab='Beta Diversity')
+plot(betaDens95, lty=1, lwd=2, col='red', ylim=c(0,6), main = '', ylab='Density', xlab='Beta Diversity')
 lines(betaDens75, lty=1, lwd=2, col='purple')
-lines(betaDens50, lty=1, lwd=2, col='red')
+lines(betaDens50, lty=1, lwd=2, col='green')
 lines(betaDens25, lty=1, lwd=2, col='blue')
 lines(betaDens0, lty=1, lwd=2, col='black')
-legend(x='topright',legend=c('0% of extinction','25% of extinction','50% of extinction','75% of extinction','95% of extinction'), pch=c(22,22,22,22,22), col=c(0,0,0,0,0) , pt.bg=c('black','blue','red','purple','yellow'), cex=1.5)
+legend(x='topright',legend=c('0% of extinction','25% of extinction','50% of extinction','75% of extinction','95% of extinction'), pch=c(22,22,22,22,22), col=c(0,0,0,0,0) , pt.bg=c('black','blue','green','purple','red'), cex=1.5)
 dev.off()
 
 jpeg(file.path(diretorio,'densidadeSep_Turn.jpg'), width=600, height=600)
 par(family='times', cex.axis=1.5, cex.lab=1.5)
-plot(turnDens95, lty=4, lwd=2, col='yellow', ylim=c(0,10), main = '', ylab='Density', xlab='Beta Diversity')
-lines(turnDens75, lty=4, lwd=2, col='purple')
-lines(turnDens50, lty=4, lwd=2, col='red')
-lines(turnDens25, lty=4, lwd=2, col='blue')
-lines(turnDens0, lty=4, lwd=2, col='black')
-legend(x='topright',legend=c('0% of extinction','25% of extinction','50% of extinction','75% of extinction','95% of extinction'), pch=c(22,22,22,22,22), col=c(0,0,0,0,0) , pt.bg=c('black','blue','red','purple','yellow'), cex=1.5)
+plot(turnDens95, lty=1, lwd=2, col='red', ylim=c(0,10), main = '', ylab='Density', xlab='Turnover')
+lines(turnDens75, lty=1, lwd=2, col='purple')
+lines(turnDens50, lty=1, lwd=2, col='green')
+lines(turnDens25, lty=1, lwd=2, col='blue')
+lines(turnDens0, lty=1, lwd=2, col='black')
+legend(x='topright',legend=c('0% of extinction','25% of extinction','50% of extinction','75% of extinction','95% of extinction'), pch=c(22,22,22,22,22), col=c(0,0,0,0,0) , pt.bg=c('black','blue','green','purple','red'), cex=1.5)
 dev.off()
