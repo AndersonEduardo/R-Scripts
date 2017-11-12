@@ -345,3 +345,16 @@ tendenciaSDMimprovedTSS = lm(statResultsSDMimproved$TSS~statResultsSDMimproved$s
 abline(tendenciaSDMimprovedTSS, col='blue')
 legend('bottomleft',legend=c('SDM normal','SDM improved'), pch=c(19,20), col=c(rgb(0,0,0,0.5),rgb(0,0,1,0.5)))
 dev.off()
+
+
+##teste de significancia
+
+aucTest =  wilcox.test(statResultsSDMimproved$AUC,statResultsSDMnormal$AUC)
+aucTest
+
+tssTest =  wilcox.test(statResultsSDMimproved$TSS,statResultsSDMnormal$TSS)
+tssTest
+
+##comparacao em termos de porcentagem
+
+median(statResultsSDMimproved$AUC)/median(statResultsSDMnormal$AUC) 
