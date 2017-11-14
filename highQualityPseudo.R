@@ -135,22 +135,76 @@ for(i in 1:Nsp){
             
             ##parametrizando os modelos
             myBiomodOption <- BIOMOD_ModelingOptions(
-                MAXENT.Phillips=list(
-                    path_to_maxent.jar="/home/anderson/R/x86_64-pc-linux-gnu-library/3.3/dismo/java",
-                    maximumiterations=1000,
-                    linear=TRUE,
-                    quadratic=TRUE,
-                    product=FALSE,
-                    threshold=FALSE,
-                    hinge=FALSE,
-                    maximumiterations=1000,
-                    convergencethreshold=1.0E-5,
-                    threads=2))
-
+                MAXENT.Phillips = list(path_to_maxent.jar="/home/anderson/R/x86_64-pc-linux-gnu-library/3.3/dismo/java",
+                                       maximumiterations=1000,
+                                       linear=TRUE,
+                                       quadratic=TRUE,
+                                       product=FALSE,
+                                       threshold=FALSE,
+                                       hinge=FALSE,
+                                       maximumiterations=1000,
+                                       convergencethreshold=1.0E-5,
+                                       threads=2),
+                GLM = list( type = 'quadratic',
+                           interaction.level = 0,
+                           myFormula = NULL,
+                           test = 'AIC',
+                           family = binomial(link = 'logit'),
+                           mustart = 0.5,
+                           control = glm.control(epsilon = 1e-08, maxit = 50, trace = FALSE)),
+                GAM = list( algo = 'GAM_mgcv',
+                           type = 's_smoother',
+                           k = -1,
+                           interaction.level = 0,
+                           myFormula = NULL,
+                           family = binomial(link = 'logit'),
+                           method = 'GCV.Cp',
+                           optimizer = c('outer','newton'),
+                           select = FALSE,
+                           knots = NULL,
+                           paraPen = NULL,
+                           control = list(nthreads = 1, irls.reg = 0, epsilon = 1e-07,
+                                          maxit = 200, trace = FALSE, mgcv.tol = 1e-07, mgcv.half = 15,
+                                          rank.tol = 1.49011611938477e-08,
+                                          nlm = list(ndigit=7, gradtol=1e-06, stepmax=2, steptol=1e-04, iterlim=200, check.analyticals=0),
+                                          optim = list(factr=1e+07),
+                                          newton = list(conv.tol=1e-06, maxNstep=5, maxSstep=2, maxHalf=30, use.svd=0),
+                                          outerPIsteps = 0, idLinksBases = TRUE, scalePenalty = TRUE, keepData = FALSE,
+                                          scale.est = 'fletcher', edge.correct = FALSE)),
+                MARS = list( type = 'simple',
+                            interaction.level = 0,
+                            myFormula = NULL,
+                            nk = NULL,
+                            penalty = 2,
+                            thresh = 0.001,
+                            nprune = NULL,
+                            pmethod = 'backward'),
+                CTA = list( method = 'class',
+                           parms = 'default',
+                           cost = NULL,
+                           control = list(xval = 5, minbucket = 5, minsplit = 5, cp = 0.001, maxdepth = 25)),
+                GBM = list( distribution = 'bernoulli',
+                           n.trees = 2500,
+                           interaction.depth = 7,
+                           n.minobsinnode = 5,
+                           shrinkage = 0.001,
+                           bag.fraction = 0.5,
+                           train.fraction = 1,
+                           cv.folds = 3,
+                           keep.data = FALSE,
+                           verbose = FALSE,
+                           perf.method = 'cv'),
+                RF = list( do.classif = TRUE,
+                          ntree = 500,
+                          mtry = 'default',
+                          nodesize = 5,
+                          maxnodes = NULL)
+            )            
+            
             ##rodando o(s) algoritmo(s) (i.e. SDMs)
             myBiomodModelOut <- BIOMOD_Modeling(
                 myBiomodData,
-                models = c('MAXENT.Phillips'),
+                models = c('MAXENT.Phillips','GLM', 'GAM', 'MARS', 'CTA', 'GBM', 'RF'),
                 models.options = myBiomodOption,
                 NbRunEval = 3,
                 DataSplit = 75,
@@ -164,21 +218,52 @@ for(i in 1:Nsp){
             ##gravando estatistcas basicas do modelo
             statResultsSDMnormal = rbind(statResultsSDMnormal,
                                          cbind(sp = i,
-                                               sampleSize = sampleSizes[j],
-                                               AUC = mean(evaluationScores['ROC','Testing.data',,,]),
-                                               TSS = mean(evaluationScores['TSS','Testing.data',,,])))
+                                               model = colnames(evaluationScores[,'Specificity',,,]),
+                                               TSSspec = round(as.numeric(rowMeans(evaluationScores['TSS','Specificity',,,])),3),
+                                               AUCspec = round(as.numeric(rowMeans(evaluationScores['ROC','Specificity',,,])),3)),
+                                         stringsAsFactors = FALSE)
             
             write.csv(statResultsSDMnormal, file=paste(projectFolder,'/StatisticalResults_SDMnormal','.csv',sep=''), row.names=FALSE)
+            
+            ##selecao do modelo de maior sensibilidade
+            tssMax = max(as.numeric(statResultsSDMnormal[which(statResultsSDMnormal$sp == i),]$TSSspec))
+            aucMax = max(as.numeric(statResultsSDMnormal[which(statResultsSDMnormal$sp == i),]$AUCspec))
+            bestAlgorithmTSS = statResultsSDMnormal[which(statResultsSDMnormal$TSSspec==tssMax),]$model
+            bestAlgorithmAUC = statResultsSDMnormal[which(statResultsSDMnormal$TSSspec==tssMax),]$model
+            if (bestAlgorithmTSS == bestAlgorithmAUC){
+                modelToProj = bestAlgorithmTSS
+            }else{
+                modelToProj = c(bestAlgorithmAUC, bestAlgorithmTSS)
+            }
+            ind = grep(pattern=modelToProj, x=myBiomodModelOut@models.computed) ##pegando os indices
+            modelNames = myBiomodModelOut@models.computed[ind] ##pegando os nomes dos modelos para projecao (aqueles com maior especificidade)
 
             ##rodando algortmo de projecao (i.e. rodando a projecao)
             myBiomodProj <- BIOMOD_Projection(
                 modeling.output = myBiomodModelOut,
                 new.env = predictors,
                 proj.name = paste('sp',i,'_sample',sampleSizes[j],'_SDMnormal',sep=''),
-                selected.models = 'all',
+                selected.models = modelNames,
                 compress = 'FALSE',
                 build.clamping.mask = 'FALSE',
                 output.format = '.grd')
+
+
+
+
+
+############################3CONTINUAR DAQUI#############################################
+
+
+
+
+
+
+
+
+
+
+
             
             ##gerando e salvando um mapa binario (threshold 10%)
             projStack = get_predictions(myBiomodProj) #extrai as projecoes
@@ -240,18 +325,26 @@ for(i in 1:Nsp){
             
             ##parametrizando os modelos
             myBiomodOption <- BIOMOD_ModelingOptions(
-                MAXENT.Phillips=list(
-                    path_to_maxent.jar="/home/anderson/R/x86_64-pc-linux-gnu-library/3.3/dismo/java",
-                    maximumiterations=1000,
-                    linear=TRUE,
-                    quadratic=TRUE,
-                    product=FALSE,
-                    threshold=FALSE,
-                    hinge=FALSE,
-                    maximumiterations=1000,
-                    convergencethreshold=1.0E-5,
-                    threads=2))
-
+                GLM = list( type = 'quadratic',
+                           interaction.level = 0,
+            myFormula = NULL,
+            test = 'AIC',
+            family = binomial(link = 'logit'),
+            mustart = 0.5,
+            control = glm.control(epsilon = 1e-08, maxit = 50, trace = FALSE)),
+            
+            MAXENT.Phillips=list(
+                path_to_maxent.jar="/home/anderson/R/x86_64-pc-linux-gnu-library/3.3/dismo/java",
+                maximumiterations=1000,
+                linear=TRUE,
+                quadratic=TRUE,
+                product=FALSE,
+                threshold=FALSE,
+                hinge=FALSE,
+                maximumiterations=1000,
+                convergencethreshold=1.0E-5,
+                threads=2))
+            
             ##rodando o(s) algoritmo(s) (i.e. SDMs)
             myBiomodModelOut <- BIOMOD_Modeling(
                 myBiomodData,

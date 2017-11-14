@@ -83,9 +83,11 @@ plot(as.dendrogram(cladeTree),center=TRUE)
 CladeNewick = ToNewick(cladeTree)
 
 
+
 ################################################
 #### ANALISE NUMERICA DO MODELO EXPONENCIAL ####
 ################################################
+
 
 
 S0 = 1
@@ -108,13 +110,14 @@ for (u in uVec){
 }
 
 #u=0.0001
-jpeg('/home/anderson/Documentos/Projetos/Environmental spatial structure and macroevolutionary dynamics/Sxt_mStatic_u0001.jpg')
-plot(output[[1]][,2] ~ output[[1]]$time, type='b', pch=20, ylim=c(0,50), ylab='Tempo', xlab='S')
-points(output[[1]][,3]~output[[1]]$time, type='b', pch=20, col='yellow')
-points(output[[1]][,4]~output[[1]]$time, type='b', pch=20, col='orange')
-points(output[[1]][,5]~output[[1]]$time, type='b', pch=20, col='red')
+postscript(file='/home/anderson/Documentos/Projetos/Environmental spatial structure and macroevolutionary dynamics/Sxt_mStatic_u0001.eps', onefile=FALSE, horizontal=FALSE)
+par(mar=c(5,6,1,1))
+plot(output[[1]][,2] ~ output[[1]]$time, type='b', pch=20, cex=3, ylim=c(0,50), ylab='S', xlab='Tempo', cex.lab=1.9, cex.axis=1.5)
+points(output[[1]][,3]~output[[1]]$time, type='b', pch=20, cex=3, col='yellow')
+points(output[[1]][,4]~output[[1]]$time, type='b', pch=20, cex=3, col='orange')
+points(output[[1]][,5]~output[[1]]$time, type='b', pch=20, cex=3, col='red')
 grid()
-legend(x="topleft", legend=c('m=0.01','m=0.003','m=0.002','m=0.0009'), pch=20, lty=1, col=c('black', 'yellow', 'orange', 'red'))
+legend(x="topleft", legend=c('m=0.01','m=0.003','m=0.002','m=0.0009'), pch=20, cex=2, lty=1, col=c('black', 'yellow', 'orange', 'red'))
 dev.off()
 
 ## jpeg('/home/anderson/Documentos/Projetos/Environmental spatial structure and macroevolutionary dynamics/Sxm__mStatic_u0001.jpg')
@@ -123,20 +126,22 @@ dev.off()
 ## dev.off()
 
 #u=0.00025
-jpeg('/home/anderson/Documentos/Projetos/Environmental spatial structure and macroevolutionary dynamics/Sxt_mStatic_u00025.jpg')
-plot(output[[2]][,2] ~ output[[2]]$time, type='b', pch=20, ylim=c(0,50), ylab='Tempo', xlab='S')
-points(output[[2]][,3]~output[[2]]$time, type='b', pch=20, col='yellow')
-points(output[[2]][,4]~output[[2]]$time, type='b', pch=20, col='orange')
-points(output[[2]][,5]~output[[2]]$time, type='b', pch=20, col='red')
+postscript(file='/home/anderson/Documentos/Projetos/Environmental spatial structure and macroevolutionary dynamics/Sxt_mStatic_u00025.eps', onefile=FALSE, horizontal=FALSE)
+par(mar=c(5,6,1,1))
+plot(output[[2]][,2] ~ output[[2]]$time, type='b', pch=20, cex=3, ylim=c(0,50), ylab='S', xlab='Tempo', cex.lab=1.9, cex.axis=1.5)
+points(output[[2]][,3]~output[[2]]$time, type='b', pch=20, cex=3, col='yellow')
+points(output[[2]][,4]~output[[2]]$time, type='b', pch=20, cex=3, col='orange')
+points(output[[2]][,5]~output[[2]]$time, type='b', pch=20, cex=3, col='red')
 grid()
-legend(x="topright", legend=c('m=0.01','m=0.003','m=0.002','m=0.0009'), pch=20, lty=1, col=c('black', 'yellow', 'orange', 'red'))
+legend(x="topright", legend=c('m=0.01','m=0.003','m=0.002','m=0.0009'), pch=20, cex=2, lty=1, col=c('black', 'yellow', 'orange', 'red'))
 dev.off()
 
-jpeg('/home/anderson/Documentos/Projetos/Environmental spatial structure and macroevolutionary dynamics/Sxm__mStatic_u0001xu00025.jpg')
-plot(log(as.numeric(output[[1]][100,2:5])) ~ mVec, ylim=c(0,20), type='b', pch=20, cex=1, col='black', ylab=expression(log(S(t[max]))), xlab='m')
-points(log(as.numeric(output[[2]][100,2:5])) ~ mVec, type='b', pch=20, cex=1, col='red')
+postscript('/home/anderson/Documentos/Projetos/Environmental spatial structure and macroevolutionary dynamics/Sxm__mStatic_u0001xu00025.eps', onefile=FALSE, horizontal=FALSE)
+par(mar=c(5,6,1,1))
+plot(log(as.numeric(output[[1]][100,2:5])) ~ mVec, ylim=c(0,20), type='b', pch=20, cex=3, col='black', ylab=expression(log(S(t[max]))), xlab='m', cex.lab=1.9, cex.axis=1.5)
+points(log(as.numeric(output[[2]][100,2:5])) ~ mVec, type='b', pch=20, cex=3, col='red')
 grid()
-legend(x='topright', legend=c('u=0.0001','u=0.00025'), pch=20, lty=1, col=c('black','red'))
+legend(x='topright', legend=c('u=0.0001','u=0.00025'), pch=20, cex=2, lty=1, col=c('black','red'))
 grid()
 dev.off()
 
@@ -160,11 +165,11 @@ for(u in uVec){
     tempo = vector()
 }
 
-jpeg('/home/anderson/Documentos/Projetos/Environmental spatial structure and macroevolutionary dynamics/tempoDuplicacao_mStatic_u00025.jpg')
-plot(output[[1]]$tempo~output[[1]]$m, ylim=c(0,70), xlab='m', ylab='Tempo de duplicação', type='b', pch=20, col='black')
-points(output[[2]]$tempo~output[[2]]$m, type='b', pch=20, col='red')
+postscript('/home/anderson/Documentos/Projetos/Environmental spatial structure and macroevolutionary dynamics/tempoDuplicacao_mStatic_u00025.eps', onefile=FALSE, horizontal=FALSE)
+plot(output[[1]]$tempo~output[[1]]$m, ylim=c(0,70), xlab='m', ylab='Tempo de duplicação', type='b', pch=20, cex=3, col='black', cex.lab=1.9, cex.axis=1.5)
+points(output[[2]]$tempo~output[[2]]$m, type='b', pch=20, cex=3, col='red')
 grid()
-legend(x='topleft', legend=c('u=0001','u=00025'), pch=20, lty=1, col=c('black','red'))
+legend(x='topleft', legend=c('u=0001','u=00025'), pch=20, cex=3, lty=1, col=c('black','red'))
 dev.off()
 
 
@@ -194,13 +199,13 @@ for(v in vVec){
     output[[paste('v',v,sep='')]] = outputTab
     outputTab = data.frame(t=c(1:tMax))
 }
-##
-jpeg('/home/anderson/Documentos/Projetos/Environmental spatial structure and macroevolutionary dynamics/Sxt_m1.jpg')
-plot((output[[1]]$S) ~ output[[1]]$t, ylim=c(0,max(output[[3]]$S)), ylab='S', xlab='Tempo', type='b', pch=20, col='black')
-points((output[[2]]$S) ~ output[[2]]$t, type='b', pch=20, col='yellow')
-points((output[[3]]$S) ~ output[[3]]$t, type='b', pch=20, col='red')
+
+postscript('/home/anderson/Documentos/Projetos/Environmental spatial structure and macroevolutionary dynamics/Sxt_m1.eps', onefile=FALSE, horizontal=FALSE)
+plot((output[[1]]$S) ~ output[[1]]$t, ylim=c(0,max(output[[3]]$S)), ylab='S', xlab='Tempo', type='b', pch=20, cex=3, col='black', cex.lab=1.9, cex.axis=1.5)
+points((output[[2]]$S) ~ output[[2]]$t, type='b', pch=20, cex=3, col='yellow')
+points((output[[3]]$S) ~ output[[3]]$t, type='b', pch=20, cex=3, col='red')
 grid()
-legend('topleft', legend=c('v = 0.08', 'v = 0.12', 'v = 0.13'), pch=20, lty=1, col=c('black','yellow','orange'))
+legend('topleft', legend=c('v = 0.08', 'v = 0.12', 'v = 0.13'), pch=20, cex=2, lty=1, col=c('black','yellow','orange'))
 dev.off()
 
 ##tempo de diplicação
@@ -224,12 +229,12 @@ for(v in vVec){
     outputTab = data.frame(t=c(1:tMax))
 }
     
-jpeg('/home/anderson/Documentos/Projetos/Environmental spatial structure and macroevolutionary dynamics/tempoDuplicacao_m1.jpg')
-plot(output[[1]]$td~output[[1]]$t, type='b', pch=20, col='black', ylab='Tempo de duplicação', xlab='Tempo')
-points(output[[2]]$td~output[[2]]$t, type='b', pch=20, col='yellow')
-points(output[[3]]$td~output[[3]]$t, type='b', pch=20, col='red')
+postscript('/home/anderson/Documentos/Projetos/Environmental spatial structure and macroevolutionary dynamics/tempoDuplicacao_m1.eps', onefile=FALSE, horizontal=FALSE)
+plot(output[[1]]$td~output[[1]]$t, type='b', pch=20, cex=3, col='black', ylab='Tempo de duplicação', xlab='Tempo', cex.lab=1.9, cex.axis=1.5)
+points(output[[2]]$td~output[[2]]$t, type='b', pch=20 cex=3,, col='yellow')
+points(output[[3]]$td~output[[3]]$t, type='b', pch=20, cex=3, col='red')
 grid()
-legend(x='topleft', legend=c(names(output)), pch=20, lty=1, col=c('black','yellow','red'))
+legend(x='topleft', legend=c(names(output)), pch=20, cex=2, lty=1, col=c('black','yellow','red'))
 dev.off()
 
 
@@ -248,34 +253,34 @@ output = list()
 
 for(v in vVec){
     for(i in 1:(tMax-1)){
-        S[i+1] = S[i] + S[i]*( 1 - (exp(-v*(i-T)) - 1) / ( (1 + exp(-v*(i-T)))*(u + 1) - 1 ) )
+        S[i+1] = S[i] + S[i]*( (1+exp(-v*(i-T)))*u ) / ( (1+exp(-v*(i-T)))*u + exp(-v*(i-T)) )
     }
     outputTab = data.frame(cbind(outputTab,S))
     output[[paste('v = ',v,sep='')]] = outputTab
     outputTab = data.frame(t=c(1:tMax))
 }
 
-jpeg('/home/anderson/Documentos/Projetos/Environmental spatial structure and macroevolutionary dynamics/Sxt_m2.jpg')
-plot(log(output[[1]]$S) ~ output[[1]]$t, ylim=c(0,max(log(output[[3]]$S))), ylab='log(S)', xlab='Tempo', type='b', pch=20, col='black')
-points(log(output[[2]]$S) ~ output[[2]]$t, type='b', pch=20, col='yellow')
-points(log(output[[3]]$S) ~ output[[3]]$t, type='b', pch=20, col='red')
+postscript(file='/home/anderson/Documentos/Projetos/Environmental spatial structure and macroevolutionary dynamics/Sxt_m2.eps', onefile=FALSE, horizontal=FALSE)
+plot(log(output[[1]]$S) ~ output[[1]]$t, ylim=c(0,max(log(output[[3]]$S))), ylab='log(S)', xlab='Tempo', type='b', pch=20, cex=3, col='black', cex.lab=1.9, cex.axis=1.5)
+points(log(output[[2]]$S) ~ output[[2]]$t, type='b', pch=20, cex=3, col='yellow')
+points(log(output[[3]]$S) ~ output[[3]]$t, type='b', pch=20, cex=3, col='red')
 grid()
-legend('topleft', legend=c(x=names(output)), pch=20, lty=1, col=c('black','yellow','orange'))
+legend('topleft', legend=c(x=names(output)), pch=20, cex=2, lty=1, col=c('black','yellow','orange'))
 dev.off()
 
 ##tempo de diplicação
 
 tMax = 100
-vVec = c(0.1, 0.5, 1)
+vVec = c(0.1, 0.2, 1)
 T = 50
 td = vector()
 outputTab = data.frame(t=c(1:tMax))
 output = list()
-
+#
 for(v in vVec){
     for(i in 1:tMax){
     td = append(td,
-                log(2) / log( 2 - (exp(-v*(i-T)) - 1) / ( (1 + exp(-v*(i-T)))*(u + 1) - 1 )  )
+                log(2) / ( log( ( (1+exp(-v*(i-T)))*2*u + exp(-v*(i-T)) ) / ( (1 + exp(-v*(i-T)))*u + exp(-v*(i-T)) ) ) )
                 )
     }
     outputTab = data.frame(cbind(outputTab,td))
@@ -283,11 +288,11 @@ for(v in vVec){
     td = vector()
     outputTab = data.frame(t=c(1:tMax))
 }
-    
-jpeg('/home/anderson/Documentos/Projetos/Environmental spatial structure and macroevolutionary dynamics/tempoDuplicacao_m2.jpg')
-plot((output[[3]]$td) ~ output[[3]]$t, type='b', pch=20, col='red', ylab='Tempo de duplicação', xlab='Tempo')
-points((output[[2]]$td) ~ output[[2]]$t, type='b', pch=20, col='yellow')
-points((output[[1]]$td) ~ output[[1]]$t, type='b', pch=20, col='black')
+ #   
+postscript(file='/home/anderson/Documentos/Projetos/Environmental spatial structure and macroevolutionary dynamics/tempoDuplicacao_m2.eps', onefile=FALSE, horizontal=FALSE, width = 480, height = 480)
+plot((output[[3]]$td) ~ output[[3]]$t, type='b', pch=20, cex=3, col='red', ylab='Tempo de duplicação', xlab='Tempo', cex.lab=1.9, cex.axis=1.5)
+points((output[[2]]$td) ~ output[[2]]$t, type='b', pch=20, cex=3, col='yellow')
+points((output[[1]]$td) ~ output[[1]]$t, type='b', pch=20, cex=3, col='black')
 grid()
-legend(x='topright', legend=c(rev(names(output))), pch=20, lty=1, col=c('black','yellow','red'))
+legend(x='topright', legend=c(rev(names(output))), pch=20, cex=2, lty=1, col=c('red','yellow','black'))
 dev.off()
