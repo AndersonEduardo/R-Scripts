@@ -214,7 +214,7 @@ for(i in 1:Nsp){
             
             ##My output data
             evaluationScores = get_evaluations(myBiomodModelOut)
-
+            
             ##gravando estatistcas basicas do modelo
             statResultsSDMnormal = rbind(statResultsSDMnormal,
                                          cbind(sp = i,
@@ -230,14 +230,24 @@ for(i in 1:Nsp){
             aucMax = max(as.numeric(statResultsSDMnormal[which(statResultsSDMnormal$sp == i),]$AUCspec))
             bestAlgorithmTSS = statResultsSDMnormal[which(statResultsSDMnormal$TSSspec==tssMax),]$model
             bestAlgorithmAUC = statResultsSDMnormal[which(statResultsSDMnormal$TSSspec==tssMax),]$model
-            if (bestAlgorithmTSS == bestAlgorithmAUC){
-                modelToProj = bestAlgorithmTSS
-            }else{
-                modelToProj = c(bestAlgorithmAUC, bestAlgorithmTSS)
-            }
-            ind = grep(pattern=modelToProj, x=myBiomodModelOut@models.computed) ##pegando os indices
-            modelNames = myBiomodModelOut@models.computed[ind] ##pegando os nomes dos modelos para projecao (aqueles com maior especificidade)
+            ind = match(bestAlgorithmTSS, bestAlgorithmAUC)
+            modelToProj = bestAlgorithmAUC[ind]
+            modelNames = grep(pattern=paste(modelToProj,collapse='|'), x=myBiomodModelOut@models.computed, value=TRUE)
+            
+            ## if (bestAlgorithmTSS == bestAlgorithmAUC){
+            ##     modelToProj = bestAlgorithmTSS
+            ## }else{
+            ##     modelToProj = c(bestAlgorithmAUC, bestAlgorithmTSS)
+            ## }
+            ## ind = grep(pattern=modelToProj, x=myBiomodModelOut@models.computed) ##pegando os indices
+            ## modelNames = myBiomodModelOut@models.computed[ind] ##pegando os nomes dos modelos para projecao (aqueles com maior especificidade)
 
+            ##rodando o algoritmo de consenso dos modelos (i.e. ensemble model)
+            myBiomodEM = BIOMOD_EnsembleModeling(
+                modeling.output = myBiomodModelOut,
+                chosen.models = modelNames,
+                em.by='all')
+            
             ##rodando algortmo de projecao (i.e. rodando a projecao)
             myBiomodProj <- BIOMOD_Projection(
                 modeling.output = myBiomodModelOut,
@@ -245,29 +255,20 @@ for(i in 1:Nsp){
                 proj.name = paste('sp',i,'_sample',sampleSizes[j],'_SDMnormal',sep=''),
                 selected.models = modelNames,
                 compress = 'FALSE',
-                build.clamping.mask = 'FALSE',
-                output.format = '.grd')
-
-
-
-
-
-############################3CONTINUAR DAQUI#############################################
-
-
-
-
-
-
-
-
-
-
-
+                binary.meth = c('TSS','ROC'),
+                build.clamping.mask = 'FALSE')
             
-            ##gerando e salvando um mapa binario (threshold 10%)
-            projStack = get_predictions(myBiomodProj) #extrai as projecoes
-            projStackBIN = BinaryTransformation(projStack, 10)
+            ##forecasting com o consenso dos algoritmos (i.e. ensemble projection)
+            myBiomodEF = BIOMOD_EnsembleForecasting(
+                EM.output = myBiomodEM,
+                projection.output = myBiomodProj)
+            
+            ##obtendo mapa binario
+            ##projStack = get_predictions(myBiomodProj) #extrai as projecoes
+            ##projStackBIN = BinaryTransformation(projStack, 10)
+            binTSS = raster(paste(projectFolder,'/SDMnormal/','sp',i,'.sample',sampleSizes[j],'.SDMnormal','/proj_sp',i,'_sample',sampleSizes[j],'_SDMnormal','/proj_sp',i,'_sample',sampleSizes[j],'_SDMnormal_sp',i,'.sample',sampleSizes[j],'.SDMnormal_TSSbin.grd' ,sep=''))
+            binAUC = raster(paste(projectFolder,'/SDMnormal/','sp',i,'.sample',sampleSizes[j],'.SDMnormal','/proj_sp',i,'_sample',sampleSizes[j],'_SDMnormal','/proj_sp',i,'_sample',sampleSizes[j],'_SDMnormal_sp',i,'.sample',sampleSizes[j],'.SDMnormal_ROCbin.grd' ,sep=''))
+            projStackBIN = stack(binTSS,binAUC)
             
             ##writeRaster(projStackBIN,file=paste(projectFolder,'maxent/',sdmTypes[h],'/',spsTypes[i],'/',spsTypes[i],'.sample',sampleSizes[j],'.replica',k,'/proj_',l,'kyr/proj_',i,'kyr','.sample',sampleSizes[j],'.replica',k,'_BIN.asc',sep=''),row.names=FALSE)
 
@@ -279,16 +280,16 @@ for(i in 1:Nsp){
             
             ##diretorio para biomod salvar os resultados
             setwd(file.path(projectFolder,'SDMimproved'))
-
+            
             ##projecoes de ausencias do SDM (rodado na etapa 2, acima)
             projAbs = sum(projStackBIN)
             
             ##for (k in 1:nlayers(projStackBIN)){
-
+            
             ##definindo variaveis e parametros locais
             betterPseudo = list()
             betterPseudoVar = list()
-
+            
             ## >> AMOSTRANDO PSEUDOAUSENCIAS MELHORADAS <<
             values(projAbs)[values(projAbs) != 0] = NA            
             betterPseudoPoints = dismo::randomPoints(mask=projAbs, n=1000) #sorteando pontos da distribuicao modelada
@@ -301,7 +302,7 @@ for(i in 1:Nsp){
             
             ## plot(projStackBIN[[k]])
             ## points(betterPseudo[[k]][,c('lon','lat')])
-
+            
             ##definindo variaveis e parametros locais para o biomod2 (que rodara a seguir)
             occPointsDF = data.frame(occPoints, occ=1, extract(predictors,occPoints)) #assumindo que o stack predictors contem apenas as variaveis empregadas no projeto atual
             
@@ -322,39 +323,29 @@ for(i in 1:Nsp){
             ## ##inspecionando o objeto gerado pela funcao do biomod2
             ## myBiomodData
             ## plot(myBiomodData)
+
+
+
+
+
+
+
+
+###########################CONTINUAR DAQUI##############################################
+
+
+
+
+
+
+
+
+
+
             
             ##parametrizando os modelos
             myBiomodOption <- BIOMOD_ModelingOptions(
-                GLM = list( type = 'quadratic',
-                           interaction.level = 0,
-            myFormula = NULL,
-            test = 'AIC',
-            family = binomial(link = 'logit'),
-            mustart = 0.5,
-            control = glm.control(epsilon = 1e-08, maxit = 50, trace = FALSE)),
-            
-            MAXENT.Phillips=list(
-                path_to_maxent.jar="/home/anderson/R/x86_64-pc-linux-gnu-library/3.3/dismo/java",
-                maximumiterations=1000,
-                linear=TRUE,
-                quadratic=TRUE,
-                product=FALSE,
-                threshold=FALSE,
-                hinge=FALSE,
-                maximumiterations=1000,
-                convergencethreshold=1.0E-5,
-                threads=2))
-            
-            ##rodando o(s) algoritmo(s) (i.e. SDMs)
-            myBiomodModelOut <- BIOMOD_Modeling(
-                myBiomodData,
-                models = c('MAXENT.Phillips'),
-                models.options = myBiomodOption,
-                NbRunEval = 3,
-                DataSplit = 75,
-                models.eval.meth = c('TSS','ROC'),
-                do.full.models = FALSE,
-                modeling.id = paste(myRespName,'_sample',sampleSizes[j],'_SDMimproved',sep=''))
+            )
             
             ##My output data
             evaluationScores = get_evaluations(myBiomodModelOut)
