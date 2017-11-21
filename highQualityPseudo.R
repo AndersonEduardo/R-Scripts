@@ -53,7 +53,7 @@ for(i in 1:Nsp){
             ## plot(fx~x,ylim=c(0,1.2))
 
             ##condicao para nao permitir distribuicoes vazias (i.e. inexistente) ou tbm sobre a Am. Sul toda. Condicao: distribuicao > 1% ou <95% da america do sul
-            while( (sum(datMat[,5]) < 0.01*(nrow(datMat))) | (sum(datMat[,5]) > 0.95*(nrow(datMat))) ){
+            while( (sum(datMat[,5]) < 0.1*(nrow(datMat))) | (sum(datMat[,5]) > 0.75*(nrow(datMat))) ){
                 
                 ##equacoes para as dimensoes do nicho das especies
                 betaBio1 = runif(n=1, min=0.001, max=1)*sample(x=c(-1,1), size=1) #parametro para cada equacao de cada especie
@@ -96,7 +96,7 @@ for(i in 1:Nsp){
             jpeg(filename=paste(projectFolder,'/virtual species/sp',i,'.jpeg',sep=''))
             plot(rasterSpDist)
             dev.off()
-            writeRaster(x=rasterSpDist,filename=paste(projectFolder,'/virtual species/sp',i,'.asc',sep=''),overwrite=TRUE)
+            writeRaster(x=rasterSpDist, filename=paste(projectFolder,'/virtual species/sp',i,'.asc',sep=''), overwrite=TRUE)
 
             
             ##PARTE 2: modelando ausencias 
@@ -241,12 +241,6 @@ for(i in 1:Nsp){
             ## }
             ## ind = grep(pattern=modelToProj, x=myBiomodModelOut@models.computed) ##pegando os indices
             ## modelNames = myBiomodModelOut@models.computed[ind] ##pegando os nomes dos modelos para projecao (aqueles com maior especificidade)
-
-            ##rodando o algoritmo de consenso dos modelos (i.e. ensemble model)
-            myBiomodEM = BIOMOD_EnsembleModeling(
-                modeling.output = myBiomodModelOut,
-                chosen.models = modelNames,
-                em.by='all')
             
             ##rodando algortmo de projecao (i.e. rodando a projecao)
             myBiomodProj <- BIOMOD_Projection(
@@ -254,21 +248,19 @@ for(i in 1:Nsp){
                 new.env = predictors,
                 proj.name = paste('sp',i,'_sample',sampleSizes[j],'_SDMnormal',sep=''),
                 selected.models = modelNames,
-                compress = 'FALSE',
-                binary.meth = c('TSS','ROC'),
-                build.clamping.mask = 'FALSE')
+                compress = 'TRUE',
+                build.clamping.mask = 'TRUE')
+
+            ##rodando o algoritmo de consenso dos modelos (i.e. ensemble model)
+            myBiomodEM = BIOMOD_EnsembleModeling(
+                modeling.output = myBiomodModelOut,
+                chosen.models = modelNames)
             
             ##forecasting com o consenso dos algoritmos (i.e. ensemble projection)
             myBiomodEF = BIOMOD_EnsembleForecasting(
                 EM.output = myBiomodEM,
+                binary.meth = c('TSS','ROC'),
                 projection.output = myBiomodProj)
-            
-            ##obtendo mapa binario
-            ##projStack = get_predictions(myBiomodProj) #extrai as projecoes
-            ##projStackBIN = BinaryTransformation(projStack, 10)
-            binTSS = raster(paste(projectFolder,'/SDMnormal/','sp',i,'.sample',sampleSizes[j],'.SDMnormal','/proj_sp',i,'_sample',sampleSizes[j],'_SDMnormal','/proj_sp',i,'_sample',sampleSizes[j],'_SDMnormal_sp',i,'.sample',sampleSizes[j],'.SDMnormal_TSSbin.grd' ,sep=''))
-            binAUC = raster(paste(projectFolder,'/SDMnormal/','sp',i,'.sample',sampleSizes[j],'.SDMnormal','/proj_sp',i,'_sample',sampleSizes[j],'_SDMnormal','/proj_sp',i,'_sample',sampleSizes[j],'_SDMnormal_sp',i,'.sample',sampleSizes[j],'.SDMnormal_ROCbin.grd' ,sep=''))
-            projStackBIN = stack(binTSS,binAUC)
             
             ##writeRaster(projStackBIN,file=paste(projectFolder,'maxent/',sdmTypes[h],'/',spsTypes[i],'/',spsTypes[i],'.sample',sampleSizes[j],'.replica',k,'/proj_',l,'kyr/proj_',i,'kyr','.sample',sampleSizes[j],'.replica',k,'_BIN.asc',sep=''),row.names=FALSE)
 
@@ -280,15 +272,18 @@ for(i in 1:Nsp){
             
             ##diretorio para biomod salvar os resultados
             setwd(file.path(projectFolder,'SDMimproved'))
-            
-            ##projecoes de ausencias do SDM (rodado na etapa 2, acima)
-            projAbs = sum(projStackBIN)
-            
-            ##for (k in 1:nlayers(projStackBIN)){
-            
+
             ##definindo variaveis e parametros locais
             betterPseudo = list()
             betterPseudoVar = list()
+            
+            ##projecoes de ausencias do SDM (rodado na etapa 2, acima)
+            binTSS = raster(paste(projectFolder,'/SDMnormal/','sp',i,'.sample',sampleSizes[j],'.SDMnormal','/proj_sp',i,'_sample',sampleSizes[j],'_SDMnormal','/proj_sp',i,'_sample',sampleSizes[j],'_SDMnormal_sp',i,'.sample',sampleSizes[j],'.SDMnormal_ensemble_TSSbin.grd' ,sep=''))
+            binAUC = raster(paste(projectFolder,'/SDMnormal/','sp',i,'.sample',sampleSizes[j],'.SDMnormal','/proj_sp',i,'_sample',sampleSizes[j],'_SDMnormal','/proj_sp',i,'_sample',sampleSizes[j],'_SDMnormal_sp',i,'.sample',sampleSizes[j],'.SDMnormal_ensemble_ROCbin.grd' ,sep=''))
+            projStackBIN = stack(binTSS,binAUC)
+            projAbs = sum(projStackBIN)
+            
+            ##for (k in 1:nlayers(projStackBIN)){
             
             ## >> AMOSTRANDO PSEUDOAUSENCIAS MELHORADAS <<
             values(projAbs)[values(projAbs) != 0] = NA            
@@ -323,39 +318,97 @@ for(i in 1:Nsp){
             ## ##inspecionando o objeto gerado pela funcao do biomod2
             ## myBiomodData
             ## plot(myBiomodData)
-
-
-
-
-
-
-
-
-###########################CONTINUAR DAQUI##############################################
-
-
-
-
-
-
-
-
-
-
             
             ##parametrizando os modelos
             myBiomodOption <- BIOMOD_ModelingOptions(
-            )
+                MAXENT.Phillips = list(path_to_maxent.jar="/home/anderson/R/x86_64-pc-linux-gnu-library/3.3/dismo/java",
+                                       maximumiterations=1000,
+                                       linear=TRUE,
+                                       quadratic=TRUE,
+                                       product=FALSE,
+                                       threshold=FALSE,
+                                       hinge=FALSE,
+                                       maximumiterations=1000,
+                                       convergencethreshold=1.0E-5,
+                                       threads=2),
+                GLM = list( type = 'quadratic',
+                           interaction.level = 0,
+                           myFormula = NULL,
+                           test = 'AIC',
+                           family = binomial(link = 'logit'),
+                           mustart = 0.5,
+                           control = glm.control(epsilon = 1e-08, maxit = 50, trace = FALSE)),
+                GAM = list( algo = 'GAM_mgcv',
+                           type = 's_smoother',
+                           k = -1,
+                           interaction.level = 0,
+                           myFormula = NULL,
+                           family = binomial(link = 'logit'),
+                           method = 'GCV.Cp',
+                           optimizer = c('outer','newton'),
+                           select = FALSE,
+                           knots = NULL,
+                           paraPen = NULL,
+                           control = list(nthreads = 1, irls.reg = 0, epsilon = 1e-07,
+                                          maxit = 200, trace = FALSE, mgcv.tol = 1e-07, mgcv.half = 15,
+                                          rank.tol = 1.49011611938477e-08,
+                                          nlm = list(ndigit=7, gradtol=1e-06, stepmax=2, steptol=1e-04, iterlim=200, check.analyticals=0),
+                                          optim = list(factr=1e+07),
+                                          newton = list(conv.tol=1e-06, maxNstep=5, maxSstep=2, maxHalf=30, use.svd=0),
+                                          outerPIsteps = 0, idLinksBases = TRUE, scalePenalty = TRUE, keepData = FALSE,
+                                          scale.est = 'fletcher', edge.correct = FALSE)),
+                MARS = list( type = 'simple',
+                            interaction.level = 0,
+                            myFormula = NULL,
+                            nk = NULL,
+                            penalty = 2,
+                            thresh = 0.001,
+                            nprune = NULL,
+                            pmethod = 'backward'),
+                CTA = list( method = 'class',
+                           parms = 'default',
+                           cost = NULL,
+                           control = list(xval = 5, minbucket = 5, minsplit = 5, cp = 0.001, maxdepth = 25)),
+                GBM = list( distribution = 'bernoulli',
+                           n.trees = 2500,
+                           interaction.depth = 7,
+                           n.minobsinnode = 5,
+                           shrinkage = 0.001,
+                           bag.fraction = 0.5,
+                           train.fraction = 1,
+                           cv.folds = 3,
+                           keep.data = FALSE,
+                           verbose = FALSE,
+                           perf.method = 'cv'),
+                RF = list( do.classif = TRUE,
+                          ntree = 500,
+                          mtry = 'default',
+                          nodesize = 5,
+                          maxnodes = NULL)
+            )            
+
+            ##rodando o(s) algoritmo(s) (i.e. SDMs)
+            myBiomodModelOut <- BIOMOD_Modeling(
+                myBiomodData,
+                models = c('MAXENT.Phillips','GLM', 'GAM', 'MARS', 'CTA', 'GBM', 'RF'),
+                models.options = myBiomodOption,
+                NbRunEval = 3,
+                DataSplit = 75,
+                models.eval.meth = c('TSS','ROC'),
+                do.full.models = FALSE,
+                modeling.id = paste(myRespName,'_sample',sampleSizes[j],'_SDMnormal',sep=''))
+
             
             ##My output data
             evaluationScores = get_evaluations(myBiomodModelOut)
             
             ##gravando estatistcas basicas do modelo
-            statResultsSDMimproved = rbind(statResultsSDMimproved,
-                                           cbind(sp = i,
-                                                 sampleSize = sampleSizes[j],
-                                                 AUC = mean(evaluationScores['ROC','Testing.data',,,]),
-                                                 TSS = mean(evaluationScores['TSS','Testing.data',,,])))
+            statResultsSDMnormal = rbind(statResultsSDMnormal,
+                                         cbind(sp = i,
+                                               model = colnames(evaluationScores[,'Specificity',,,]),
+                                               TSSspec = round(as.numeric(rowMeans(evaluationScores['TSS','Specificity',,,])),3),
+                                               AUCspec = round(as.numeric(rowMeans(evaluationScores['ROC','Specificity',,,])),3)),
+                                         stringsAsFactors = FALSE)
             
             write.csv(statResultsSDMimproved,file=paste(projectFolder,'/StatisticalResults_SDMimproved','.csv',sep=''),row.names=FALSE)
 
@@ -367,15 +420,10 @@ for(i in 1:Nsp){
                 new.env = predictors,
                 proj.name = paste(myRespName,'_sample',sampleSizes[j],'_SDMimproved',sep=''),
                 selected.models = 'all',
-                compress = 'FALSE',
-                build.clamping.mask = 'FALSE',
+                binary.meth = 'TSS',
+                compress = 'TRUE',
+                build.clamping.mask = 'TRUE',
                 output.format = '.grd')
-            
-            ##gerando e salvando um mapa binario (threshold 10%)
-            projStack = get_predictions(myBiomodProj) #extrai as projecoes
-            projStackBIN = BinaryTransformation(stack(mean(projStack)),'10')
-            
-            ##writeRaster(projStackBIN,file=paste(projectFolder,'maxent/',sdmTypes[h],'/',spsTypes[i],'/',spsTypes[i],'.sample',sampleSizes[j],'.replica',k,'/proj_',l,'kyr/proj_',i,'kyr','.sample',sampleSizes[j],'.replica',k,'_BIN.asc',sep=''),row.names=FALSE)
 
         }, error=function(e){cat("ERROR :",conditionMessage(e), "\n")})
     }
