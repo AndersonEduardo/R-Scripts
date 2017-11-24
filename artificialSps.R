@@ -8,8 +8,8 @@ library(maptools)
 library(dismo)
 library(raster)
 library(phyloclim) #para funcao niche.overlap()
-source("/home/anderson/R/R-Scripts/TSSmaxent.R")
-source("/home/anderson/R/R-Scripts/AUCrand.R")
+#source("/home/anderson/R/R-Scripts/TSSmaxent.R")
+#source("/home/anderson/R/R-Scripts/AUCrand.R")
 
 
 ###PRIMEIRA PARTE: criando sps virtuais###
@@ -59,34 +59,33 @@ for (i in 1:length(caminhosCamadasTemp)){
 ###SEGUNDA PARTE: amostragem de pontos de ocorrencia em diferentes camadas de tempo###
 
 
-## ##definindo variaveis e parametros (LORIEN)
-envVarFolder = "J:/Anderson_Eduardo/dados_projeto" #pasta com as variaveis ambientais
-projectFolder = "J:/Anderson_Eduardo/spsArtificiais" #pasta do projeto
-mainSampleFolder = 'J:/Anderson_Eduardo/spsArtificiais/Amostras' #caminho para pasta onde a anilha com os pontos amostrados sera salva
-AmSulShape = rgdal::readOGR("J:/Anderson_Eduardo/shapefiles/Am_Sul/borders.shp") #shape da America do Sul
+## ## ##definindo variaveis e parametros (LORIEN)
+## envVarFolder = "J:/Anderson_Eduardo/dados_projeto" #pasta com as variaveis ambientais
+## projectFolder = "J:/Anderson_Eduardo/spsArtificiais" #pasta do projeto
+## mainSampleFolder = 'J:/Anderson_Eduardo/spsArtificiais/Amostras' #caminho para pasta onde a anilha com os pontos amostrados sera salva
+## AmSulShape = rgdal::readOGR("J:/Anderson_Eduardo/shapefiles/Am_Sul/borders.shp") #shape da America do Sul
+## crs(AmSulShape) = CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0')
+## biasLayer = raster('J:/Anderson_Eduardo/spsArtificiais/biasLayer.grd')
+## #biomodFolder = '/home/anderson/Documentos/Projetos/Sps artificiais/biomod/' #pasta para resultados do maxent
+## spsTypes = c('spHW', 'spCD') #c('spHW', 'spHD', 'spCD') #nomes das especies
+## sampleSizes = c(10, 100) #c(5,10,20,40,80,160) #tamanhos das amostras
+## NumRep = 3 #10 #numero de replicas (de cada cenario amostral)
+## Tmax = 22 #idade maxima (no passado)
+## bgPoints = 1000 #numero de pontos de background
+
+
+##definindo variaveis e parametros (NOTEBOOK)
+envVarFolder = "/home/anderson/PosDoc/dados_ambientais/dados_projeto" #pasta com as variaveis ambientais
+projectFolder = "/home/anderson/Documentos/Projetos/Sps artificiais/" #pasta do projeto
+mainSampleFolder = '/home/anderson/Documentos/Projetos/Sps artificiais/Amostras/' #caminho para pasta onde a planilha com os pontos amostrados sera salva
+AmSulShape = rgdal::readOGR("/home/anderson/PosDoc/shapefiles/Am_Sul/borders.shp") #shape da America do Sul
 crs(AmSulShape) = CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0')
-biasLayer = raster('J:/Anderson_Eduardo/spsArtificiais/biasLayer.grd')
-biomodFolder = '/home/anderson/Documentos/Projetos/Sps artificiais/biomod/' #pasta para resultados do maxent
-spsTypes = c('spHW', 'spCD') #c('spHW', 'spHD', 'spCD') #nomes das especies
-sampleSizes = c(10, 100) #c(5,10,20,40,80,160) #tamanhos das amostras
-NumRep = 3 #10 #numero de replicas (de cada cenario amostral)
+biasLayer = raster('/home/anderson/Documentos/Projetos/Sps artificiais/biasLayer.grd')
+spsTypes = c('spHW', 'spCD')  #c('spHW', 'spHD', 'spCD') #nomes das especies
+sampleSizes = c(10,50,100) #c(5,10,20,40,80,160) #tamanhos das amostras
+NumRep = 5 #numero de replicas (de cada cenario amostral)
 Tmax = 22 #idade maxima (no passado)
 bgPoints = 1000 #numero de pontos de background
-
-
-# ##definindo variaveis e parametros (NOTEBOOK)
-# envVarFolder = "/home/anderson/PosDoc/dados_ambientais/dados_projeto" #pasta com as variaveis ambientais
-# projectFolder = "/home/anderson/Documentos/Projetos/Sps artificiais/" #pasta do projeto
-# mainSampleFolder = '/home/anderson/Documentos/Projetos/Sps artificiais/Amostras/' #caminho para pasta onde a planilha com os pontos amostrados sera salva
-# AmSulShape = rgdal::readOGR("/home/anderson/PosDoc/shapefiles/Am_Sul/borders.shp") #shape da America do Sul
-# crs(AmSulShape) = CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0')
-# biasLayer = raster('/home/anderson/Documentos/Projetos/Sps artificiais/biasLayer.grd')
-# biomodFolder = '/home/anderson/Documentos/Projetos/Sps artificiais/biomod/' #pasta para resultados do maxent
-# spsTypes = c('spHW', 'spCD')  #c('spHW', 'spHD', 'spCD') #nomes das especies
-# sampleSizes = 50 #c(5,10,20,40,80,160) #tamanhos das amostras
-# NumRep = 3 #numero de replicas (de cada cenario amostral)
-# Tmax = 22 #idade maxima (no passado)
-# bgPoints = 1000 #numero de pontos de background
 
 
 ##PARA SDM MULTITEMPORAL E SEM VIES AMOSTRAL
@@ -99,8 +98,8 @@ sampleData = data.frame()
 for (i in 1:length(spsTypes)){ #loop sobre os 'tipos de especies'
 
     ##criando uma pasta da especie, se nao exisitir
-    if(!file.exists(file.path(projectFolder,'Amostras','multitemporal',spsTypes[i],sep='')))
-        dir.create(file.path(projectFolder,'Amostras','multitemporal',spsTypes[i],sep=''),recursive=TRUE)
+    if(!file.exists(paste(projectFolder,'Amostras','multitemporal',spsTypes[i],sep='')))
+        dir.create(paste(projectFolder,'Amostras','multitemporal',spsTypes[i],sep=''),recursive=TRUE)
     
     for (sSize in sampleSizes){ #numero de pontos (registros, dados) na amostra
         
@@ -139,8 +138,8 @@ sampleData = data.frame()
 for (i in 1:length(spsTypes)){ #loop sobre os 'tipos de especies'
 
     ##criando uma pasta da especie, se nao exisitir
-    if(!file.exists(file.path(projectFolder,'Amostras','multitemporal',spsTypes[i],sep='')))
-        dir.create(file.path(projectFolder,'Amostras','multitemporal',spsTypes[i],sep=''))
+    if(!file.exists(paste(projectFolder,'Amostras','multitemporal',spsTypes[i],sep='')))
+        dir.create(paste(projectFolder,'Amostras','multitemporal',spsTypes[i],sep=''))
     
     for (sSize in sampleSizes){ #numero de pontos de ocoorrencia (que parearah com a amostra de background dessa  iteracao)
 
@@ -183,8 +182,8 @@ sampleData = data.frame()
 for (i in 1:length(spsTypes)){ #loop sobre os 'tipos de especies'
     
     ##criando uma pasta da especie, se nao exisitir
-    if(!file.exists(file.path(projectFolder,'/Amostras','multitemporal',spsTypes[i],sep='')))
-        dir.create(file.path(projectFolder,'/Amostras','multitemporal',spsTypes[i],sep=''))
+    if(!file.exists(paste(projectFolder,'/Amostras','multitemporal',spsTypes[i],sep='')))
+        dir.create(paste(projectFolder,'Amostras','multitemporal',spsTypes[i],sep=''))
     
     for (sSize in sampleSizes){ #numero de pontos (registros, dados) na amostra
         
@@ -224,8 +223,8 @@ sampleData = data.frame()
 for (i in 1:length(spsTypes)){ #loop sobre os 'tipos de especies'
 
     ##criando uma pasta da especie, se nao exisitir
-    if(!file.exists(file.path(projectFolder,'/Amostras','multitemporal',spsTypes[i],sep='')))
-        dir.create(file.path(projectFolder,'Amostras','multitemporal',spsTypes[i],sep=''))
+    if(!file.exists(paste(projectFolder,'/Amostras','multitemporal',spsTypes[i],sep='')))
+        dir.create(paste(projectFolder,'Amostras','multitemporal',spsTypes[i],sep=''))
     
     for (sSize in sampleSizes){ #numero de pontos de ocoorrencia (que parearah com a amostra de background dessa  iteracao)
 
@@ -269,8 +268,8 @@ sampleDataBg = data.frame()
 for (i in 1:length(spsTypes)){ #loop sobre os 'tipos de especies'
 
     ##criando uma pasta da especie, se nao exisitir
-    if(!file.exists(file.path(projectFolder,'/Amostras','monotemporal',spsTypes[i],sep='')))
-        dir.create(file.path(projectFolder,'/Amostras','monotemporal',spsTypes[i],sep=''))
+    if(!file.exists(paste(projectFolder,'/Amostras','monotemporal',spsTypes[i],sep='')))
+        dir.create(paste(projectFolder,'Amostras','monotemporal',spsTypes[i],sep=''))
     
     for (sSize in sampleSizes){ #numero de pontos (registros, dados) na amostra
         
@@ -308,39 +307,6 @@ for (i in 1:length(spsTypes)){ #loop sobre os 'tipos de especies'
     }
 }
 
-## ##background points
-
-## for (i in 1:length(spsTypes)){ #loop sobre os 'tipos de especies'
-  
-##   ##criando uma pasta da especie, se nao exisitir
-##   if(!file.exists(file.path(projectFolder,'/Amostras','monotemporal',spsTypes[i],sep='')))
-##     dir.create(file.path(projectFolder,'/Amostras','monotemporal',spsTypes[i],sep=''))
-  
-##   for (sSize in sampleSizes){ #numero de pontos (registros, dados) na amostra
-    
-##     nicheRealFolder = paste(projectFolder,'/NichoReal/',spsTypes[i],sep='') #pasta com os mapas de nicho real da sp
-##     nicheRealPath = list.files(path=nicheRealFolder, full.names=TRUE, pattern='.asc') #lista com os enderecos dos mapas de distribuicao da
-    
-##     for (j in 1:NumRep){ #replicas do cenario amostral
-      
-##       envVarPath = list.files(path=envVarFolder,full.names=TRUE)[sAge+1] #lista com os enderecos das variaveis ambientais no tempo corresposndente a interacao
-##       envData = list.files(envVarPath,full.names=TRUE)
-##       sampleData_i = randomPoints(mask=raster(envData[1],
-##                                   crs=CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0')),
-##                                   n=bgPoints) #amostra do ponto
-##       scenarioName = list.files(path=paste(envVarFolder))[sAge+1] #nome do cenario
-##       layers_i = extract(
-##         x=stack(list.files(path=paste(envVarFolder,'/',scenarioName,sep=''), pattern='asc', full.names=TRUE)),
-##         y=sampleData_i) #extraindo variaveis ambientais do ponto, em sua respectiva camada de tempo
-##       sampleData = rbind(sampleData, data.frame(lon=sampleData_i[,1],lat=sampleData_i[,2],layers_i,kyrBP=sAge)) #juntando com os dados das outras camadas de tempo amostradas
-##       names(sampleData) = c('lon','lat',names(as.data.frame(layers_i)),'kyrBP') #ajustando os nomes
-##       write.csv(sampleData,paste(projectFolder,'/Amostras/monotemporal/',spsTypes[i],'/bg_',sSize,'pts_monotemporal_',j,'rep','.csv',sep=''),row.names=FALSE) #salvando
-##       sampleData = data.frame() #devolvendo data.frame vazio para proxima rodada
-      
-##     }
-##   }
-## }
-
 
 ###TERCEIRA PARTE: SDM usando de pontos de ocorrencia em diferentes camadas de tempo (do atual ate 120 kyr BP)###
 
@@ -352,35 +318,36 @@ for (i in 1:length(spsTypes)){ #loop sobre os 'tipos de especies'
 ##pacotes
 library(biomod2)
 
-##definindo variaveis e parametros (LORIEN)
-options(java.parameters = "-Xmx7g") ###set available memmory to java
-projectFolder =  "J:/Anderson_Eduardo/spsArtificiais" #pasta do projeto
-envVarFolder = "J:/Anderson_Eduardo/dados_projeto" #pasta com as variaveis ambientais
-envVarPaths = list.files(path=envVarFolder, full.names=TRUE) #lista com os caminhos das camadas no sistema (comp.)
-AmSulShape = rgdal::readOGR("J:/Anderson_Eduardo/shapefiles/Am_Sul/borders.shp") #shape da America do Sul
-mainSampleFolder = "J:/Anderson_Eduardo/spsArtificiais/Amostras" #caminho para pasta onde a planilha
-maxentFolder = 'C:/Users/WS/Documents/R/win-library/3.4/dismo/java' #pasta para resultados do maxent
-spsTypes = c('spHW','spCD') #c('spHW', 'spHD', 'spCD') #nomes das especies
-sdmTypes = c('monotemporal') #c('multitemporal','monotemporal')
-#source("/home/anderson/R/R-Scripts/TSSmaxent.R")
-sampleSizes = 50 #c(10,100) #c(5,10,20,40,80,160) #tamanhos das amostras
-NumRep = 3 #10 #numero de replicas (de cada cenario amostral)
-#statResults = data.frame() #tabela de estatisticas basicas do modelo
+## ##definindo variaveis e parametros (LORIEN)
+## options(java.parameters = "-Xmx7g") ###set available memmory to java
+## projectFolder =  "J:/Anderson_Eduardo/spsArtificiais" #pasta do projeto
+## envVarFolder = "J:/Anderson_Eduardo/dados_projeto" #pasta com as variaveis ambientais
+## envVarPaths = list.files(path=envVarFolder, full.names=TRUE) #lista com os caminhos das camadas no sistema (comp.)
+## AmSulShape = rgdal::readOGR("J:/Anderson_Eduardo/shapefiles/Am_Sul/borders.shp") #shape da America do Sul
+## mainSampleFolder = "J:/Anderson_Eduardo/spsArtificiais/Amostras" #caminho para pasta onde a planilha
+## maxentFolder = 'C:/Users/WS/Documents/R/win-library/3.4/dismo/java' #pasta para resultados do maxent
+## spsTypes = c('spHW','spCD') #c('spHW', 'spHD', 'spCD') #nomes das especies
+## sdmTypes = c('monotemporal') #c('multitemporal','monotemporal')
+## #source("/home/anderson/R/R-Scripts/TSSmaxent.R")
+## sampleSizes = 50 #c(10,100) #c(5,10,20,40,80,160) #tamanhos das amostras
+## NumRep = 3 #10 #numero de replicas (de cada cenario amostral)
+## #statResults = data.frame() #tabela de estatisticas basicas do modelo
 
-# ##definindo variaveis e parametros (NOTEBOOK)
-# options(java.parameters = "-Xmx7g") ###set available memmory to java
-# projectFolder = "/home/anderson/Documentos/Projetos/Sps artificiais" #pasta do projetoenvVarPaths = list.files(path=envVarFolder, full.names=TRUE) #lista com os caminhos das camadas no sistema (comp.)
-# envVarFolder = "/home/anderson/PosDoc/dados_ambientais/dados_projeto" #pasta com as variaveis ambientais
-# envVarPaths = list.files(path=envVarFolder, full.names=T) #lista com os caminhos das camadas no sistema (comp.)
-# mainSampleFolder = '/home/anderson/Documentos/Projetos/Sps artificiais/Amostras' #caminho para pasta onde a planilha com os pontos
-# maxentFolder = '/home/anderson/R/x86_64-pc-linux-gnu-library/3.3/dismo/java' #pasta para resultados do maxent
-# AmSulShape = rgdal::readOGR("/home/anderson/PosDoc/shapefiles/Am_Sul/borders.shp") #shape da America do Sul
-# spsTypes = c('spHW', 'spCD') #nomes das especies  #c('spHW', 'spHD', 'spCD') #nomes das especies
-# sdmTypes = c('multitemporal','monotemporal')
-# #source("/home/anderson/R/R-Scripts/TSSmaxent.R")
-# sampleSizes = c(10,100) #c(5,10,20,40,80,160) #tamanhos das amostras
-# NumRep = 3 #numero de replicas (de cada cenario amostral)
-# #statResults = data.frame() #tabela de estatisticas basicas do modelo
+##definindo variaveis e parametros (NOTEBOOK)
+options(java.parameters = "-Xmx7g") ###set available memmory to java
+projectFolder = "/home/anderson/Documentos/Projetos/Sps artificiais" #pasta do projetoenvVarPaths = list.files(path=envVarFolder, full.names=TRUE) #lista com os caminhos das camadas no sistema (comp.)
+envVarFolder = "/home/anderson/PosDoc/dados_ambientais/dados_projeto" #pasta com as variaveis ambientais
+envVarPaths = list.files(path=envVarFolder, full.names=T) #lista com os caminhos das camadas no sistema (comp.)
+mainSampleFolder = '/home/anderson/Documentos/Projetos/Sps artificiais/Amostras' #caminho para pasta onde a planilha com os pontos
+maxentFolder = '/home/anderson/R/x86_64-pc-linux-gnu-library/3.3/dismo/java' #pasta para resultados do maxent
+AmSulShape = rgdal::readOGR("/home/anderson/PosDoc/shapefiles/Am_Sul/borders.shp") #shape da America do Sul
+spsTypes = c('spHW','spCD') #nomes das especies  #c('spHW', 'spHD', 'spCD') #nomes das especies
+sdmTypes = c('multitemporal','monotemporal')
+#source("/home/anderson/R/R-Scripts/TSSmaxent.R")
+sampleSizes = c(10,50,100) #c(5,10,20,40,80,160) #tamanhos das amostras
+NumRep = 5 #numero de replicas (de cada cenario amostral)
+timeStart = Sys.time()
+#statResults = data.frame() #tabela de estatisticas basicas do modelo
 
 
 ##algoritmo da analise do projeto
@@ -390,7 +357,7 @@ for (h in 1:length(sdmTypes)){
         statResults = data.frame() #tabela de estatisticas basicas do modelo  
         
         for (j in 1:length(sampleSizes)){
-            for (k in 2){ #1:NumRep){ #loop sobre o numero de replicas 
+            for (k in 1:NumRep){ #loop sobre o numero de replicas 
                 tryCatch({
                     
                     ##ajustando o diretorio de trabalho (pois o biomod roda e salva tudo simultaneamente)
@@ -502,6 +469,9 @@ for (h in 1:length(sdmTypes)){
     }
 }
 
+##tempo gasto
+print(Sys.time() - timeStart)
+
 
 ###QUARTA PARTE: comparando projecao do SDM e a distribuicao espacial real do nicho da sp###
 
@@ -528,10 +498,10 @@ library(ecospat)
 ##definindo variaveis e parametros (NOTEBOOK)
 projectFolder = "/home/anderson/Documentos/Projetos/Sps artificiais/" #pasta do projeto
 mainSampleFolder = '/home/anderson/Documentos/Projetos/Sps artificiais/Amostras/' #caminho para pasta onde a planilha com os pontos amostrados sera salva
-spsTypes = 'spCD' #c('spHW', 'spHD', 'spCD') #nomes das especies
-sdmTypes = 'monotemporal' #c('multitemporal','monotemporal')
-sampleSizes = 50 #c(5,10,20,40,80,160) #aqui, deve ser igual ao usasado nas partes anteriores do script
-NumRep = 3 #10
+spsTypes = c('spHW','spCD') #c('spHW', 'spHD', 'spCD') #nomes das especies
+sdmTypes = c('multitemporal','monotemporal')
+sampleSizes = c(10,50,100) #c(5,10,20,40,80,160) #aqui, deve ser igual ao usasado nas partes anteriores do script
+NumRep = 5
 envVarFolder = "/home/anderson/PosDoc/dados_ambientais/dados_projeto" #pasta com as variaveis ambientais
 envVarPaths = list.files(path=envVarFolder, full.names=T) #lista com os caminhos das camadas no sistema (comp.)
 AmSulShape = rgdal::readOGR("/home/anderson/PosDoc/shapefiles/Am_Sul/borders.shp") #shape da America do Sul
@@ -671,7 +641,7 @@ outputData = list() #tabela de dados de saida
 vetor.nomes = vector()
 projectFolder = "/home/anderson/Documentos/Projetos/Sps artificiais" #pasta do projeto
 
-outputData = read.csv(file=paste(projectFolder,'/maxent/output_A.csv',sep=''), header=TRUE, dec=',')
+#outputData = read.csv(file=paste(projectFolder,'/maxent/output_A.csv',sep=''), header=TRUE, dec=',')
 outputData = read.csv(file=paste(projectFolder,'/Resultados Lorien/output.csv',sep=''),header=TRUE)
 #vetor.nomes = append(vetor.nomes,paste(spsTypes[i],sep=''))
 
@@ -686,6 +656,13 @@ dev.off()
 ##testes
 kruskal.test(Schoeners_D ~ sdmType, data = outputData)
 
+## Razao (quanto Shoener's D SDMmulti e melhor que SDMmono, em %)
+median(outputData[outputData$sdmType=='multitemporal',]$Schoeners_D) / median(outputData[outputData$sdmType=='monotemporal',]$Schoeners_D) * 100
+
+## Razao (quanto Hellinger SDMmulti e melhor que SDMmono, em %)
+median(outputData[outputData$sdmType=='multitemporal',]$Hellinger_I) / median(outputData[outputData$sdmType=='monotemporal',]$Hellinger_I) * 100
+
+## bosplots das sps
 jpeg('/home/anderson/Documentos/Projetos/Sps artificiais/manuscrito/Imagens/boxplotSps.jpeg', height=650)
 par(mfrow=c(2,2), mar=c(7,4.5,3,1), cex=1.1, las=2)# cex.axis=2.5, cex.lab=3, cex.main=3)
 boxplot(outputData[outputData$sp == 'spHW',]$Schoeners_D ~ outputData[outputData$sp == 'spHW',]$sdmType, ylim=c(0,1), ylab="Schoeners' D", main='spHW')
@@ -723,11 +700,15 @@ lines(density(outputData[outputData$sdmType == 'monotemporal' & outputData$sp ==
 dev.off()
 
 ## Shoener e Hellinger no tempo
-jpeg('/home/anderson/Documentos/Projetos/Sps artificiais/manuscrito/Imagens/Shoener&HellingerXtempo.jpeg', width=900)
-par(mfrow=c(1,2), mar=c(5,5,1,3))
-plot(outputData[outputData$sdmType == 'multitemporal',]$Schoeners_D ~ as.factor(outputData[outputData$sdmType == 'multitemporal',]$kyrBP),type='p',ylab="Schoeners' D",xlab="Time (kyr BP)",ylim=c(0,1),pch=1,col=rgb(0,0,0,alpha=0.5),cex.lab=1.9,cex.axis=1.5,lwd=2,cex=2)
+jpeg('/home/anderson/Documentos/Projetos/Sps artificiais/manuscrito/Imagens/Shoener&HellingerXtempo.jpeg',width=600, height=600)
+par(mfrow=c(2,2), mar=c(4,4,4,1), cex=1.2)
+plot(outputData[outputData$sdmType == 'multitemporal',]$Schoeners_D ~ as.factor(outputData[outputData$sdmType == 'multitemporal',]$kyrBP),type='p',ylab="Schoeners' D", xlab="Time (kyr BP)", ylim=c(0,1), col=rgb(0,0,0,alpha=0.5), main='Multitemporal')
 #
-plot(outputData[outputData$sdmType == 'multitemporal',]$Hellinger_I ~ as.factor(outputData[outputData$sdmType == 'multitemporal',]$kyrBP),type='p',ylab="Hellinger",xlab="Time (kyr BP)",ylim=c(0,1),pch=1,col=rgb(0,0,0,alpha=0.5),cex.lab=1.9,cex.axis=1.5,lwd=2,cex=2)
+plot(outputData[outputData$sdmType == 'multitemporal',]$Hellinger_I ~ as.factor(outputData[outputData$sdmType == 'multitemporal',]$kyrBP),type='p',ylab="Hellinger",xlab="Time (kyr BP)",ylim=c(0,1),col=rgb(0,0,0,alpha=0.5), main='Multitemporal')
+#
+plot(outputData[outputData$sdmType == 'monotemporal',]$Schoeners_D ~ as.factor(outputData[outputData$sdmType == 'monotemporal',]$kyrBP),type='p',ylab="Schoeners' D",xlab="Time (kyr BP)",ylim=c(0,1),col=rgb(0,0,0,alpha=0.5), main='Monotemporal')
+#
+plot(outputData[outputData$sdmType == 'monotemporal',]$Hellinger_I ~ as.factor(outputData[outputData$sdmType == 'monotemporal',]$kyrBP),type='p',ylab="Hellinger",xlab="Time (kyr BP)",ylim=c(0,1),col=rgb(0,0,0,alpha=0.5), main='Monotemporal')
 dev.off()
 
 ## Shoener e Hellinger no tempo - sps
@@ -742,6 +723,32 @@ plot(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spCD',
 plot(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spCD',]$Hellinger_I ~ as.factor(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spHW',]$kyrBP),type='p',ylab="Hellinger",xlab="Time (kyr BP)", main='spCD',ylim=c(0,1), col=rgb(0,0,0,alpha=0.5))
 dev.off()
 
+## Tamanho amostral - dados totais
+jpeg('/home/anderson/Documentos/Projetos/Sps artificiais/manuscrito/Imagens/boxplot_sampleSize_dadosTotais.jpeg', width=800, height=900)
+par(mfrow=c(2,2), cex=1.5)
+boxplot(outputData[outputData$sdmType == 'multitemporal',]$Schoeners_D ~ outputData[outputData$sdmType == 'multitemporal',]$sampleSize, ylim=c(0,1), xlab='Sample Size', ylab="Schoeners' D", main='Multitemporal')
+boxplot(outputData[outputData$sdmType == 'monotemporal',]$Schoeners_D ~ outputData[outputData$sdmType == 'monotemporal',]$sampleSize, ylim=c(0,1), xlab='Sample Size', ylab="Schoeners' D", main='Monotemporal')
+boxplot(outputData[outputData$sdmType == 'multitemporal',]$Hellinger_I ~ outputData[outputData$sdmType == 'multitemporal',]$sampleSize, ylim=c(0,1), xlab='Sample Size', ylab="Hellinger", main='Multitemporal')
+boxplot(outputData[outputData$sdmType == 'monotemporal',]$Hellinger_I ~ outputData[outputData$sdmType == 'monotemporal',]$sampleSize, ylim=c(0,1), xlab='Sample Size', ylab="Hellinger", main='Monotemporal')
+dev.off()
+
+## Tamanho amostral - spHW
+jpeg('/home/anderson/Documentos/Projetos/Sps artificiais/manuscrito/Imagens/boxplot_sampleSize_spHW.jpeg', width=800, height=900)
+par(mfrow=c(2,2), cex=1.5)
+boxplot(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spHW',]$Schoeners_D ~ outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spHW',]$sampleSize, ylim=c(0,1), xlab='Sample Size', ylab="Schoeners' D", main='Multitemporal')
+boxplot(outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spHW',]$Schoeners_D ~ outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spHW',]$sampleSize, ylim=c(0,1), xlab='Sample Size', ylab="Schoeners' D", main='Monotemporal')
+boxplot(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spHW',]$Hellinger_I ~ outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spHW',]$sampleSize, ylim=c(0,1), xlab='Sample Size', ylab="Hellinger", main='Multitemporal')
+boxplot(outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spHW',]$Hellinger_I ~ outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spHW',]$sampleSize, ylim=c(0,1), xlab='Sample Size', ylab="Hellinger", main='Monotemporal')
+dev.off()
+
+## Tamanho amostral - spCD
+jpeg('/home/anderson/Documentos/Projetos/Sps artificiais/manuscrito/Imagens/boxplot_sampleSize_spCD.jpeg', width=800, height=900)
+par(mfrow=c(2,2), cex=1.5)
+boxplot(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spCD',]$Schoeners_D ~ outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spCD',]$sampleSize, ylim=c(0,1), xlab='Sample Size', ylab="Schoeners' D", main='Multitemporal')
+boxplot(outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spCD',]$Schoeners_D ~ outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spCD',]$sampleSize, ylim=c(0,1), xlab='Sample Size', ylab="Schoeners' D", main='Monotemporal')
+boxplot(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spCD',]$Hellinger_I ~ outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spCD',]$sampleSize, ylim=c(0,1), xlab='Sample Size', ylab="Hellinger", main='Multitemporal')
+boxplot(outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spCD',]$Hellinger_I ~ outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spCD',]$sampleSize, ylim=c(0,1), xlab='Sample Size', ylab="Hellinger", main='Monotemporal')
+dev.off()
 
 
 
