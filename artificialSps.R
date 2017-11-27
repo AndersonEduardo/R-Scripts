@@ -505,7 +505,9 @@ NumRep = 5
 envVarFolder = "/home/anderson/PosDoc/dados_ambientais/dados_projeto" #pasta com as variaveis ambientais
 envVarPaths = list.files(path=envVarFolder, full.names=T) #lista com os caminhos das camadas no sistema (comp.)
 AmSulShape = rgdal::readOGR("/home/anderson/PosDoc/shapefiles/Am_Sul/borders.shp") #shape da America do Sul
+timeStart = Sys.time()
 outputData = data.frame()
+
 
 ##algoritmo da analise do projeto
 for (h in 1:length(sdmTypes)){
@@ -623,7 +625,8 @@ for (h in 1:length(sdmTypes)){
     }
 }
 
-
+##registro do tempo
+print(Sys.time() - timeStart)
 
 
 ### QUINTA PARTE: construindo graficos dos resultados ###
@@ -641,13 +644,13 @@ outputData = list() #tabela de dados de saida
 vetor.nomes = vector()
 projectFolder = "/home/anderson/Documentos/Projetos/Sps artificiais" #pasta do projeto
 
-#outputData = read.csv(file=paste(projectFolder,'/maxent/output_A.csv',sep=''), header=TRUE, dec=',')
-outputData = read.csv(file=paste(projectFolder,'/Resultados Lorien/output.csv',sep=''),header=TRUE)
+outputData = read.csv(file=paste(projectFolder,'/maxent/output.csv',sep=''), header=TRUE)
+#outputData = read.csv(file=paste(projectFolder,'/Resultados Lorien/output.csv',sep=''),header=TRUE)
 #vetor.nomes = append(vetor.nomes,paste(spsTypes[i],sep=''))
 
 
 ## Schoener e Hellinger para resultados totais
-jpeg('/home/anderson/Documentos/Projetos/Sps artificiais/manuscrito/Imagens/boxplotDadosTotais.jpeg', width=600)
+jpeg('/home/anderson/Documentos/Projetos/Sps artificiais/maxent/graficos - resultados oficiais/boxplotDadosTotais.jpeg', width=600)
 par(mfrow=c(1,2), mar=c(8,3,3,1), cex=1.4, las=2)
 boxplot(outputData$Schoeners_D ~ outputData$sdmType, ylim=c(0,1), main="Schoeners' D")
 boxplot(outputData$Hellinger_I ~ outputData$sdmType, ylim=c(0,1), main='Hellinger')
@@ -663,7 +666,7 @@ median(outputData[outputData$sdmType=='multitemporal',]$Schoeners_D) / median(ou
 median(outputData[outputData$sdmType=='multitemporal',]$Hellinger_I) / median(outputData[outputData$sdmType=='monotemporal',]$Hellinger_I) * 100
 
 ## bosplots das sps
-jpeg('/home/anderson/Documentos/Projetos/Sps artificiais/manuscrito/Imagens/boxplotSps.jpeg', height=650)
+jpeg('/home/anderson/Documentos/Projetos/Sps artificiais/maxent/graficos - resultados oficiais/boxplotSps.jpeg', height=650)
 par(mfrow=c(2,2), mar=c(7,4.5,3,1), cex=1.1, las=2)# cex.axis=2.5, cex.lab=3, cex.main=3)
 boxplot(outputData[outputData$sp == 'spHW',]$Schoeners_D ~ outputData[outputData$sp == 'spHW',]$sdmType, ylim=c(0,1), ylab="Schoeners' D", main='spHW')
 boxplot(outputData[outputData$sp == 'spHW',]$Hellinger_I ~ outputData[outputData$sp == 'spHW',]$sdmType, ylim=c(0,1), ylab="Hellinger", main='spHW')
@@ -672,27 +675,27 @@ boxplot(outputData[outputData$sp == 'spCD',]$Hellinger_I ~ outputData[outputData
 dev.off()
 
 ## Densidade para dados totais
-jpeg('/home/anderson/Documentos/Projetos/Sps artificiais/manuscrito/Imagens/densidadeDadosTotais.jpeg', width=600, height = 400)
+jpeg('/home/anderson/Documentos/Projetos/Sps artificiais/maxent/graficos - resultados oficiais/densidadeDadosTotais.jpeg', width=600, height = 400)
 par(mfrow=c(1,2), lwd=2, cex=1)
-plot(density(outputData[outputData$sdmType == 'multitemporal',]$Schoeners_D),ylim=c(0,5), col='red', main='', xlab="Schoeners' D", ylab='Density')
-lines(density(outputData[outputData$sdmType == 'monotemporal',]$Schoeners_D))
+plot(density(outputData[outputData$sdmType == 'multitemporal',]$Schoeners_D),ylim=c(0,5), lwd=2, col='red', main='', xlab="Schoeners' D", ylab='Density')
+lines(density(outputData[outputData$sdmType == 'monotemporal',]$Schoeners_D), lwd=2)
 #
-plot(density(outputData[outputData$sdmType == 'multitemporal',]$Hellinger_I),ylim=c(0,5), col='red', main='', xlab='Hellinger', ylab='Density')
+plot(density(outputData[outputData$sdmType == 'multitemporal',]$Hellinger_I),ylim=c(0,5), lwd=2, col='red', main='', xlab='Hellinger', ylab='Density')
 lines(density(outputData[outputData$sdmType == 'monotemporal',]$Hellinger_I), lwd=2)
 legend(x='topright', legend=c('Multitemporal calibration', 'Monotemporal calibration'), lty=1, col=c('red','black'))
 dev.off()
 
 ## Densidade para as sps
-jpeg('/home/anderson/Documentos/Projetos/Sps artificiais/manuscrito/Imagens/densidade_sps.jpeg')
+jpeg('/home/anderson/Documentos/Projetos/Sps artificiais/maxent/graficos - resultados oficiais/densidade_sps.jpeg')
 par(mfrow=c(2,2), mar=c(5,4,3,1), lwd=2, cex=1)
 #
-plot(density(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spHW',]$Schoeners_D),ylim=c(0,5), col='red', main='spHW', xlab="Schoeners' D", ylab='Density')
-lines(density(outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spHW',]$Schoeners_D))
+plot(density(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spHW',]$Schoeners_D),ylim=c(0,7), lwd=2, col='red', main='spHW', xlab="Schoeners' D", ylab='Density')
+lines(density(outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spHW',]$Schoeners_D), lwd=2)
 #
-plot(density(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spHW',]$Hellinger_I),ylim=c(0,5), col='red', main='spHW', xlab="Hellinger", ylab='Density')
-lines(density(outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spHW',]$Hellinger_I))
+plot(density(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spHW',]$Hellinger_I),ylim=c(0,5), lwd=2, col='red', main='spHW', xlab="Hellinger", ylab='Density')
+lines(density(outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spHW',]$Hellinger_I), lwd=2)
 #
-plot(density(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spCD',]$Schoeners_D),ylim=c(0,5), col='red', lwd=2, main='spCD', xlab="Schoeners' D", ylab='Density')
+plot(density(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spCD',]$Schoeners_D),ylim=c(0,5), lwd=2, col='red', main='spCD', xlab="Schoeners' D", ylab='Density')
 lines(density(outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spCD',]$Schoeners_D), lwd=2)
 #
 plot(density(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spCD',]$Hellinger_I),ylim=c(0,5), col='red', lwd=2, main='spCD', xlab="Hellinger", ylab='Density')
@@ -700,7 +703,7 @@ lines(density(outputData[outputData$sdmType == 'monotemporal' & outputData$sp ==
 dev.off()
 
 ## Shoener e Hellinger no tempo
-jpeg('/home/anderson/Documentos/Projetos/Sps artificiais/manuscrito/Imagens/Shoener&HellingerXtempo.jpeg',width=600, height=600)
+jpeg('/home/anderson/Documentos/Projetos/Sps artificiais/maxent/graficos - resultados oficiais/Shoener&HellingerXtempo.jpeg',width=600, height=600)
 par(mfrow=c(2,2), mar=c(4,4,4,1), cex=1.2)
 plot(outputData[outputData$sdmType == 'multitemporal',]$Schoeners_D ~ as.factor(outputData[outputData$sdmType == 'multitemporal',]$kyrBP),type='p',ylab="Schoeners' D", xlab="Time (kyr BP)", ylim=c(0,1), col=rgb(0,0,0,alpha=0.5), main='Multitemporal')
 #
@@ -712,7 +715,7 @@ plot(outputData[outputData$sdmType == 'monotemporal',]$Hellinger_I ~ as.factor(o
 dev.off()
 
 ## Shoener e Hellinger no tempo - sps
-jpeg('/home/anderson/Documentos/Projetos/Sps artificiais/manuscrito/Imagens/Shoener&HellingerXtempo_sps.jpeg', width=1200, height=1200)
+jpeg('/home/anderson/Documentos/Projetos/Sps artificiais/maxent/graficos - resultados oficiais/Shoener&HellingerXtempo_sps.jpeg', width=1200, height=1200)
 par(mfrow=c(2,2), pch=1, mar=c(7,7,3,3), cex=1.5, cex.lab=2, cex.axis=2, cex.main=2)
 plot(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spHW',]$Schoeners_D ~ as.factor(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spHW',]$kyrBP),type='p',ylab="Schoeners' D",xlab="Time (kyr BP)", main='spHW', ylim=c(0,1), col=rgb(0,0,0,alpha=0.5))
 #
@@ -724,7 +727,7 @@ plot(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spCD',
 dev.off()
 
 ## Tamanho amostral - dados totais
-jpeg('/home/anderson/Documentos/Projetos/Sps artificiais/manuscrito/Imagens/boxplot_sampleSize_dadosTotais.jpeg', width=800, height=900)
+jpeg('/home/anderson/Documentos/Projetos/Sps artificiais/maxent/graficos - resultados oficiais/boxplot_sampleSize_dadosTotais.jpeg', width=800, height=900)
 par(mfrow=c(2,2), cex=1.5)
 boxplot(outputData[outputData$sdmType == 'multitemporal',]$Schoeners_D ~ outputData[outputData$sdmType == 'multitemporal',]$sampleSize, ylim=c(0,1), xlab='Sample Size', ylab="Schoeners' D", main='Multitemporal')
 boxplot(outputData[outputData$sdmType == 'monotemporal',]$Schoeners_D ~ outputData[outputData$sdmType == 'monotemporal',]$sampleSize, ylim=c(0,1), xlab='Sample Size', ylab="Schoeners' D", main='Monotemporal')
@@ -733,7 +736,7 @@ boxplot(outputData[outputData$sdmType == 'monotemporal',]$Hellinger_I ~ outputDa
 dev.off()
 
 ## Tamanho amostral - spHW
-jpeg('/home/anderson/Documentos/Projetos/Sps artificiais/manuscrito/Imagens/boxplot_sampleSize_spHW.jpeg', width=800, height=900)
+jpeg('/home/anderson/Documentos/Projetos/Sps artificiais/maxent/graficos - resultados oficiais/boxplot_sampleSize_spHW.jpeg', width=800, height=900)
 par(mfrow=c(2,2), cex=1.5)
 boxplot(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spHW',]$Schoeners_D ~ outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spHW',]$sampleSize, ylim=c(0,1), xlab='Sample Size', ylab="Schoeners' D", main='Multitemporal')
 boxplot(outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spHW',]$Schoeners_D ~ outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spHW',]$sampleSize, ylim=c(0,1), xlab='Sample Size', ylab="Schoeners' D", main='Monotemporal')
@@ -742,13 +745,16 @@ boxplot(outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spHW
 dev.off()
 
 ## Tamanho amostral - spCD
-jpeg('/home/anderson/Documentos/Projetos/Sps artificiais/manuscrito/Imagens/boxplot_sampleSize_spCD.jpeg', width=800, height=900)
+jpeg('/home/anderson/Documentos/Projetos/Sps artificiais/maxent/graficos - resultados oficiais/boxplot_sampleSize_spCD.jpeg', width=800, height=900)
 par(mfrow=c(2,2), cex=1.5)
 boxplot(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spCD',]$Schoeners_D ~ outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spCD',]$sampleSize, ylim=c(0,1), xlab='Sample Size', ylab="Schoeners' D", main='Multitemporal')
 boxplot(outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spCD',]$Schoeners_D ~ outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spCD',]$sampleSize, ylim=c(0,1), xlab='Sample Size', ylab="Schoeners' D", main='Monotemporal')
 boxplot(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spCD',]$Hellinger_I ~ outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spCD',]$sampleSize, ylim=c(0,1), xlab='Sample Size', ylab="Hellinger", main='Multitemporal')
 boxplot(outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spCD',]$Hellinger_I ~ outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spCD',]$sampleSize, ylim=c(0,1), xlab='Sample Size', ylab="Hellinger", main='Monotemporal')
 dev.off()
+
+
+
 
 
 
