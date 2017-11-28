@@ -587,13 +587,32 @@ for (h in 1:length(sdmTypes)){
                     grid.clim.SDMniche <- ecospat.grid.clim.dyn(glob=scores.globclim,glob1=scores.clim.SDMniche,sp=scores.sp.SDMniche, R=100,th.sp=0)
 
                     ##equivalencia de nicho
-                    ##OBS: Niche equivalency test H1: Is the overlap between the native and invaded niche higher than two random niches?
-                    eq.test <- ecospat.niche.equivalency.test(grid.clim.realNiche, grid.clim.SDMniche,rep=10, alternative = "greater")
+                    ##OBS: Compares the observed niche overlap between z1 and z2 to overlaps between random niches z1.sim
+                    ## and z2.sim, which are built from random reallocations of occurences of z1 and z2.
+                    ##'alternative' argument specifies if you want to test for niche conservatism (alternative = "greater", i.e.  the
+                    ## niche overlap is more equivalent/similar than random) or for niche divergence (alternative = "lower",
+                    ## i.e. the niche overlap is less equivalent/similar than random).
+                    eq.test <- ecospat.niche.equivalency.test(grid.clim.realNiche, grid.clim.SDMniche,rep=100, alternative = "greater")
 
-                    Dobs = eq.test$obs$D #indice D observado
-                    Iobs = eq.test$obs$I #indice I observado
-                    DpValue = eq.test$p.D #p-valor indice D
-                    IpValue = eq.test$p.I #p-valor indice I
+                    ##similaridade de nicho
+                    ##OBS: Compares the observed niche overlap between z1 and z2 to overlaps between z1 and random niches
+                    ## (z2.sim) as available in the range of z2 (z2$Z). z2.sim has the same pattern as z2 but the center is
+                    ## randomly translatated in the availabe z2$Z space and weighted by z2$Z densities. If rand.type = 1,
+                    ## both z1 and z2 are randomly shifted, if rand.type =2, only z2 is randomly shifted.
+                    ## 'alternative' specifies if you want to test for niche conservatism (alternative = "greater", i.e.  the
+                    ## niche overlap is more equivalent/similar than random) or for niche divergence (alternative = "lower",
+                    ## i.e. the niche overlap is less equivalent/similar than random)
+                    sim.test <- ecospat.niche.similarity.test(grid.clim.realNiche, grid.clim.SDMniche,rep=100, alternative = "greater")
+                    
+                    Dobs_equiv = eq.test$obs$D #indice D observado no teste de equivalencia de nicho
+                    Iobs_equiv = eq.test$obs$I #indice I observado no teste de equivalencia de nicho
+                    DpValue_equiv = eq.test$p.D #p-valor indice D no teste de equivalencia de nicho
+                    IpValue_equiv = eq.test$p.I #p-valor indice I no teste de equivalencia de nicho
+                    ##
+                    Dobs_simi = eq.test$obs$D #indice D observado no teste de similaridade de nicho
+                    Iobs_simi = eq.test$obs$I #indice I observado no teste de similaridade de nicho
+                    DpValue_simi = eq.test$p.D #p-valor indice D no teste de similaridade de nicho
+                    IpValue_simi = eq.test$p.I #p-valor indice I no teste de similaridade de nicho
 
                     ##abrindo planilha de pontos para extrair dados do cenario
                     occPoints = read.csv(paste(mainSampleFolder,'/',sdmTypes[h],'/',spsTypes[i],'/occ_',m,'pts_',sdmTypes[h],'_', n ,'rep.csv',sep=''),header=TRUE) 
@@ -611,10 +630,14 @@ for (h in 1:length(sdmTypes)){
                                                         medianKyr=median(occPoints$kyrBP),
                                                         minAge=min(occPoints$kyrBP),
                                                         maxAge=max(occPoints$kyrBP),
-                                                        Schoeners_D=Dobs,
-                                                        p_value=DpValue,
-                                                        Hellinger_I=Iobs,
-                                                        p_value=IpValue))
+                                                        Schoeners_D_equiv=Dobs_equiv,
+                                                        p_value_equiv=DpValue_equiv,
+                                                        Hellinger_I_equiv=Iobs_equiv,
+                                                        p_value_equiv=IpValue_equiv,
+                                                        Schoeners_D_simi=Dobs_simi,
+                                                        p_value_simi=DpValue_simi,
+                                                        Hellinger_I_simi=Iobs_simi,
+                                                        p_value_simi=IpValue_simi)))
                     
                     write.csv(outputData, file=paste(projectFolder,'/maxent/output.csv',sep=''),row.names=FALSE) #salvando os dados do cenario
                     
