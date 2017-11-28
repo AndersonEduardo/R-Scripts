@@ -602,17 +602,17 @@ for (h in 1:length(sdmTypes)){
                     ## 'alternative' specifies if you want to test for niche conservatism (alternative = "greater", i.e.  the
                     ## niche overlap is more equivalent/similar than random) or for niche divergence (alternative = "lower",
                     ## i.e. the niche overlap is less equivalent/similar than random)
-                    sim.test <- ecospat.niche.similarity.test(grid.clim.realNiche, grid.clim.SDMniche,rep=100, alternative = "greater")
+                    sim.test <- ecospat.niche.similarity.test(grid.clim.realNiche, grid.clim.SDMniche, rep=100, alternative = "greater")
                     
                     Dobs_equiv = eq.test$obs$D #indice D observado no teste de equivalencia de nicho
                     Iobs_equiv = eq.test$obs$I #indice I observado no teste de equivalencia de nicho
                     DpValue_equiv = eq.test$p.D #p-valor indice D no teste de equivalencia de nicho
                     IpValue_equiv = eq.test$p.I #p-valor indice I no teste de equivalencia de nicho
                     ##
-                    Dobs_simi = eq.test$obs$D #indice D observado no teste de similaridade de nicho
-                    Iobs_simi = eq.test$obs$I #indice I observado no teste de similaridade de nicho
-                    DpValue_simi = eq.test$p.D #p-valor indice D no teste de similaridade de nicho
-                    IpValue_simi = eq.test$p.I #p-valor indice I no teste de similaridade de nicho
+                    Dobs_simi = sim.test$obs$D #indice D observado no teste de similaridade de nicho
+                    Iobs_simi = sim.test$obs$I #indice I observado no teste de similaridade de nicho
+                    DpValue_simi = sim.test$p.D #p-valor indice D no teste de similaridade de nicho
+                    IpValue_simi = sim.test$p.I #p-valor indice I no teste de similaridade de nicho
 
                     ##abrindo planilha de pontos para extrair dados do cenario
                     occPoints = read.csv(paste(mainSampleFolder,'/',sdmTypes[h],'/',spsTypes[i],'/occ_',m,'pts_',sdmTypes[h],'_', n ,'rep.csv',sep=''),header=TRUE) 
@@ -623,21 +623,21 @@ for (h in 1:length(sdmTypes)){
                     
                     outputData = rbind(outputData,data.frame(sdmType = sdmTypes[h],
                                                         sp = spsTypes[i],
-                                                        kyrBP=l-1,
-                                                        sampleSize=m,
-                                                        replicate=n,
-                                                        numbOfTimeLayers=length(unique(occPoints$kyrBP)),
-                                                        medianKyr=median(occPoints$kyrBP),
-                                                        minAge=min(occPoints$kyrBP),
-                                                        maxAge=max(occPoints$kyrBP),
-                                                        Schoeners_D_equiv=Dobs_equiv,
-                                                        p_value_equiv=DpValue_equiv,
-                                                        Hellinger_I_equiv=Iobs_equiv,
-                                                        p_value_equiv=IpValue_equiv,
-                                                        Schoeners_D_simi=Dobs_simi,
-                                                        p_value_simi=DpValue_simi,
-                                                        Hellinger_I_simi=Iobs_simi,
-                                                        p_value_simi=IpValue_simi)))
+                                                        kyrBP = l-1,
+                                                        sampleSize = m,
+                                                        replicate = n,
+                                                        numbOfTimeLayers = length(unique(occPoints$kyrBP)),
+                                                        medianKyr = median(occPoints$kyrBP),
+                                                        minAge = min(occPoints$kyrBP),
+                                                        maxAge = max(occPoints$kyrBP),
+                                                        Schoeners_D_equiv = Dobs_equiv,
+                                                        p_value_equiv = DpValue_equiv,
+                                                        Hellinger_I_equiv = Iobs_equiv,
+                                                        p_value_equiv = IpValue_equiv,
+                                                        Schoeners_D_simi = Dobs_simi,
+                                                        p_value_simi = DpValue_simi,
+                                                        Hellinger_I_simi = Iobs_simi,
+                                                        p_value_simi = IpValue_simi))
                     
                     write.csv(outputData, file=paste(projectFolder,'/maxent/output.csv',sep=''),row.names=FALSE) #salvando os dados do cenario
                     
@@ -776,406 +776,421 @@ boxplot(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spC
 boxplot(outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spCD',]$Hellinger_I ~ outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spCD',]$sampleSize, ylim=c(0,1), xlab='Sample Size', ylab="Hellinger", main='Monotemporal')
 dev.off()
 
+## Shoener's D e Hellinger X número de camadas no SDMmultitemporal
+jpeg('/home/anderson/Documentos/Projetos/Sps artificiais/graficos - resultados oficiais/boxplot_NumberOfTimeLayers.jpeg', height=1000, width=600)
+par(mfrow=c(3,2), cex=1.3)
+boxplot(outputData[outputData$sdmType == 'multitemporal',]$Schoeners_D~ outputData[outputData$sdmType == 'multitemporal',]$numbOfTimeLayers, xlab='Number of time layers', ylab="Schoener's D", main='Full dataset')
+##
+boxplot(outputData[outputData$sdmType == 'multitemporal',]$Hellinger_I~ outputData[outputData$sdmType == 'multitemporal',]$numbOfTimeLayers, xlab='Number of time layers', ylab="Hellinger", main='Full dataset')
+##
+boxplot(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spHW',]$Schoeners_D~ outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spHW',]$numbOfTimeLayers, xlab='Number of time layers', ylab="Schoener's D", main='spHW')
+##
+boxplot(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spHW',]$Hellinger_I~ outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spHW',]$numbOfTimeLayers, xlab='Number of time layers', ylab="Hellinger", main='spHW')
+##
+boxplot(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spCD',]$Schoeners_D~ outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spCD',]$numbOfTimeLayers, xlab='Number of time layers', ylab="Schoener's D", main='spCD')
+##
+boxplot(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spCD',]$Hellinger_I~ outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spCD',]$numbOfTimeLayers, xlab='Number of time layers', ylab="Hellinger", main='spCD')
+dev.off()
 
 
 
 
 
-###GRAFICOS
+## ###GRAFICOS
     
-##Boxplots 
+## ##Boxplots 
 
-##HW
-HWdataD = data.frame(kyrBP=outputData$spHW[outputData$spHW$sampleSize>=15,]$kyrBP,indexD=outputData$spHW[outputData$spHW$sampleSize>=15,]$Schoeners_D)
-HWdataH = data.frame(kyrBP=outputData$spHW[outputData$spHW$sampleSize>=15,]$kyrBP,indexH=outputData$spHW[outputData$spHW$sampleSize>=15,]$Hellinger_I)
+## ##HW
+## HWdataD = data.frame(kyrBP=outputData$spHW[outputData$spHW$sampleSize>=15,]$kyrBP,indexD=outputData$spHW[outputData$spHW$sampleSize>=15,]$Schoeners_D)
+## HWdataH = data.frame(kyrBP=outputData$spHW[outputData$spHW$sampleSize>=15,]$kyrBP,indexH=outputData$spHW[outputData$spHW$sampleSize>=15,]$Hellinger_I)
 
-##HD
-HDdataD = data.frame(kyrBP=outputData$spHD[outputData$spHD$sampleSize>=15,]$kyrBP,indexD=outputData$spHD[outputData$spHD$sampleSize>=15,]$Schoeners_D)
-HDdataH = data.frame(kyrBP=outputData$spHD[outputData$spHD$sampleSize>=15,]$kyrBP,indexH=outputData$spHD[outputData$spHD$sampleSize>=15,]$Hellinger_I)
+## ##HD
+## HDdataD = data.frame(kyrBP=outputData$spHD[outputData$spHD$sampleSize>=15,]$kyrBP,indexD=outputData$spHD[outputData$spHD$sampleSize>=15,]$Schoeners_D)
+## HDdataH = data.frame(kyrBP=outputData$spHD[outputData$spHD$sampleSize>=15,]$kyrBP,indexH=outputData$spHD[outputData$spHD$sampleSize>=15,]$Hellinger_I)
 
-##CD
-CDdataD = data.frame(kyrBP=outputData$spCD[outputData$spCD$sampleSize>=15,]$kyrBP,indexD=outputData$spCD[outputData$spCD$sampleSize>=15,]$Schoeners_D)
-CDdataH = data.frame(kyrBP=outputData$spCD[outputData$spCD$sampleSize>=15,]$kyrBP,indexH=outputData$spCD[outputData$spCD$sampleSize>=15,]$Hellinger_I)
+## ##CD
+## CDdataD = data.frame(kyrBP=outputData$spCD[outputData$spCD$sampleSize>=15,]$kyrBP,indexD=outputData$spCD[outputData$spCD$sampleSize>=15,]$Schoeners_D)
+## CDdataH = data.frame(kyrBP=outputData$spCD[outputData$spCD$sampleSize>=15,]$kyrBP,indexH=outputData$spCD[outputData$spCD$sampleSize>=15,]$Hellinger_I)
 
-jpeg(file='/home/anderson/Documentos/Projetos/Sps artificiais/Maxent/graficos/boxplots.jpg',width=900,height=600)
-par(mfrow=c(1,2),mar=c(3,5,3,3))
-##D
-Ddata = rbind(data.frame(kyrBP=HWdataD$kyrBP,indexD=HWdataD$indexD,spsType='Hot and Wet'),data.frame(kyrBP=HDdataD$kyrBP,indexD=HDdataD$indexD,spsType='Hot and Dry'),data.frame(kyrBP=CDdataD$kyrBP,indexD=CDdataD$indexD,spsType='Cold and Dry'))
-stripchart(indexD~spsType,data=Ddata,vertical=TRUE,method="jitter",pch=20,cex=1.5,col=rgb(0.5,0.5,0.5,0.05),ylim=c(0.2,1),ylab="Schoeners' D",cex.main=2,cex.lab=1.5,cex.axis=1.5)
-boxplot(indexD~spsType,data=Ddata,boxwex=c(0.5,0.5,0.5),col=rgb(0,0,0,alpha=0.05),lwd=3,ylim=c(0.2,1),names=c('','',''),main="",cex.main=2,cex.lab=1.5,cex.axis=1.5,add=TRUE)
-#H
-Hdata = rbind(data.frame(kyrBP=HWdataH$kyrBP,indexH=HWdataH$indexH,spsType='Hot and Wet'),data.frame(kyrBP=HDdataH$kyrBP,indexH=HDdataH$indexH,spsType='Hot and Dry'),data.frame(kyrBP=CDdataH$kyrBP,indexH=CDdataH$indexH,spsType='Cold and Dry'))
-stripchart(indexH~spsType,data=Hdata,vertical=TRUE,method="jitter",pch=20,cex=1.5,col=rgb(0.5,0.5,0.5,0.05),ylim=c(0.2,1),ylab="Hellinger I",cex.main=2,cex.lab=1.5,cex.axis=1.5,) 
-boxplot(indexH~spsType,data=Hdata,boxwex=c(0.5,0.5,0.5),col=rgb(0,0,0,alpha=0.05),lwd=3,ylim=c(0.2,1),names=c('','',''),main="",cex.main=2,cex.lab=1.5,cex.axis=1.5,add=TRUE)
-dev.off()
+## jpeg(file='/home/anderson/Documentos/Projetos/Sps artificiais/Maxent/graficos/boxplots.jpg',width=900,height=600)
+## par(mfrow=c(1,2),mar=c(3,5,3,3))
+## ##D
+## Ddata = rbind(data.frame(kyrBP=HWdataD$kyrBP,indexD=HWdataD$indexD,spsType='Hot and Wet'),data.frame(kyrBP=HDdataD$kyrBP,indexD=HDdataD$indexD,spsType='Hot and Dry'),data.frame(kyrBP=CDdataD$kyrBP,indexD=CDdataD$indexD,spsType='Cold and Dry'))
+## stripchart(indexD~spsType,data=Ddata,vertical=TRUE,method="jitter",pch=20,cex=1.5,col=rgb(0.5,0.5,0.5,0.05),ylim=c(0.2,1),ylab="Schoeners' D",cex.main=2,cex.lab=1.5,cex.axis=1.5)
+## boxplot(indexD~spsType,data=Ddata,boxwex=c(0.5,0.5,0.5),col=rgb(0,0,0,alpha=0.05),lwd=3,ylim=c(0.2,1),names=c('','',''),main="",cex.main=2,cex.lab=1.5,cex.axis=1.5,add=TRUE)
+## #H
+## Hdata = rbind(data.frame(kyrBP=HWdataH$kyrBP,indexH=HWdataH$indexH,spsType='Hot and Wet'),data.frame(kyrBP=HDdataH$kyrBP,indexH=HDdataH$indexH,spsType='Hot and Dry'),data.frame(kyrBP=CDdataH$kyrBP,indexH=CDdataH$indexH,spsType='Cold and Dry'))
+## stripchart(indexH~spsType,data=Hdata,vertical=TRUE,method="jitter",pch=20,cex=1.5,col=rgb(0.5,0.5,0.5,0.05),ylim=c(0.2,1),ylab="Hellinger I",cex.main=2,cex.lab=1.5,cex.axis=1.5,) 
+## boxplot(indexH~spsType,data=Hdata,boxwex=c(0.5,0.5,0.5),col=rgb(0,0,0,alpha=0.05),lwd=3,ylim=c(0.2,1),names=c('','',''),main="",cex.main=2,cex.lab=1.5,cex.axis=1.5,add=TRUE)
+## dev.off()
 
-##teste de sidnnficancia (comparando as especies)
+## ##teste de sidnnficancia (comparando as especies)
 
-##kruskal-Wallis
-##indice D
-kruskal.test(indexD~spsType,data=Ddata)
-##indice I
-kruskal.test(indexH~spsType,data=Hdata)
-
-##comparacoes par a par
-##indice D
-pairwise.wilcox.test(Ddata$indexD,Ddata$spsType,p.adjust.method='bonferroni')
-##indice H
-pairwise.wilcox.test(Hdata$indexH,Hdata$spsType,p.adjust.method='bonferroni')
-
-
-##Schoeners' D ao longo do tempo##
-
-jpeg(file='/home/anderson/Documentos/Projetos/Sps artificiais/Maxent/graficos/metricsXtime.jpg',width=1400,height=750)
-par(mar=c(5,6,5,5),mfrow=c(1,2))
-#D
-plot(indexD~as.factor(kyrBP),data=HWdataD,type='p',ylab="Schoeners' D",xlab="Time (kyr BP)",ylim=c(0,1),pch=1,col=rgb(0,0,0,alpha=0.5),cex.lab=1.9,cex.axis=1.5,lwd=2,cex=2)
-plot(indexD~as.factor(kyrBP),data=HDdataD,type='p',ylab="Schoeners' D",xlab="Time (kyr BP)",ylim=c(0,1),pch=2,col=rgb(0,0,1,alpha=0.5),cex.lab=1.9,cex.axis=1.5,lwd=2,cex=2,add=TRUE)
-plot(indexD~as.factor(kyrBP),data=CDdataD,type='p',ylab="Schoeners' D",xlab="Time (kyr BP)",ylim=c(0,1),pch=3,col=rgb(1,0,0,alpha=0.5),cex.lab=1.9,cex.axis=1.5,lwd=2,cex=2,add=TRUE)
-legend(x=20,y=0.2,legend=c('H&W','H&D','C&D'),pch=20,col=c('black','blue','red'),cex=1.8)
-#H
-plot(indexH~as.factor(kyrBP),data=HWdataH,type='p',ylab="Hellinger I",xlab="Time (kyr BP)",ylim=c(0,1),pch=1,col=rgb(0,0,0,alpha=0.5),cex.lab=1.9,cex.axis=1.5,lwd=2,cex=2)
-plot(indexH~as.factor(kyrBP),data=HDdataH,type='p',ylab="Hellinger I",xlab="Time (kyr BP)",ylim=c(0,1),pch=2,col=rgb(0,0,1,alpha=0.5),cex.lab=1.9,cex.axis=1.5,lwd=2,cex=2,add=TRUE)
-plot(indexH~as.factor(kyrBP),data=CDdataH,type='p',ylab="Hellinger I",xlab="Time (kyr BP)",ylim=c(0,1),pch=3,col=rgb(1,0,0,alpha=0.5),cex.lab=1.9,cex.axis=1.5,lwd=2,cex=2,add=TRUE)
-legend(x=20,y=0.2,legend=c('H&W','H&D','C&D'),pch=20,col=c('black','blue','red'),cex=1.8)
-dev.off()
-
-## ##testando significancia
+## ##kruskal-Wallis
 ## ##indice D
-cor.test(HWdataD$kyrBP,HWdataD$indexD,method='spearman')
-cor.test(HDdataD$kyrBP,HDdataD$indexD,method='spearman')
-cor.test(CDdataD$kyrBP,CDdataD$indexD,method='spearman')
+## kruskal.test(indexD~spsType,data=Ddata)
 ## ##indice I
-cor.test(HWdataH$kyrBP,HWdataH$indexH,method='spearman')
-cor.test(HDdataH$kyrBP,HDdataH$indexH,method='spearman')
-cor.test(CDdataH$kyrBP,CDdataH$indexH,method='spearman')
+## kruskal.test(indexH~spsType,data=Hdata)
+
+## ##comparacoes par a par
+## ##indice D
+## pairwise.wilcox.test(Ddata$indexD,Ddata$spsType,p.adjust.method='bonferroni')
+## ##indice H
+## pairwise.wilcox.test(Hdata$indexH,Hdata$spsType,p.adjust.method='bonferroni')
 
 
-##metricas X tamanho amostral
+## ##Schoeners' D ao longo do tempo##
 
-#maxent
-jpeg(file='/home/anderson/Documentos/Projetos/Sps artificiais/Maxent/graficos/metricsXsampleSize.jpg',width=1100,height=750)
-par(mfrow=c(1,2),mar=c(5,6,4,4))
-#D
-plot(outputData$spHW$Schoeners_D~as.factor(outputData$spHW$sampleSize),type='p',ylim=c(0,1),xlab='Sample size',ylab="Shoeners' D",pch=1,col=rgb(0,0,0,alpha=0.5),cex.lab=1.9,cex.axis=1.5,lwd=2,cex=2)
-plot(outputData$spHD$Schoeners_D~as.factor(outputData$spHD$sampleSize),data=HDdataD,type='p',ylim=c(0,1),xlab=NULL,ylab=NULL,pch=2,col=rgb(0,0,1,alpha=0.5),cex.lab=1.9,cex.axis=1.5,lwd=2,cex=2,add=TRUE)
-plot(outputData$spCD$Schoeners_D~as.factor(outputData$spCD$sampleSize),data=CDdataD,type='p',ylim=c(0,1),xlab=NULL,ylab=NULL,pch=3,col=rgb(1,0,0,alpha=0.5),cex.lab=1.9,cex.axis=1.5,lwd=2,cex=2,add=TRUE)
-legend(x=7.5,y=0.2,legend=c('H&W','H&D','C&D'),pch=20,col=c('black','blue','red'),cex=1.7)
-#H
-plot(outputData$spHW$Hellinger_I~as.factor(outputData$spHW$sampleSize),type='p',ylim=c(0,1),xlab='Sample size',ylab="Hellinger I",pch=1,col=rgb(0,0,0,alpha=0.5),cex.lab=1.9,cex.axis=1.5,lwd=2,cex=2)
-plot(outputData$spHD$Hellinger_I~as.factor(outputData$spHD$sampleSize),data=HDdataD,type='p',ylim=c(0,1),xlab=NULL,ylab=NULL,pch=2,col=rgb(0,0,1,alpha=0.5),cex.lab=1.9,cex.axis=1.5,lwd=2,cex=2,add=TRUE)
-plot(outputData$spCD$Hellinger_I~as.factor(outputData$spCD$sampleSize),data=CDdataD,type='p',ylim=c(0,1),xlab=NULL,ylab=NULL,pch=3,col=rgb(1,0,0,alpha=0.5),cex.lab=1.9,cex.axis=1.5,lwd=2,cex=2,add=TRUE)
-legend(x=7.5,y=0.2,legend=c('H&W','H&D','C&D'),pch=20,col=c('black','blue','red'),cex=1.7)
-dev.off()
+## jpeg(file='/home/anderson/Documentos/Projetos/Sps artificiais/Maxent/graficos/metricsXtime.jpg',width=1400,height=750)
+## par(mar=c(5,6,5,5),mfrow=c(1,2))
+## #D
+## plot(indexD~as.factor(kyrBP),data=HWdataD,type='p',ylab="Schoeners' D",xlab="Time (kyr BP)",ylim=c(0,1),pch=1,col=rgb(0,0,0,alpha=0.5),cex.lab=1.9,cex.axis=1.5,lwd=2,cex=2)
+## plot(indexD~as.factor(kyrBP),data=HDdataD,type='p',ylab="Schoeners' D",xlab="Time (kyr BP)",ylim=c(0,1),pch=2,col=rgb(0,0,1,alpha=0.5),cex.lab=1.9,cex.axis=1.5,lwd=2,cex=2,add=TRUE)
+## plot(indexD~as.factor(kyrBP),data=CDdataD,type='p',ylab="Schoeners' D",xlab="Time (kyr BP)",ylim=c(0,1),pch=3,col=rgb(1,0,0,alpha=0.5),cex.lab=1.9,cex.axis=1.5,lwd=2,cex=2,add=TRUE)
+## legend(x=20,y=0.2,legend=c('H&W','H&D','C&D'),pch=20,col=c('black','blue','red'),cex=1.8)
+## #H
+## plot(indexH~as.factor(kyrBP),data=HWdataH,type='p',ylab="Hellinger I",xlab="Time (kyr BP)",ylim=c(0,1),pch=1,col=rgb(0,0,0,alpha=0.5),cex.lab=1.9,cex.axis=1.5,lwd=2,cex=2)
+## plot(indexH~as.factor(kyrBP),data=HDdataH,type='p',ylab="Hellinger I",xlab="Time (kyr BP)",ylim=c(0,1),pch=2,col=rgb(0,0,1,alpha=0.5),cex.lab=1.9,cex.axis=1.5,lwd=2,cex=2,add=TRUE)
+## plot(indexH~as.factor(kyrBP),data=CDdataH,type='p',ylab="Hellinger I",xlab="Time (kyr BP)",ylim=c(0,1),pch=3,col=rgb(1,0,0,alpha=0.5),cex.lab=1.9,cex.axis=1.5,lwd=2,cex=2,add=TRUE)
+## legend(x=20,y=0.2,legend=c('H&W','H&D','C&D'),pch=20,col=c('black','blue','red'),cex=1.8)
+## dev.off()
 
-##teste de significancia
-##indice D
-cor.test(outputData$spHW$sampleSize,outputData$spHW$Schoeners_D,method='spearman')
-cor.test(outputData$spHD$sampleSize,outputData$spHD$Schoeners_D,method='spearman')
-cor.test(outputData$spCD$sampleSize,outputData$spCD$Schoeners_D,method='spearman')
-##indice I
-cor.test(outputData$spHW$sampleSize,outputData$spHW$Hellinger_distances,method='spearman')
-cor.test(outputData$spHD$sampleSize,outputData$spHD$Hellinger_distances,method='spearman')
-cor.test(outputData$spCD$sampleSize,outputData$spCD$Hellinger_distances,method='spearman')
-
-
-##distribuicao presente, inter e maximo glacial
-library(raster)
-
-##threshold para modelo
-threHW5 = read.csv(paste(projectFolder,'Maxent/spHW/StatisticsResults-spHW.csv',sep=''),header=TRUE); threHW5 = threHW5[threHW5$sampleSize==5,]; threHW5 = mean(threHW5$Threshold)
-threHW45 = read.csv(paste(projectFolder,'Maxent/spHW/StatisticsResults-spHW.csv',sep=''),header=TRUE); threHW45 = threHW45[threHW45$sampleSize==45,]; threHW45 = mean(threHW45$Threshold)
-threHW95 = read.csv(paste(projectFolder,'Maxent/spHW/StatisticsResults-spHW.csv',sep=''),header=TRUE); threHW95 = threHW95[threHW95$sampleSize==95,]; threHW95 = mean(threHW95$Threshold)
-##threshold paraa distribuicao real
-HWcurrentReal = raster(paste(projectFolder,'NichoReal/spHW/000.asc',sep='')) > 0.1
-
-HW22Real = raster(paste(projectFolder,'NichoReal/spHW/022.asc',sep='')) > 0.1
-HWModel_0kyrSample5 =  mean( stack(list.files(path=paste(projectFolder,'Maxent/spHW/projections/',sep=''), pattern=glob2rx(paste('*Time0*Sample',5,'.asc',sep='')),full.names=TRUE)) ) > threHW5
-HWModel_0kyrSample45 =  mean( stack(list.files(path=paste(projectFolder,'Maxent/spHW/projections/',sep=''), pattern=glob2rx(paste('*Time0*Sample',45,'.asc',sep='')),full.names=TRUE)) ) > threHW45
-HWModel_0kyrSample95 =  mean( stack(list.files(path=paste(projectFolder,'Maxent/spHW/projections/',sep=''), pattern=glob2rx(paste('*Time0*Sample',95,'.asc',sep='')),full.names=TRUE)) ) > threHW95
-HWModel_22kyrSample5 =  mean( stack(list.files(path=paste(projectFolder,'Maxent/spHW/projections/',sep=''), pattern=glob2rx(paste('*Time22*Sample',5,'.asc',sep='')),full.names=TRUE)) ) > threHW5
-HWModel_22kyrSample45 =  mean( stack(list.files(path=paste(projectFolder,'Maxent/spHW/projections/',sep=''), pattern=glob2rx(paste('*Time22*Sample',45,'.asc',sep='')),full.names=TRUE)) ) > threHW45
-HWModel_22kyrSample95 =  mean( stack(list.files(path=paste(projectFolder,'Maxent/spHW/projections/',sep=''), pattern=glob2rx(paste('*Time22*Sample',95,'.asc',sep='')),full.names=TRUE)) ) > threHW95
-
-##threshold para modelo
-threHD5 = read.csv(paste(projectFolder,'Maxent/spHD/StatisticsResults-spHD.csv',sep=''),header=TRUE); threHD5 = threHD5[threHD5$sampleSize==5,]; threHD5 = mean(threHD5$Threshold)
-threHD45 = read.csv(paste(projectFolder,'Maxent/spHD/StatisticsResults-spHD.csv',sep=''),header=TRUE); threHD45 = threHD45[threHD45$sampleSize==45,]; threHD45 = mean(threHD45$Threshold)
-threHD95 = read.csv(paste(projectFolder,'Maxent/spHD/StatisticsResults-spHD.csv',sep=''),header=TRUE); threHD95 = threHD95[threHD95$sampleSize==95,]; threHD95 = mean(threHD95$Threshold)
-##threshold paraa distribuicao real
-HDcurrentReal = raster(paste(projectFolder,'NichoReal/spHD/000.asc',sep='')) > 0.1
-
-HD22Real = raster(paste(projectFolder,'NichoReal/spHD/022.asc',sep='')) > 0.1
-HDModel_0kyrSample5 =  mean( stack(list.files(path=paste(projectFolder,'Maxent/spHD/projections/',sep=''), pattern=glob2rx(paste('*Time0*Sample',5,'.asc',sep='')),full.names=TRUE)) ) > threHD5
-HDModel_0kyrSample45 =  mean( stack(list.files(path=paste(projectFolder,'Maxent/spHD/projections/',sep=''), pattern=glob2rx(paste('*Time0*Sample',45,'.asc',sep='')),full.names=TRUE)) ) > threHD45
-HDModel_0kyrSample95 =  mean( stack(list.files(path=paste(projectFolder,'Maxent/spHD/projections/',sep=''), pattern=glob2rx(paste('*Time0*Sample',95,'.asc',sep='')),full.names=TRUE)) ) > threHD95
-HDModel_22kyrSample5 =  mean( stack(list.files(path=paste(projectFolder,'Maxent/spHD/projections/',sep=''), pattern=glob2rx(paste('*Time22*Sample',5,'.asc',sep='')),full.names=TRUE)) ) > threHD5
-HDModel_22kyrSample45 =  mean( stack(list.files(path=paste(projectFolder,'Maxent/spHD/projections/',sep=''), pattern=glob2rx(paste('*Time22*Sample',45,'.asc',sep='')),full.names=TRUE)) ) > threHD45
-HDModel_22kyrSample95 =  mean( stack(list.files(path=paste(projectFolder,'Maxent/spHD/projections/',sep=''), pattern=glob2rx(paste('*Time22*Sample',95,'.asc',sep='')),full.names=TRUE)) ) > threHD95
-
-##threshold para modelo
-threCD5 = read.csv(paste(projectFolder,'Maxent/spCD/StatisticsResults-spCD.csv',sep=''),header=TRUE); threCD5 = threCD5[threCD5$sampleSize==5,]; threCD5 = mean(threCD5$Threshold)
-threCD45 = read.csv(paste(projectFolder,'Maxent/spCD/StatisticsResults-spCD.csv',sep=''),header=TRUE); threCD45 = threCD45[threCD45$sampleSize==45,]; threCD45 = mean(threCD45$Threshold)
-threCD95 = read.csv(paste(projectFolder,'Maxent/spCD/StatisticsResults-spCD.csv',sep=''),header=TRUE); threCD95 = threCD95[threCD95$sampleSize==95,]; threCD95 = mean(threCD95$Threshold)
-##threshold paraa distribuicao real
-CDcurrentReal = raster(paste(projectFolder,'NichoReal/spCD/000.asc',sep='')) > 0.1
-
-CD22Real = raster(paste(projectFolder,'NichoReal/spCD/022.asc',sep='')) > 0.1
-CDModel_0kyrSample5 =  mean( stack(list.files(path=paste(projectFolder,'Maxent/spCD/projections/',sep=''), pattern=glob2rx(paste('*Time0*Sample',5,'.asc',sep='')),full.names=TRUE)) ) > threCD5
-CDModel_0kyrSample45 =  mean( stack(list.files(path=paste(projectFolder,'Maxent/spCD/projections/',sep=''), pattern=glob2rx(paste('*Time0*Sample',45,'.asc',sep='')),full.names=TRUE)) ) > threCD45
-CDModel_0kyrSample95 =  mean( stack(list.files(path=paste(projectFolder,'Maxent/spCD/projections/',sep=''), pattern=glob2rx(paste('*Time0*Sample',95,'.asc',sep='')),full.names=TRUE)) ) > threCD95
-CDModel_22kyrSample5 =  mean( stack(list.files(path=paste(projectFolder,'Maxent/spCD/projections/',sep=''), pattern=glob2rx(paste('*Time22*Sample',5,'.asc',sep='')),full.names=TRUE)) ) > threCD5
-CDModel_22kyrSample45 =  mean( stack(list.files(path=paste(projectFolder,'Maxent/spCD/projections/',sep=''), pattern=glob2rx(paste('*Time22*Sample',45,'.asc',sep='')),full.names=TRUE)) ) > threCD45
-CDModel_22kyrSample95 =  mean( stack(list.files(path=paste(projectFolder,'Maxent/spCD/projections/',sep=''), pattern=glob2rx(paste('*Time22*Sample',95,'.asc',sep='')),full.names=TRUE)) ) > threCD95
-
-library(maptools)
-AmSulShape = readShapePoly("/home/anderson/PosDoc/Am_Sul/borders.shp")
-
-##sobreposicoes spHW
-jpeg(filename=paste(projectFolder,'Maxent/graficos/sobreposicoesHW.jpg',sep=''), width = 1100 , height = 1100) 
-par(mfrow=c(2,3),oma=c(0,0,5,0))
-plot(HWcurrentReal*1+HWModel_0kyrSample5*2,main='(A)',col=c('white','green','blue','darkgreen'),legend=FALSE,cex.axis=2,cex.main=4)
-plot(AmSulShape,add=TRUE)
-text(-50,-45,'Time: 0 kyr BP',cex=2)
-text(-50,-50,'Sample: 5 records',cex=2)
-grid()
-plot(HWcurrentReal*1+HWModel_0kyrSample45*2,main='(B)',col=c('white','green','blue','darkgreen'),legend=FALSE,cex.axis=2,cex.main=4)
-plot(AmSulShape,add=TRUE)
-text(-50,-45,'Time: 0 kyr BP',cex=2)
-text(-50,-50,'Sample: 45 records',cex=2)
-grid()
-plot(HWcurrentReal*1+HWModel_0kyrSample95*2,main='(C)',col=c('white','green','blue','darkgreen'),legend=FALSE,cex.axis=2,cex.main=4)
-plot(AmSulShape,add=TRUE)
-text(-50,-45,'Time: 0 kyr BP',cex=2)
-text(-50,-50,'Sample: 95 records',cex=2)
-grid()
-plot(HW22Real*1+HWModel_22kyrSample5*2,main='(D)',col=c('white','green','blue','darkgreen'),legend=FALSE,cex.axis=2,cex.main=4)
-plot(AmSulShape,add=TRUE)
-text(-50,-45,'Time: 22 kyr BP',cex=2)
-text(-50,-50,'Sample: 5 records',cex=2)
-grid()
-plot(HW22Real*1+HWModel_22kyrSample45*2,main='(E)',col=c('white','green','blue','darkgreen'),legend=FALSE,cex.axis=1.7,cex.main=4)
-plot(AmSulShape,add=TRUE)
-text(-50,-45,'Time: 22 kyr BP',cex=2)
-text(-50,-50,'Sample: 45 records',cex=2)
-grid()
-plot(HW22Real*1+HWModel_22kyrSample95*2,main='(F)',col=c('white','green','blue','darkgreen'),legend=FALSE,cex.axis=1.7,cex.main=4)
-plot(AmSulShape,add=TRUE)
-text(-50,-45,'Time: 22 kyr BP',cex=2)
-text(-50,-50,'Sample: 95 records',cex=2)
-grid()
-mtext('Hot & Wet sp.',outer=TRUE,cex=4)
-dev.off()
-
-##sobreposicoes spHD
-jpeg(filename=paste(projectFolder,'Maxent/graficos/sobreposicoesHD.jpg',sep=''), width = 1100 , height = 1100) 
-par(mfrow=c(2,3),oma=c(0,0,5,0))
-plot(HDcurrentReal*1+HDModel_0kyrSample5*2,main='(A)',col=c('white','green','blue','darkgreen'),legend=FALSE,cex.axis=2,cex.main=4)
-plot(AmSulShape,add=TRUE)
-text(-50,-45,'Time: 0 kyr BP',cex=2)
-text(-50,-50,'Sample: 5 records',cex=2)
-grid()
-plot(HDcurrentReal*1+HDModel_0kyrSample45*2,main='(B)',col=c('white','green','blue','darkgreen'),legend=FALSE,cex.axis=2,cex.main=4)
-plot(AmSulShape,add=TRUE)
-text(-50,-45,'Time: 0 kyr BP',cex=2)
-text(-50,-50,'Sample: 45 records',cex=2)
-grid()
-plot(HDcurrentReal*1+HDModel_0kyrSample95*2,main='(C)',col=c('white','green','blue','darkgreen'),legend=FALSE,cex.axis=2,cex.main=4)
-plot(AmSulShape,add=TRUE)
-text(-50,-45,'Time: 0 kyr BP',cex=2)
-text(-50,-50,'Sample: 95 records',cex=2)
-grid()
-plot(HD22Real*1+HDModel_22kyrSample5*2,main='(D)',col=c('white','green','blue','darkgreen'),legend=FALSE,cex.axis=2,cex.main=4)
-plot(AmSulShape,add=TRUE)
-text(-50,-45,'Time: 22 kyr BP',cex=2)
-text(-50,-50,'Sample: 5 records',cex=2)
-grid()
-plot(HD22Real*1+HDModel_22kyrSample45*2,main='(E)',col=c('white','green','blue','darkgreen'),legend=FALSE,cex.axis=1.7,cex.main=4)
-plot(AmSulShape,add=TRUE)
-text(-50,-45,'Time: 22 kyr BP',cex=2)
-text(-50,-50,'Sample: 45 records',cex=2)
-grid()
-plot(HD22Real*1+HDModel_22kyrSample95*2,main='(F)',col=c('white','green','blue','darkgreen'),legend=FALSE,cex.axis=1.7,cex.main=4)
-plot(AmSulShape,add=TRUE)
-text(-50,-45,'Time: 22 kyr BP',cex=2)
-text(-50,-50,'Sample: 95 records',cex=2)
-grid()
-mtext('Hot & Dry sp.',outer=TRUE,cex=4)
-dev.off()
-
-##sobreposicoes spCD
-jpeg(filename=paste(projectFolder,'Maxent/graficos/sobreposicoesCD.jpg',sep=''), width = 1100 , height = 1100) 
-par(mfrow=c(2,3)) 
-plot(CDcurrentReal*1+CDModel_0kyrSample5*2,main='(A)',col=c('white','green','blue','darkgreen'),legend=FALSE,cex.axis=2,cex.main=4)
-plot(AmSulShape,add=TRUE)
-text(-50,-45,'Time: 0 kyr BP',cex=2)
-text(-50,-50,'Sample: 5 records',cex=2)
-grid()
-plot(CDcurrentReal*1+CDModel_0kyrSample45*2,main='(B)',col=c('white','green','blue','darkgreen'),legend=FALSE,cex.axis=2,cex.main=4)
-plot(AmSulShape,add=TRUE)
-text(-50,-45,'Time: 0 kyr BP',cex=2)
-text(-50,-50,'Sample: 45 records',cex=2)
-grid()
-plot(CDcurrentReal*1+CDModel_0kyrSample95*2,main='(C)',col=c('white','green','blue','darkgreen'),legend=FALSE,cex.axis=2,cex.main=4)
-plot(AmSulShape,add=TRUE)
-text(-50,-45,'Time: 0 kyr BP',cex=2)
-text(-50,-50,'Sample: 95 records',cex=2)
-grid()
-plot(CD22Real*1+CDModel_22kyrSample5*2,main='(D)',col=c('white','green','blue','darkgreen'),legend=FALSE,cex.axis=2,cex.main=4)
-plot(AmSulShape,add=TRUE)
-text(-50,-45,'Time: 22 kyr BP',cex=2)
-text(-50,-50,'Sample: 5 records',cex=2)
-grid()
-plot(CD22Real*1+CDModel_22kyrSample45*2,main='(E)',col=c('white','green','blue','darkgreen'),legend=FALSE,cex.axis=1.7,cex.main=4)
-plot(AmSulShape,add=TRUE)
-text(-50,-45,'Time: 22 kyr BP',cex=2)
-text(-50,-50,'Sample: 45 records',cex=2)
-grid()
-plot(CD22Real*1+CDModel_22kyrSample95*2,main='(F)',col=c('white','green','blue','darkgreen'),legend=FALSE,cex.axis=1.7,cex.main=4)
-plot(AmSulShape,add=TRUE)
-text(-50,-45,'Time: 22 kyr BP',cex=2)
-text(-50,-50,'Sample: 95 records',cex=2)
-legend("bottomright", inset=c(-1,0),legend=c('Virtual species','Maxent projection','Overlap'),pch=20,col=c('blue','green','dark green'),cex=2)
-grid()
-mtext('Cold & Dry sp.',outer=TRUE,cex=4)
-dev.off()
+## ## ##testando significancia
+## ## ##indice D
+## cor.test(HWdataD$kyrBP,HWdataD$indexD,method='spearman')
+## cor.test(HDdataD$kyrBP,HDdataD$indexD,method='spearman')
+## cor.test(CDdataD$kyrBP,CDdataD$indexD,method='spearman')
+## ## ##indice I
+## cor.test(HWdataH$kyrBP,HWdataH$indexH,method='spearman')
+## cor.test(HDdataH$kyrBP,HDdataH$indexH,method='spearman')
+## cor.test(CDdataH$kyrBP,CDdataH$indexH,method='spearman')
 
 
-###CASO DA HIENA, Crocuta crocuta
+## ##metricas X tamanho amostral
 
-#abrindo os pacotes necessarios
+## #maxent
+## jpeg(file='/home/anderson/Documentos/Projetos/Sps artificiais/Maxent/graficos/metricsXsampleSize.jpg',width=1100,height=750)
+## par(mfrow=c(1,2),mar=c(5,6,4,4))
+## #D
+## plot(outputData$spHW$Schoeners_D~as.factor(outputData$spHW$sampleSize),type='p',ylim=c(0,1),xlab='Sample size',ylab="Shoeners' D",pch=1,col=rgb(0,0,0,alpha=0.5),cex.lab=1.9,cex.axis=1.5,lwd=2,cex=2)
+## plot(outputData$spHD$Schoeners_D~as.factor(outputData$spHD$sampleSize),data=HDdataD,type='p',ylim=c(0,1),xlab=NULL,ylab=NULL,pch=2,col=rgb(0,0,1,alpha=0.5),cex.lab=1.9,cex.axis=1.5,lwd=2,cex=2,add=TRUE)
+## plot(outputData$spCD$Schoeners_D~as.factor(outputData$spCD$sampleSize),data=CDdataD,type='p',ylim=c(0,1),xlab=NULL,ylab=NULL,pch=3,col=rgb(1,0,0,alpha=0.5),cex.lab=1.9,cex.axis=1.5,lwd=2,cex=2,add=TRUE)
+## legend(x=7.5,y=0.2,legend=c('H&W','H&D','C&D'),pch=20,col=c('black','blue','red'),cex=1.7)
+## #H
+## plot(outputData$spHW$Hellinger_I~as.factor(outputData$spHW$sampleSize),type='p',ylim=c(0,1),xlab='Sample size',ylab="Hellinger I",pch=1,col=rgb(0,0,0,alpha=0.5),cex.lab=1.9,cex.axis=1.5,lwd=2,cex=2)
+## plot(outputData$spHD$Hellinger_I~as.factor(outputData$spHD$sampleSize),data=HDdataD,type='p',ylim=c(0,1),xlab=NULL,ylab=NULL,pch=2,col=rgb(0,0,1,alpha=0.5),cex.lab=1.9,cex.axis=1.5,lwd=2,cex=2,add=TRUE)
+## plot(outputData$spCD$Hellinger_I~as.factor(outputData$spCD$sampleSize),data=CDdataD,type='p',ylim=c(0,1),xlab=NULL,ylab=NULL,pch=3,col=rgb(1,0,0,alpha=0.5),cex.lab=1.9,cex.axis=1.5,lwd=2,cex=2,add=TRUE)
+## legend(x=7.5,y=0.2,legend=c('H&W','H&D','C&D'),pch=20,col=c('black','blue','red'),cex=1.7)
+## dev.off()
 
-library(raster)
-library(biomod2)
-
-#fixando caminhos das pastas do projeto e carregando funcoes proprias
-
-options(java.parameters = "-Xmx7g") ###set available memmory to java
-projectFolder = "/home/anderson/Documentos/Projetos/Sps artificiais/" #pasta do projeto
-envVarFolder = "/home/anderson/PosDoc/dados_ambientais/dados_projeto" #pasta com as variaveis ambientais
-envVarPaths = list.files(path=envVarFolder, full.names=TRUE) #lista com os caminhos das camadas no sistema (comp.)
-AmSulShape = rgdal::readOGR("/home/anderson/PosDoc/shapefiles/Am_Sul/borders.shp") #shape da America do Sul
-maxentFolder = '/home/anderson/Documentos/Projetos/Sps artificiais/Maxent/' #pasta para resultados do maxent
-source("/home/anderson/R/R-Scripts/TSSmaxent.R")
-
-#obtendo pontos de ocorrencia (para o PRESENTE)
-
-occDataRaw = spocc::occ(query='Crocuta crocuta',from='gbif',limit=10000) #baixando os dados
-occDataRawDF = data.frame(occDataRaw$gbif$data$Crocuta_crocuta[,c('name','longitude','latitude','basisOfRecord')])
-occDataRawDFcurrent = occDataRawDF[occDataRawDF$basisOfRecord!="FOSSIL_SPECIMEN",]
-occDataRawDFcoord1 = occDataRawDFcurrent[complete.cases(occDataRawDFcurrent),] #retirando dados incompletos
-occDataRawDFcoord2 = round(occDataRawDFcoord1[,c('longitude','latitude')], digits = 2) #arredondado para duas casas decimais
-occDataRawDFcoord3 = occDataRawDFcoord2[!duplicated(occDataRawDFcoord2), ] #retirando dados redundantes (pontos repetidos)
-occData = data.frame(cbind(species='Crocuta crocuta',occDataRawDFcoord3)) #tabela de dados de ocorrencia final
-
-##inspecionado os pontos de ocorrencia
-
-maps::map("world", fill=TRUE, col="white", bg="lightblue", ylim=c(-60, 90), mar=c(0,0,0,0)) #plotando o mapa do mundo
-occShape = rgdal::readOGR('/home/anderson/Documentos/Projetos/Sps artificiais/hiena/iucn_distribution/species_5674.shp') #shape IUCN
-plot(occShape,add=TRUE,col=rgb(1,0,0,0.5)) #plotando shape da IUCN para a distribuição da especie
-points(occData[,c('longitude','latitude')], col="blue", pch=16) #plotando os pontos de ocorrencia (meus dados)
-
-##eliminando os pontos que estao fora do poligono da area de ocorrencia
-
-pts = occData[,c('longitude','latitude')] #pegando apenas long e lat
-coordinates(pts) <- ~ longitude + latitude #transformando em spatialPoints
-proj4string(pts) = proj4string(occShape) #transformando em spatialPoints
-ptsInside = pts[!is.na(sp::over(pts,as(occShape,"SpatialPolygons")))] #sobrepondo pontos e poligono
-
-points(ptsInside,pch=20,cex=0.5) #plotando para checar (em cima do ultimo grafico!)
-
-#obtendo pontos de ocorrencia (para o PASSADO)
-
-fossilDataRaw = paleobioDB::pbdb_occurrences(limit="all", base_name="Crocuta crocuta",show=c("coords", "phylo", "ident")) #dados do PBDB
-
-#inspecionando pontos fosseis
-
-X11(width=13, height=7.8); paleobioDB::pbdb_map(fossilDataRaw,pch=19,col.point=c("pink","red"), col.ocean="light blue",main="Crocuta crocuta") #mapa dos pontos 
-X11(width=13, height=7.8); paleobioDB::pbdb_map_occur(fossilDataRaw) #mapa do eforco amostral
-paleobioDB::pbdb_temp_range(fossilDataRaw,rank="species") #range temporal dos registros
-
-#'limpando' os dados de registros fosseis
-
-occDataFossilLatLong = fossilDataRaw[,c("lng","lat","eag","lag")] #pegando apenas long e lat do PBDB data
-occDataFossilRound = round(occDataFossilLatLong, digits=2) #arredondando lat e long para 2 casas decimais
-occDataFossilClean1 = occDataFossilRound[complete.cases(occDataFossilRound),] #retirando dados incompletos
-occDataFossilClean2 = occDataFossilClean1[!duplicated(occDataFossilClean1),] #retirando pontos em sobreposicao
-occDataFossil = occDataFossilClean2 #gravando objeto com o conjundo de dados final
-occDataFossil = cbind(occDataFossil[,c('lng','lat')],age=(occDataFossil$eag-occDataFossil$lag)/2)
-
-##salvando dados de ocorrencia "tratados"
-
-write.csv(ptsInside, file="/home/anderson/Documentos/Projetos/Sps artificiais/hiena/Crocuta_crocuta_Occ.csv",row.names=FALSE)
-write.csv(occDataFossil, file="/home/anderson/Documentos/Projetos/Sps artificiais/hiena/Crocuta_crocuta_Fossil.csv",row.names=FALSE)
+## ##teste de significancia
+## ##indice D
+## cor.test(outputData$spHW$sampleSize,outputData$spHW$Schoeners_D,method='spearman')
+## cor.test(outputData$spHD$sampleSize,outputData$spHD$Schoeners_D,method='spearman')
+## cor.test(outputData$spCD$sampleSize,outputData$spCD$Schoeners_D,method='spearman')
+## ##indice I
+## cor.test(outputData$spHW$sampleSize,outputData$spHW$Hellinger_distances,method='spearman')
+## cor.test(outputData$spHD$sampleSize,outputData$spHD$Hellinger_distances,method='spearman')
+## cor.test(outputData$spCD$sampleSize,outputData$spCD$Hellinger_distances,method='spearman')
 
 
-#############################################
-#############################################
-#############################################
+## ##distribuicao presente, inter e maximo glacial
+## library(raster)
+
+## ##threshold para modelo
+## threHW5 = read.csv(paste(projectFolder,'Maxent/spHW/StatisticsResults-spHW.csv',sep=''),header=TRUE); threHW5 = threHW5[threHW5$sampleSize==5,]; threHW5 = mean(threHW5$Threshold)
+## threHW45 = read.csv(paste(projectFolder,'Maxent/spHW/StatisticsResults-spHW.csv',sep=''),header=TRUE); threHW45 = threHW45[threHW45$sampleSize==45,]; threHW45 = mean(threHW45$Threshold)
+## threHW95 = read.csv(paste(projectFolder,'Maxent/spHW/StatisticsResults-spHW.csv',sep=''),header=TRUE); threHW95 = threHW95[threHW95$sampleSize==95,]; threHW95 = mean(threHW95$Threshold)
+## ##threshold paraa distribuicao real
+## HWcurrentReal = raster(paste(projectFolder,'NichoReal/spHW/000.asc',sep='')) > 0.1
+
+## HW22Real = raster(paste(projectFolder,'NichoReal/spHW/022.asc',sep='')) > 0.1
+## HWModel_0kyrSample5 =  mean( stack(list.files(path=paste(projectFolder,'Maxent/spHW/projections/',sep=''), pattern=glob2rx(paste('*Time0*Sample',5,'.asc',sep='')),full.names=TRUE)) ) > threHW5
+## HWModel_0kyrSample45 =  mean( stack(list.files(path=paste(projectFolder,'Maxent/spHW/projections/',sep=''), pattern=glob2rx(paste('*Time0*Sample',45,'.asc',sep='')),full.names=TRUE)) ) > threHW45
+## HWModel_0kyrSample95 =  mean( stack(list.files(path=paste(projectFolder,'Maxent/spHW/projections/',sep=''), pattern=glob2rx(paste('*Time0*Sample',95,'.asc',sep='')),full.names=TRUE)) ) > threHW95
+## HWModel_22kyrSample5 =  mean( stack(list.files(path=paste(projectFolder,'Maxent/spHW/projections/',sep=''), pattern=glob2rx(paste('*Time22*Sample',5,'.asc',sep='')),full.names=TRUE)) ) > threHW5
+## HWModel_22kyrSample45 =  mean( stack(list.files(path=paste(projectFolder,'Maxent/spHW/projections/',sep=''), pattern=glob2rx(paste('*Time22*Sample',45,'.asc',sep='')),full.names=TRUE)) ) > threHW45
+## HWModel_22kyrSample95 =  mean( stack(list.files(path=paste(projectFolder,'Maxent/spHW/projections/',sep=''), pattern=glob2rx(paste('*Time22*Sample',95,'.asc',sep='')),full.names=TRUE)) ) > threHW95
+
+## ##threshold para modelo
+## threHD5 = read.csv(paste(projectFolder,'Maxent/spHD/StatisticsResults-spHD.csv',sep=''),header=TRUE); threHD5 = threHD5[threHD5$sampleSize==5,]; threHD5 = mean(threHD5$Threshold)
+## threHD45 = read.csv(paste(projectFolder,'Maxent/spHD/StatisticsResults-spHD.csv',sep=''),header=TRUE); threHD45 = threHD45[threHD45$sampleSize==45,]; threHD45 = mean(threHD45$Threshold)
+## threHD95 = read.csv(paste(projectFolder,'Maxent/spHD/StatisticsResults-spHD.csv',sep=''),header=TRUE); threHD95 = threHD95[threHD95$sampleSize==95,]; threHD95 = mean(threHD95$Threshold)
+## ##threshold paraa distribuicao real
+## HDcurrentReal = raster(paste(projectFolder,'NichoReal/spHD/000.asc',sep='')) > 0.1
+
+## HD22Real = raster(paste(projectFolder,'NichoReal/spHD/022.asc',sep='')) > 0.1
+## HDModel_0kyrSample5 =  mean( stack(list.files(path=paste(projectFolder,'Maxent/spHD/projections/',sep=''), pattern=glob2rx(paste('*Time0*Sample',5,'.asc',sep='')),full.names=TRUE)) ) > threHD5
+## HDModel_0kyrSample45 =  mean( stack(list.files(path=paste(projectFolder,'Maxent/spHD/projections/',sep=''), pattern=glob2rx(paste('*Time0*Sample',45,'.asc',sep='')),full.names=TRUE)) ) > threHD45
+## HDModel_0kyrSample95 =  mean( stack(list.files(path=paste(projectFolder,'Maxent/spHD/projections/',sep=''), pattern=glob2rx(paste('*Time0*Sample',95,'.asc',sep='')),full.names=TRUE)) ) > threHD95
+## HDModel_22kyrSample5 =  mean( stack(list.files(path=paste(projectFolder,'Maxent/spHD/projections/',sep=''), pattern=glob2rx(paste('*Time22*Sample',5,'.asc',sep='')),full.names=TRUE)) ) > threHD5
+## HDModel_22kyrSample45 =  mean( stack(list.files(path=paste(projectFolder,'Maxent/spHD/projections/',sep=''), pattern=glob2rx(paste('*Time22*Sample',45,'.asc',sep='')),full.names=TRUE)) ) > threHD45
+## HDModel_22kyrSample95 =  mean( stack(list.files(path=paste(projectFolder,'Maxent/spHD/projections/',sep=''), pattern=glob2rx(paste('*Time22*Sample',95,'.asc',sep='')),full.names=TRUE)) ) > threHD95
+
+## ##threshold para modelo
+## threCD5 = read.csv(paste(projectFolder,'Maxent/spCD/StatisticsResults-spCD.csv',sep=''),header=TRUE); threCD5 = threCD5[threCD5$sampleSize==5,]; threCD5 = mean(threCD5$Threshold)
+## threCD45 = read.csv(paste(projectFolder,'Maxent/spCD/StatisticsResults-spCD.csv',sep=''),header=TRUE); threCD45 = threCD45[threCD45$sampleSize==45,]; threCD45 = mean(threCD45$Threshold)
+## threCD95 = read.csv(paste(projectFolder,'Maxent/spCD/StatisticsResults-spCD.csv',sep=''),header=TRUE); threCD95 = threCD95[threCD95$sampleSize==95,]; threCD95 = mean(threCD95$Threshold)
+## ##threshold paraa distribuicao real
+## CDcurrentReal = raster(paste(projectFolder,'NichoReal/spCD/000.asc',sep='')) > 0.1
+
+## CD22Real = raster(paste(projectFolder,'NichoReal/spCD/022.asc',sep='')) > 0.1
+## CDModel_0kyrSample5 =  mean( stack(list.files(path=paste(projectFolder,'Maxent/spCD/projections/',sep=''), pattern=glob2rx(paste('*Time0*Sample',5,'.asc',sep='')),full.names=TRUE)) ) > threCD5
+## CDModel_0kyrSample45 =  mean( stack(list.files(path=paste(projectFolder,'Maxent/spCD/projections/',sep=''), pattern=glob2rx(paste('*Time0*Sample',45,'.asc',sep='')),full.names=TRUE)) ) > threCD45
+## CDModel_0kyrSample95 =  mean( stack(list.files(path=paste(projectFolder,'Maxent/spCD/projections/',sep=''), pattern=glob2rx(paste('*Time0*Sample',95,'.asc',sep='')),full.names=TRUE)) ) > threCD95
+## CDModel_22kyrSample5 =  mean( stack(list.files(path=paste(projectFolder,'Maxent/spCD/projections/',sep=''), pattern=glob2rx(paste('*Time22*Sample',5,'.asc',sep='')),full.names=TRUE)) ) > threCD5
+## CDModel_22kyrSample45 =  mean( stack(list.files(path=paste(projectFolder,'Maxent/spCD/projections/',sep=''), pattern=glob2rx(paste('*Time22*Sample',45,'.asc',sep='')),full.names=TRUE)) ) > threCD45
+## CDModel_22kyrSample95 =  mean( stack(list.files(path=paste(projectFolder,'Maxent/spCD/projections/',sep=''), pattern=glob2rx(paste('*Time22*Sample',95,'.asc',sep='')),full.names=TRUE)) ) > threCD95
+
+## library(maptools)
+## AmSulShape = readShapePoly("/home/anderson/PosDoc/Am_Sul/borders.shp")
+
+## ##sobreposicoes spHW
+## jpeg(filename=paste(projectFolder,'Maxent/graficos/sobreposicoesHW.jpg',sep=''), width = 1100 , height = 1100) 
+## par(mfrow=c(2,3),oma=c(0,0,5,0))
+## plot(HWcurrentReal*1+HWModel_0kyrSample5*2,main='(A)',col=c('white','green','blue','darkgreen'),legend=FALSE,cex.axis=2,cex.main=4)
+## plot(AmSulShape,add=TRUE)
+## text(-50,-45,'Time: 0 kyr BP',cex=2)
+## text(-50,-50,'Sample: 5 records',cex=2)
+## grid()
+## plot(HWcurrentReal*1+HWModel_0kyrSample45*2,main='(B)',col=c('white','green','blue','darkgreen'),legend=FALSE,cex.axis=2,cex.main=4)
+## plot(AmSulShape,add=TRUE)
+## text(-50,-45,'Time: 0 kyr BP',cex=2)
+## text(-50,-50,'Sample: 45 records',cex=2)
+## grid()
+## plot(HWcurrentReal*1+HWModel_0kyrSample95*2,main='(C)',col=c('white','green','blue','darkgreen'),legend=FALSE,cex.axis=2,cex.main=4)
+## plot(AmSulShape,add=TRUE)
+## text(-50,-45,'Time: 0 kyr BP',cex=2)
+## text(-50,-50,'Sample: 95 records',cex=2)
+## grid()
+## plot(HW22Real*1+HWModel_22kyrSample5*2,main='(D)',col=c('white','green','blue','darkgreen'),legend=FALSE,cex.axis=2,cex.main=4)
+## plot(AmSulShape,add=TRUE)
+## text(-50,-45,'Time: 22 kyr BP',cex=2)
+## text(-50,-50,'Sample: 5 records',cex=2)
+## grid()
+## plot(HW22Real*1+HWModel_22kyrSample45*2,main='(E)',col=c('white','green','blue','darkgreen'),legend=FALSE,cex.axis=1.7,cex.main=4)
+## plot(AmSulShape,add=TRUE)
+## text(-50,-45,'Time: 22 kyr BP',cex=2)
+## text(-50,-50,'Sample: 45 records',cex=2)
+## grid()
+## plot(HW22Real*1+HWModel_22kyrSample95*2,main='(F)',col=c('white','green','blue','darkgreen'),legend=FALSE,cex.axis=1.7,cex.main=4)
+## plot(AmSulShape,add=TRUE)
+## text(-50,-45,'Time: 22 kyr BP',cex=2)
+## text(-50,-50,'Sample: 95 records',cex=2)
+## grid()
+## mtext('Hot & Wet sp.',outer=TRUE,cex=4)
+## dev.off()
+
+## ##sobreposicoes spHD
+## jpeg(filename=paste(projectFolder,'Maxent/graficos/sobreposicoesHD.jpg',sep=''), width = 1100 , height = 1100) 
+## par(mfrow=c(2,3),oma=c(0,0,5,0))
+## plot(HDcurrentReal*1+HDModel_0kyrSample5*2,main='(A)',col=c('white','green','blue','darkgreen'),legend=FALSE,cex.axis=2,cex.main=4)
+## plot(AmSulShape,add=TRUE)
+## text(-50,-45,'Time: 0 kyr BP',cex=2)
+## text(-50,-50,'Sample: 5 records',cex=2)
+## grid()
+## plot(HDcurrentReal*1+HDModel_0kyrSample45*2,main='(B)',col=c('white','green','blue','darkgreen'),legend=FALSE,cex.axis=2,cex.main=4)
+## plot(AmSulShape,add=TRUE)
+## text(-50,-45,'Time: 0 kyr BP',cex=2)
+## text(-50,-50,'Sample: 45 records',cex=2)
+## grid()
+## plot(HDcurrentReal*1+HDModel_0kyrSample95*2,main='(C)',col=c('white','green','blue','darkgreen'),legend=FALSE,cex.axis=2,cex.main=4)
+## plot(AmSulShape,add=TRUE)
+## text(-50,-45,'Time: 0 kyr BP',cex=2)
+## text(-50,-50,'Sample: 95 records',cex=2)
+## grid()
+## plot(HD22Real*1+HDModel_22kyrSample5*2,main='(D)',col=c('white','green','blue','darkgreen'),legend=FALSE,cex.axis=2,cex.main=4)
+## plot(AmSulShape,add=TRUE)
+## text(-50,-45,'Time: 22 kyr BP',cex=2)
+## text(-50,-50,'Sample: 5 records',cex=2)
+## grid()
+## plot(HD22Real*1+HDModel_22kyrSample45*2,main='(E)',col=c('white','green','blue','darkgreen'),legend=FALSE,cex.axis=1.7,cex.main=4)
+## plot(AmSulShape,add=TRUE)
+## text(-50,-45,'Time: 22 kyr BP',cex=2)
+## text(-50,-50,'Sample: 45 records',cex=2)
+## grid()
+## plot(HD22Real*1+HDModel_22kyrSample95*2,main='(F)',col=c('white','green','blue','darkgreen'),legend=FALSE,cex.axis=1.7,cex.main=4)
+## plot(AmSulShape,add=TRUE)
+## text(-50,-45,'Time: 22 kyr BP',cex=2)
+## text(-50,-50,'Sample: 95 records',cex=2)
+## grid()
+## mtext('Hot & Dry sp.',outer=TRUE,cex=4)
+## dev.off()
+
+## ##sobreposicoes spCD
+## jpeg(filename=paste(projectFolder,'Maxent/graficos/sobreposicoesCD.jpg',sep=''), width = 1100 , height = 1100) 
+## par(mfrow=c(2,3)) 
+## plot(CDcurrentReal*1+CDModel_0kyrSample5*2,main='(A)',col=c('white','green','blue','darkgreen'),legend=FALSE,cex.axis=2,cex.main=4)
+## plot(AmSulShape,add=TRUE)
+## text(-50,-45,'Time: 0 kyr BP',cex=2)
+## text(-50,-50,'Sample: 5 records',cex=2)
+## grid()
+## plot(CDcurrentReal*1+CDModel_0kyrSample45*2,main='(B)',col=c('white','green','blue','darkgreen'),legend=FALSE,cex.axis=2,cex.main=4)
+## plot(AmSulShape,add=TRUE)
+## text(-50,-45,'Time: 0 kyr BP',cex=2)
+## text(-50,-50,'Sample: 45 records',cex=2)
+## grid()
+## plot(CDcurrentReal*1+CDModel_0kyrSample95*2,main='(C)',col=c('white','green','blue','darkgreen'),legend=FALSE,cex.axis=2,cex.main=4)
+## plot(AmSulShape,add=TRUE)
+## text(-50,-45,'Time: 0 kyr BP',cex=2)
+## text(-50,-50,'Sample: 95 records',cex=2)
+## grid()
+## plot(CD22Real*1+CDModel_22kyrSample5*2,main='(D)',col=c('white','green','blue','darkgreen'),legend=FALSE,cex.axis=2,cex.main=4)
+## plot(AmSulShape,add=TRUE)
+## text(-50,-45,'Time: 22 kyr BP',cex=2)
+## text(-50,-50,'Sample: 5 records',cex=2)
+## grid()
+## plot(CD22Real*1+CDModel_22kyrSample45*2,main='(E)',col=c('white','green','blue','darkgreen'),legend=FALSE,cex.axis=1.7,cex.main=4)
+## plot(AmSulShape,add=TRUE)
+## text(-50,-45,'Time: 22 kyr BP',cex=2)
+## text(-50,-50,'Sample: 45 records',cex=2)
+## grid()
+## plot(CD22Real*1+CDModel_22kyrSample95*2,main='(F)',col=c('white','green','blue','darkgreen'),legend=FALSE,cex.axis=1.7,cex.main=4)
+## plot(AmSulShape,add=TRUE)
+## text(-50,-45,'Time: 22 kyr BP',cex=2)
+## text(-50,-50,'Sample: 95 records',cex=2)
+## legend("bottomright", inset=c(-1,0),legend=c('Virtual species','Maxent projection','Overlap'),pch=20,col=c('blue','green','dark green'),cex=2)
+## grid()
+## mtext('Cold & Dry sp.',outer=TRUE,cex=4)
+## dev.off()
 
 
-##modelando a distribuição das espécies: MODELO 'MONOTEMPORAL'
+## ###CASO DA HIENA, Crocuta crocuta
 
-##pacotes
-library(biomod2)
+## #abrindo os pacotes necessarios
 
-##abrindo dados de ocorrencia "tratados"
-occData = read.csv(file="/home/anderson/Documentos/Projetos/Sps artificiais/hiena/Crocuta_crocuta_Occ.csv",header=T,stringsAsFactors=FALSE)
-occDataFossil = read.csv(file="/home/anderson/Documentos/Projetos/Sps artificiais/hiena/Crocuta_crocuta_Fossil.csv",header=T,stringsAsFactors=FALSE)    
+## library(raster)
+## library(biomod2)
 
-# the name of studied species
-myRespName <- 'Hiena'
+## #fixando caminhos das pastas do projeto e carregando funcoes proprias
 
-# the XY coordinates of species data
-myRespXY <- occData
-coordinates(myRespXY) <- ~ longitude + latitude #transformando em spatialPoints
-crs(myRespXY) = CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0') #transformando em spatialPoints
+## options(java.parameters = "-Xmx7g") ###set available memmory to java
+## projectFolder = "/home/anderson/Documentos/Projetos/Sps artificiais/" #pasta do projeto
+## envVarFolder = "/home/anderson/PosDoc/dados_ambientais/dados_projeto" #pasta com as variaveis ambientais
+## envVarPaths = list.files(path=envVarFolder, full.names=TRUE) #lista com os caminhos das camadas no sistema (comp.)
+## AmSulShape = rgdal::readOGR("/home/anderson/PosDoc/shapefiles/Am_Sul/borders.shp") #shape da America do Sul
+## maxentFolder = '/home/anderson/Documentos/Projetos/Sps artificiais/Maxent/' #pasta para resultados do maxent
+## source("/home/anderson/R/R-Scripts/TSSmaxent.R")
+
+## #obtendo pontos de ocorrencia (para o PRESENTE)
+
+## occDataRaw = spocc::occ(query='Crocuta crocuta',from='gbif',limit=10000) #baixando os dados
+## occDataRawDF = data.frame(occDataRaw$gbif$data$Crocuta_crocuta[,c('name','longitude','latitude','basisOfRecord')])
+## occDataRawDFcurrent = occDataRawDF[occDataRawDF$basisOfRecord!="FOSSIL_SPECIMEN",]
+## occDataRawDFcoord1 = occDataRawDFcurrent[complete.cases(occDataRawDFcurrent),] #retirando dados incompletos
+## occDataRawDFcoord2 = round(occDataRawDFcoord1[,c('longitude','latitude')], digits = 2) #arredondado para duas casas decimais
+## occDataRawDFcoord3 = occDataRawDFcoord2[!duplicated(occDataRawDFcoord2), ] #retirando dados redundantes (pontos repetidos)
+## occData = data.frame(cbind(species='Crocuta crocuta',occDataRawDFcoord3)) #tabela de dados de ocorrencia final
+
+## ##inspecionado os pontos de ocorrencia
+
+## maps::map("world", fill=TRUE, col="white", bg="lightblue", ylim=c(-60, 90), mar=c(0,0,0,0)) #plotando o mapa do mundo
+## occShape = rgdal::readOGR('/home/anderson/Documentos/Projetos/Sps artificiais/hiena/iucn_distribution/species_5674.shp') #shape IUCN
+## plot(occShape,add=TRUE,col=rgb(1,0,0,0.5)) #plotando shape da IUCN para a distribuição da especie
+## points(occData[,c('longitude','latitude')], col="blue", pch=16) #plotando os pontos de ocorrencia (meus dados)
+
+## ##eliminando os pontos que estao fora do poligono da area de ocorrencia
+
+## pts = occData[,c('longitude','latitude')] #pegando apenas long e lat
+## coordinates(pts) <- ~ longitude + latitude #transformando em spatialPoints
+## proj4string(pts) = proj4string(occShape) #transformando em spatialPoints
+## ptsInside = pts[!is.na(sp::over(pts,as(occShape,"SpatialPolygons")))] #sobrepondo pontos e poligono
+
+## points(ptsInside,pch=20,cex=0.5) #plotando para checar (em cima do ultimo grafico!)
+
+## #obtendo pontos de ocorrencia (para o PASSADO)
+
+## fossilDataRaw = paleobioDB::pbdb_occurrences(limit="all", base_name="Crocuta crocuta",show=c("coords", "phylo", "ident")) #dados do PBDB
+
+## #inspecionando pontos fosseis
+
+## X11(width=13, height=7.8); paleobioDB::pbdb_map(fossilDataRaw,pch=19,col.point=c("pink","red"), col.ocean="light blue",main="Crocuta crocuta") #mapa dos pontos 
+## X11(width=13, height=7.8); paleobioDB::pbdb_map_occur(fossilDataRaw) #mapa do eforco amostral
+## paleobioDB::pbdb_temp_range(fossilDataRaw,rank="species") #range temporal dos registros
+
+## #'limpando' os dados de registros fosseis
+
+## occDataFossilLatLong = fossilDataRaw[,c("lng","lat","eag","lag")] #pegando apenas long e lat do PBDB data
+## occDataFossilRound = round(occDataFossilLatLong, digits=2) #arredondando lat e long para 2 casas decimais
+## occDataFossilClean1 = occDataFossilRound[complete.cases(occDataFossilRound),] #retirando dados incompletos
+## occDataFossilClean2 = occDataFossilClean1[!duplicated(occDataFossilClean1),] #retirando pontos em sobreposicao
+## occDataFossil = occDataFossilClean2 #gravando objeto com o conjundo de dados final
+## occDataFossil = cbind(occDataFossil[,c('lng','lat')],age=(occDataFossil$eag-occDataFossil$lag)/2)
+
+## ##salvando dados de ocorrencia "tratados"
+
+## write.csv(ptsInside, file="/home/anderson/Documentos/Projetos/Sps artificiais/hiena/Crocuta_crocuta_Occ.csv",row.names=FALSE)
+## write.csv(occDataFossil, file="/home/anderson/Documentos/Projetos/Sps artificiais/hiena/Crocuta_crocuta_Fossil.csv",row.names=FALSE)
 
 
-# load the environmental raster layers
-myExpl = raster::stack(list.files(envVarPaths[1],pattern='bioclim',full.names=TRUE))
-crs(myExpl) = CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0') #transformando em spatialPoints
-
-myBiomodData <- BIOMOD_FormatingData(resp.var = myRespXY,
-                                     expl.var = myExpl,
-                                     resp.name = myRespName,
-                                     PA.nb.rep = 1)
-
-#inspecionando o objeto gerado pela funcao do biomod2
-myBiomodData
-plot(myBiomodData)
+## #############################################
+## #############################################
+## #############################################
 
 
+## ##modelando a distribuição das espécies: MODELO 'MONOTEMPORAL'
 
-myBiomodOption <- BIOMOD_ModelingOptions(MAXENT.Phillips=list(path_to_maxent.jar="/home/anderson/R/x86_64-pc-linux-gnu-library/3.3/dismo/java",maximumiterations=2000,memory_allocated=NULL))
+## ##pacotes
+## library(biomod2)
+
+## ##abrindo dados de ocorrencia "tratados"
+## occData = read.csv(file="/home/anderson/Documentos/Projetos/Sps artificiais/hiena/Crocuta_crocuta_Occ.csv",header=T,stringsAsFactors=FALSE)
+## occDataFossil = read.csv(file="/home/anderson/Documentos/Projetos/Sps artificiais/hiena/Crocuta_crocuta_Fossil.csv",header=T,stringsAsFactors=FALSE)    
+
+## # the name of studied species
+## myRespName <- 'Hiena'
+
+## # the XY coordinates of species data
+## myRespXY <- occData
+## coordinates(myRespXY) <- ~ longitude + latitude #transformando em spatialPoints
+## crs(myRespXY) = CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0') #transformando em spatialPoints
+
+
+## # load the environmental raster layers
+## myExpl = raster::stack(list.files(envVarPaths[1],pattern='bioclim',full.names=TRUE))
+## crs(myExpl) = CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0') #transformando em spatialPoints
+
+## myBiomodData <- BIOMOD_FormatingData(resp.var = myRespXY,
+##                                      expl.var = myExpl,
+##                                      resp.name = myRespName,
+##                                      PA.nb.rep = 1)
+
+## #inspecionando o objeto gerado pela funcao do biomod2
+## myBiomodData
+## plot(myBiomodData)
+
+
+
+## myBiomodOption <- BIOMOD_ModelingOptions(MAXENT.Phillips=list(path_to_maxent.jar="/home/anderson/R/x86_64-pc-linux-gnu-library/3.3/dismo/java",maximumiterations=2000,memory_allocated=NULL))
     
-myBiomodModelOut <- BIOMOD_Modeling(
-    myBiomodData,
-    models = c('MAXENT.Phillips'),
-    models.options = myBiomodOption,
-    NbRunEval = 3,
-    DataSplit = 75,
-    VarImport = 3,
-    models.eval.meth = c('TSS','ROC'),
-    SaveObj = TRUE,
-    rescal.all.models = TRUE,
-    do.full.models = FALSE,
-    modeling.id = paste(myRespName,"FirstModeling",sep=""))
+## myBiomodModelOut <- BIOMOD_Modeling(
+##     myBiomodData,
+##     models = c('MAXENT.Phillips'),
+##     models.options = myBiomodOption,
+##     NbRunEval = 3,
+##     DataSplit = 75,
+##     VarImport = 3,
+##     models.eval.meth = c('TSS','ROC'),
+##     SaveObj = TRUE,
+##     rescal.all.models = TRUE,
+##     do.full.models = FALSE,
+##     modeling.id = paste(myRespName,"FirstModeling",sep=""))
     
-###PROJECAO PARA O PRESENTE###
-    myBiomodProj <- BIOMOD_Projection(
-        modeling.output = myBiomodModelOut,
-        new.env = myExpl,
-        proj.name = '000kyrBP',
-        selected.models = paste(myBiomodModelOut@models.computed,sep=''),
-        binary.meth = 'TSS',
-        compress = FALSE,
-        clamping.mask = TRUE,
-        output.format = '.grd',
-        on_0_1000 = FALSE)
+## ###PROJECAO PARA O PRESENTE###
+##     myBiomodProj <- BIOMOD_Projection(
+##         modeling.output = myBiomodModelOut,
+##         new.env = myExpl,
+##         proj.name = '000kyrBP',
+##         selected.models = paste(myBiomodModelOut@models.computed,sep=''),
+##         binary.meth = 'TSS',
+##         compress = FALSE,
+##         clamping.mask = TRUE,
+##         output.format = '.grd',
+##         on_0_1000 = FALSE)
 
-    ##My output data
-    projStack = get_predictions(myBiomodProj)
-    varImportance = get_variables_importance(myBiomodModelOut)
-    evaluationScores = get_evaluations(myBiomodModelOut)
+##     ##My output data
+##     projStack = get_predictions(myBiomodProj)
+##     varImportance = get_variables_importance(myBiomodModelOut)
+##     evaluationScores = get_evaluations(myBiomodModelOut)
 
     
