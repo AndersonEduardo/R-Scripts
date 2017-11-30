@@ -298,8 +298,8 @@ for (i in 1:length(spsTypes)){ #loop sobre os 'tipos de especies'
             layersBg_i = extract(
                 x=stack(list.files(path=paste(envVarFolder,'/',scenarioName,sep=''), pattern='asc', full.names=TRUE)),
                 y=sampleDataBg_i) #extraindo variaveis ambientais do ponto, em sua respectiva camada de tempo
-            sampleDataBg = rbind(sampleDataBg, data.frame(lon=sampleDataBg_i[,1],lat=sampleDataBg_i[,2],layers_i,kyrBP=sampledAge)) #juntando com os dados das outras camadas de tempo amostradas
-            names(sampleDataBg) = c('lon','lat',names(as.data.frame(layers_i)),'kyrBP') #ajustando os nomes
+            sampleDataBg = rbind(sampleDataBg, data.frame(lon=sampleDataBg_i[,1],lat=sampleDataBg_i[,2],layersBg_i,kyrBP=sampledAge)) #juntando com os dados das outras camadas de tempo amostradas
+            names(sampleDataBg) = c('lon','lat',names(as.data.frame(layersBg_i)),'kyrBP') #ajustando os nomes
             write.csv(sampleDataBg,paste(projectFolder,'/Amostras/monotemporal/',spsTypes[i],'/bg_',sSize,'pts_monotemporal_',j,'rep','.csv',sep=''),row.names=FALSE) #salvando
             sampleDataBg = data.frame() #devolvendo data.frame vazio para proxima rodada
 
@@ -518,7 +518,7 @@ for (h in 1:length(sdmTypes)){
         nicheRealPath = list.files(path=nicheRealFolder,pattern='.asc',full.names=TRUE) #lista com os enderecos dos mapas de distribuicao da sp
 
         ##loop sobre as cadamdas de tempo
-        for (l in 1:length(nicheRealPath[1:24])){ 
+        for (l in 1:length(nicheRealPath[1:24])){   #1:length(nicheRealPath[1:24])){ 
 
             ##definindo variaveis e parametros locais
             realNiche = nicheRealPath[l] #nicho real

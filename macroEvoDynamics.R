@@ -1,84 +1,76 @@
-
-cladeDF = data.frame(sp=as.numeric(0), start=as.numeric(0), end=as.numeric(0), origin=as.numeric(-1), status=as.character("leaf"), stringsAsFactors=FALSE)
-time = 1:15
-theta = 0.1
-cladeSizeNow = nrow(cladeDF)
-
-for (t in time){
-    for (i in which(cladeDF$status=='leaf')){
-        if (runif(1) < theta){
-            
-            cladeDF = rbind(cladeDF, data.frame(
-                                         sp=c(nrow(cladeDF), nrow(cladeDF)+1),
-                                         start=t,
-                                         end=NA,
-                                         origin=cladeDF$sp[i],
-                                         status='leaf'))
-
-            cladeDF[i,'status'] = 'internal'
-            cladeDF[i,'end'] = t
-        }
-    }
-    cladeDF[is.na(cladeDF$end),'end'] = t
-}
-
-cladeDF
+library(data.tree)
 
 ##versao 2
 
-cladeDF = data.frame(sp=as.numeric(0), start=as.numeric(0), end=as.numeric(NA), origin=as.numeric(-1), status=as.character("waiting"), stringsAsFactors=FALSE)
-theta = 0.2
+cladeDF = data.frame(sp=as.numeric(0), start=as.numeric(0), end=as.numeric(NA), origin=as.numeric(-1), status=as.character("waiting"), pathString=-1, stringsAsFactors=FALSE)
 #cladeMaxSize = 5
-tmax = 10
+tmax = 100
 t = 0
-itMax=10
+itMax = 10
+#theta = 0.1
+
+
+v = 0.8
+T = tmax/2
+u = 0.001
+
+theta =  0.5 - 0.5/( (1+exp(-v*(1:tmax-T)))*u + 1 ) 
+plot(theta,ylim=c(0,1))
 
 for(it in 1:itMax){
     waitingVec = which(cladeDF$status=='waiting') 
     for (i in waitingVec){
-#        print(cladeDF)
         while (t<tmax){
-            if (runif(1) < theta){
-                ##print ("Mutação!!!")
+            if (runif(1) < theta[t+1]){
                 cladeDF[i,'status'] = 'internal'
-                cladeDF[i,'end'] = cladeDF$start[i] + t
+                cladeDF[i,'end'] = t
                 cladeDF = rbind(cladeDF, data.frame(
                                              sp=c(nrow(cladeDF), nrow(cladeDF)+1),
                                              start=cladeDF[i,'end'],
                                              end=NA,
                                              origin=cladeDF[i,'sp'],
-                                             status='waiting'))
+                                             status='waiting',
+                                             pathString=c(paste(cladeDF[i,'pathString'],cladeDF[i,'sp'],sep='/'),
+                                                          paste(cladeDF[i,'pathString'],cladeDF[i,'sp'],sep='/'))
+                                         )
+                                )
                 break
             }else{
                 t = t+1
-                                        #                print(paste('TEMPO:', t))
             }
-            cladeDF[i,'end'] = cladeDF$start[i] + t
+            cladeDF[i,'end'] = t
             cladeDF[i,'status'] = 'leaf'
+#            cladeDF[i,'pathString']=paste(cladeDF[i,'pathString'],cladeDF[i,'sp'],sep='/')
         }
+        cladeDF[i,'pathString']=paste(cladeDF[i,'pathString'],cladeDF[i,'sp'],sep='/')
     }
     if (it == itMax){
         index = which(is.na(cladeDF$end))
-        cladeDF$end[index] = cladeDF$start[index] + t
+        cladeDF$end[index] = t
         cladeDF$status[index] = 'leaf'
+        cladeDF$pathString[index] = paste(cladeDF[index,'pathString'],cladeDF[index,'sp'],sep='/')
     }
 }
 
-cladeDF
+cladeDFbruto = cladeDF
+##
+cladeDF = cladeDF[cladeDF$status=='leaf',]
+##
 
-library(data.tree)
-
-cladeDF$pathString = paste(-1,
-                           cladeDF$origin,
-                           cladeDF$sp,sep='/')
+## cladeDF$pathString = paste(-1,
+##                            cladeDF$origin,
+##                            cladeDF$sp,sep='/')
 
 cladeTree = as.Node(cladeDF)
 
-print(cladeTree)
+#print(cladeTree)
 
 plot(cladeTree)
 
+
+jpeg('diminuindo.jpeg')
 plot(as.dendrogram(cladeTree),center=TRUE)
+dev.off()
 
 CladeNewick = ToNewick(cladeTree)
 
