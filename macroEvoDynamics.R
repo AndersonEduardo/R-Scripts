@@ -288,3 +288,143 @@ points((output[[1]]$td) ~ output[[1]]$t, type='b', pch=20, cex=3, col='black')
 grid()
 legend(x='topright', legend=c(rev(names(output))), pch=20, cex=2, lty=1, col=c('red','yellow','black'))
 dev.off()
+
+
+
+
+##############################
+
+
+
+
+createPop = function(dados, m){
+    leftPop = names(dados[1,])[1] ##nao importa a linha
+    rightPop = names(dados[1,])[ncol(dados)] ##nao importa a linha
+
+    ##para esquerda
+    if (runif(1) < m & sum(dados[,1]) > 0){
+        popNew = paste('pop', as.numeric(gsub("pop",'',names(dados[1])))-1,sep='')
+        dados[,popNew] = 0
+        dados = dados[,c(popNew,names(dados)[-ncol(dados)])]
+    }
+
+    ##para direita
+    if (runif(1) < m & sum(dados[,ncol(dados)]) > 0){
+        popNew = paste('pop+', as.numeric(gsub("pop",'',names(dados)[ncol(dados)]))+1,sep='')
+        dados[,popNew] = 0
+    }
+    return(dados)
+}
+
+positionPop = function(h,i,dados){
+    if (ncol(dados)==1){
+        pRight = 0
+        pActual = as.numeric(dados[h,i])
+        pLeft = 0
+        return(c(pLeft,pActual,pRight))
+    }
+    if (i==1 & ncol(dados)>1){
+        pRight = as.numeric(dados[h,i+1])
+        pActual = as.numeric(dados[h,i])
+        pLeft = 0
+        return(c(pLeft,pActual,pRight))
+    }
+    if (i == ncol(dados) & ncol(dados)>1){
+        pRight = 0
+        pActual = as.numeric(dados[h,i])
+        pLeft = as.numeric(dados[h,i-1])
+        return(c(pLeft,pActual,pRight))
+    }else{
+        pLeft = as.numeric(dados[h,i-1])
+        pActual = as.numeric(dados[h,i])
+        pRight = as.numeric(dados[h,i+1])
+        return(c(pLeft,pActual,pRight))
+    }
+}
+
+mutationPop = function(dados,u){
+    if(runif(1) < u){
+        dados[nrow(dados)+1, sample(1:ncol(dados),1)] = 0.01
+        dados[nrow(dados),is.na(dados[nrow(dados),])] = 0
+    }
+    return(dados)
+}
+
+
+dados = data.frame('pop0'=10000)
+tMax = 10
+m = 0.1
+output = vector()
+u = 0.001
+
+for (time in 1:tMax){
+    dados = createPop(dados,m)
+    for (h in 1:nrow(dados)){
+        for (i in 1:ncol(dados)){
+            ##posicao atual e vizinhanca
+            positions = positionPop(h,i,dados)
+            pLeft = positions[1]
+            pActual = positions[2]
+            pRight = positions[3]
+            ## equacao ##
+            p = pActual - m*pActual +(m/2)*pLeft + (m/2)*pRight
+            ##atualiza vetor
+            dados[h,i] = p
+            ##outputs
+        }
+    }
+    dados = mutationPop(dados,u)
+}
+
+
+f = t(apply(dados, 1, function(x) x/colSums(dados)))
+
+##verificando se soma 1
+colSums(f)
+plot(f[1,],t='b')
+points(f[2,],t='b',col='red')
+points(f[3,],t='b',col='blue')
+
+
+
+################################################
+
+nVec = vector()
+nTemp = vector()
+
+for(i in 1:100){
+
+    m = i/100 #0.5
+    u = 0.1
+    tempo = 1:1000
+    n = 2 + tempo*m
+    
+    rho = ((m)/(n-1)) / (u + m/(n-1)) #qunato maior, mais parecidas as pops
+    ##
+    plot(rho ~ tempo, ylim=c(0,1))
+    
+    nVec = append(nVec,  n[which(rho<0.1)][1]) #momento que atinge o limite escolhido
+    nTemp = append(nTemp, tempo[which(rho<0.1)][1]) #momento que atinge o limite escolhido
+}
+
+plot(nVec ~ c(1:100/100), t='b')
+plot(nTemp ~ c(1:100/100), t='b')
+
+plot(nVec ~ nTemp, t='b')
+
+
+rho=0.01 #1:100/1000
+m=1:500/1000
+n=(m-m*rho+rho*u)/(rho*u)
+##
+plot(n ~ m)
+
+m=1:500/10000
+rho=0.1
+u=0.001
+t=-(-m+m*rho+rho*u)/(m*rho*u)
+plot(t~m,t='b')
+
+n=2+m*t
+##
+plot(n~t,t='b')

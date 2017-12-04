@@ -367,8 +367,8 @@ for (h in 1:length(sdmTypes)){
                     setwd(file.path(projectFolder,'maxent',sdmTypes[h],spsTypes[i]))
                     
                     ##definindo variaveis e parametros locais                        
-                    occPoints = read.csv(paste(mainSampleFolder,'/',sdmTypes[h],'/',spsTypes[i],'/occ_',sampleSizes[j],'pts_',sdmTypes[h],'_',k,'rep.csv',sep=''),header=TRUE) #abrindo pontos de ocorrencia    
-                    backgroundPoints = read.csv(paste(mainSampleFolder,'/',sdmTypes[h],'/',spsTypes[i],'/bg_',sampleSizes[j],'pts_',sdmTypes[h],'_',k,'rep.csv',sep=''),header=TRUE) #abrindo pontos de background
+                    occPoints = read.csv(paste(mainSampleFolder,sdmTypes[h],'/',spsTypes[i],'/occ_',sampleSizes[j],'pts_',sdmTypes[h],'_',k,'rep.csv',sep=''),header=TRUE) #abrindo pontos de ocorrencia    
+                    backgroundPoints = read.csv(paste(mainSampleFolder,sdmTypes[h],'/',spsTypes[i],'/bg_',sampleSizes[j],'pts_',sdmTypes[h],'_',k,'rep.csv',sep=''),header=TRUE) #abrindo pontos de background
                     
                     
                     ##agrupando ocorrencias e pseudo-ausencias
@@ -445,13 +445,17 @@ for (h in 1:length(sdmTypes)){
                         predictors = predictors[[c('bioclim_01','bioclim_12')]]
                         ##predictors = mask(predictors,AmSulShape) #recortando as variaveis ambientais
                         crs(predictors) = CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0') #ajustando CRS
+
+                        ##selecionando o melhor modelo para projecao
+                        whichModel = names(evaluationScores['TSS','Testing.data',,,][which(evaluationScores['TSS','Testing.data',,,]== max(evaluationScores['TSS','Testing.data',,,]) )])
+                        modelName = grep(pattern=whichModel, myBiomodModelOut@models.computed, value=TRUE)
                         
                         ##rodando algortmo de projecao (i.e. rodando a projecao)
                         myBiomodProj <- BIOMOD_Projection(
                             modeling.output = myBiomodModelOut,
                             new.env = predictors,
-                            proj.name = paste(l,'kyr',sep=''),
-                            selected.models = 'all',
+                            proj.name = paste(l-1,'kyr',sep=''),
+                            selected.models = modelName,
                             binary.meth = 'TSS',
                             compress = 'TRUE',
                             build.clamping.mask = 'TRUE',
@@ -514,7 +518,7 @@ for (h in 1:length(sdmTypes)){
     for (i in 1:length(spsTypes)){
 
         ##definindo variaveis e parametros locais
-        nicheRealFolder = paste(projectFolder,'/NichoReal/',spsTypes[i],sep='') #pasta com os mapas de nicho real da sp
+        nicheRealFolder = paste(projectFolder,'NichoReal/',spsTypes[i],sep='') #pasta com os mapas de nicho real da sp
         nicheRealPath = list.files(path=nicheRealFolder,pattern='.asc',full.names=TRUE) #lista com os enderecos dos mapas de distribuicao da sp
 
         ##loop sobre as cadamdas de tempo
@@ -550,8 +554,9 @@ for (h in 1:length(sdmTypes)){
                     ## projectionsFolder = paste(projectFolder,'maxent/',sdmTypes[h],'/',spsTypes[i],'/',spsTypes[i],'.sample',m,'.replica',n,sep='') #pasta com as projecoes do cenario
                     ## projectionsPath = list.files(path=projectionsFolder, pattern='.asc',recursive=TRUE,full.names=T) #caminhos para os .asc na paste do cenario
                     
-                    sdmNichePath = paste(projectFolder,'/maxent/',sdmTypes[h],'/',spsTypes[i],'/',spsTypes[i],'.sample',m,'.replica',n,'/proj_',l,'kyr/','proj_',l,'kyr_',spsTypes[i],'.sample',m,'.replica',n,'_TSSbin.grd',sep='') #caminho do mapa de suitability gerado por SDM
+                    sdmNichePath = paste(projectFolder,'maxent/',sdmTypes[h],'/',spsTypes[i],'/',spsTypes[i],'.sample',m,'.replica',n,'/proj_',l-1,'kyr/','proj_',l-1,'kyr_',spsTypes[i],'.sample',m,'.replica',n,'_TSSbin.grd',sep='') #caminho do mapa de suitability gerado por SDM
                     sdmNicheStack = stack(sdmNichePath)
+                    binMapSDM = sum(sdmNicheStack)#>0.5
                     binMapSDM = sdmNicheStack[[round(runif(1,0.5,nlayers(sdmNicheStack)))]] #mapa de suitability gerado por SDM
 #                    binMapSDM = biomod2::BinaryTransformation(data=mean(sdmNiche), threshold=10) #fazendo mapa binario, threshold 10%
 
@@ -667,132 +672,447 @@ outputData = list() #tabela de dados de saida
 vetor.nomes = vector()
 projectFolder = "/home/anderson/Documentos/Projetos/Sps artificiais" #pasta do projeto
 
-outputData = read.csv(file=paste(projectFolder,'/maxent/output.csv',sep=''), header=TRUE)
-#outputData = read.csv(file=paste(projectFolder,'/Resultados Lorien/output.csv',sep=''),header=TRUE)
+##outputData = read.csv(file=paste(projectFolder,'/maxent/output.csv',sep=''), header=TRUE)
+##outputData = read.csv(file=paste(projectFolder,'/Resultados Lorien/output.csv',sep=''),header=TRUE)
+outputData = read.csv(file=paste(projectFolder,'/maxent/output_uni.csv',sep=''), header=TRUE)
 #vetor.nomes = append(vetor.nomes,paste(spsTypes[i],sep=''))
 
 
 ## Schoener e Hellinger para resultados totais
-jpeg('/home/anderson/Documentos/Projetos/Sps artificiais/maxent/graficos - resultados oficiais/boxplotDadosTotais.jpeg', width=600)
+jpeg('/home/anderson/Documentos/Projetos/Sps artificiais/graficos - resultados oficiais/boxplotDadosTotais.jpeg', width=600)
 par(mfrow=c(1,2), mar=c(8,3,3,1), cex=1.4, las=2)
-boxplot(outputData$Schoeners_D ~ outputData$sdmType, ylim=c(0,1), main="Schoeners' D")
-boxplot(outputData$Hellinger_I ~ outputData$sdmType, ylim=c(0,1), main='Hellinger')
+boxplot(outputData$Schoeners_D_simi~ outputData$sdmType, ylim=c(0,1), main="Schoeners' D")
+boxplot(outputData$Hellinger_I_simi~ outputData$sdmType, ylim=c(0,1), main='Hellinger')
 dev.off()
 
 ##testes
-kruskal.test(Schoeners_D ~ sdmType, data = outputData)
+kruskal.test(Schoeners_D_simi ~ sdmType, data = outputData)
+kruskal.test(Hellinger_I_simi ~ sdmType, data = outputData)
 
 ## Razao (quanto Shoener's D SDMmulti e melhor que SDMmono, em %)
-median(outputData[outputData$sdmType=='multitemporal',]$Schoeners_D) / median(outputData[outputData$sdmType=='monotemporal',]$Schoeners_D) * 100
+median(outputData[outputData$sdmType=='multitemporal',]$Schoeners_D_simi) / median(outputData[outputData$sdmType=='monotemporal',]$Schoeners_D_simi) * 100
 
 ## Razao (quanto Hellinger SDMmulti e melhor que SDMmono, em %)
-median(outputData[outputData$sdmType=='multitemporal',]$Hellinger_I) / median(outputData[outputData$sdmType=='monotemporal',]$Hellinger_I) * 100
+median(outputData[outputData$sdmType=='multitemporal',]$Hellinger_I_simi) / median(outputData[outputData$sdmType=='monotemporal',]$Hellinger_I_simi) * 100
 
 ## bosplots das sps
-jpeg('/home/anderson/Documentos/Projetos/Sps artificiais/maxent/graficos - resultados oficiais/boxplotSps.jpeg', height=650)
-par(mfrow=c(2,2), mar=c(7,4.5,3,1), cex=1.1, las=2)# cex.axis=2.5, cex.lab=3, cex.main=3)
-boxplot(outputData[outputData$sp == 'spHW',]$Schoeners_D ~ outputData[outputData$sp == 'spHW',]$sdmType, ylim=c(0,1), ylab="Schoeners' D", main='spHW')
-boxplot(outputData[outputData$sp == 'spHW',]$Hellinger_I ~ outputData[outputData$sp == 'spHW',]$sdmType, ylim=c(0,1), ylab="Hellinger", main='spHW')
-boxplot(outputData[outputData$sp == 'spCD',]$Schoeners_D ~ outputData[outputData$sp == 'spCD',]$sdmType, ylim=c(0,1), ylab="Schoeners' D",  main='spHW')
-boxplot(outputData[outputData$sp == 'spCD',]$Hellinger_I ~ outputData[outputData$sp == 'spCD',]$sdmType, ylim=c(0,1), ylab="Hellinger", main='spCD')
+jpeg('/home/anderson/Documentos/Projetos/Sps artificiais/graficos - resultados oficiais/boxplotSps.jpeg', height=650)
+par(mfrow=c(2,2), mar=c(7,4.5,6,1), cex=1.1, las=2)# cex.axis=2.5, cex.lab=3, cex.main=3)
+boxplot(outputData[outputData$sp == 'spHW',]$Schoeners_D_simi ~ outputData[outputData$sp == 'spHW',]$sdmType, ylim=c(0,1), ylab="Schoener's D", main='spHW')
+boxplot(outputData[outputData$sp == 'spHW',]$Hellinger_I_simi ~ outputData[outputData$sp == 'spHW',]$sdmType, ylim=c(0,1), ylab="Hellinger", main='spHW')
+boxplot(outputData[outputData$sp == 'spCD',]$Schoeners_D_simi ~ outputData[outputData$sp == 'spCD',]$sdmType, ylim=c(0,1), ylab="Schoener's D",  main='spCD')
+boxplot(outputData[outputData$sp == 'spCD',]$Hellinger_I_simi ~ outputData[outputData$sp == 'spCD',]$sdmType, ylim=c(0,1), ylab="Hellinger", main='spCD')
 dev.off()
 
 ## Densidade para dados totais
-jpeg('/home/anderson/Documentos/Projetos/Sps artificiais/maxent/graficos - resultados oficiais/densidadeDadosTotais.jpeg', width=600, height = 400)
+jpeg('/home/anderson/Documentos/Projetos/Sps artificiais/graficos - resultados oficiais/densidadeDadosTotais.jpeg', width=600, height = 400)
 par(mfrow=c(1,2), lwd=2, cex=1)
-plot(density(outputData[outputData$sdmType == 'multitemporal',]$Schoeners_D),ylim=c(0,5), lwd=2, col='red', main='', xlab="Schoeners' D", ylab='Density')
-lines(density(outputData[outputData$sdmType == 'monotemporal',]$Schoeners_D), lwd=2)
+plot(density(outputData[outputData$sdmType == 'multitemporal',]$Schoeners_D_simi),ylim=c(0,5), lwd=2, col='red', main='', xlab="Schoener's D", ylab='Density')
+lines(density(outputData[outputData$sdmType == 'monotemporal',]$Schoeners_D_simi), lwd=2)
 #
-plot(density(outputData[outputData$sdmType == 'multitemporal',]$Hellinger_I),ylim=c(0,5), lwd=2, col='red', main='', xlab='Hellinger', ylab='Density')
-lines(density(outputData[outputData$sdmType == 'monotemporal',]$Hellinger_I), lwd=2)
-legend(x='topright', legend=c('Multitemporal calibration', 'Monotemporal calibration'), lty=1, col=c('red','black'))
+plot(density(outputData[outputData$sdmType == 'multitemporal',]$Hellinger_I_simi),ylim=c(0,5), lwd=2, col='red', main='', xlab='Hellinger', ylab='Density')
+lines(density(outputData[outputData$sdmType == 'monotemporal',]$Hellinger_I_simi), lwd=2)
+##
+legend(x='topright', legend=c('Multitemporal calibration', 'Monotemporal calibration'), lty=1, col=c('red','black'), bty='n')
 dev.off()
 
 ## Densidade para as sps
-jpeg('/home/anderson/Documentos/Projetos/Sps artificiais/maxent/graficos - resultados oficiais/densidade_sps.jpeg')
+jpeg('/home/anderson/Documentos/Projetos/Sps artificiais/graficos - resultados oficiais/densidade_sps.jpeg')
 par(mfrow=c(2,2), mar=c(5,4,3,1), lwd=2, cex=1)
 #
-plot(density(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spHW',]$Schoeners_D),ylim=c(0,7), lwd=2, col='red', main='spHW', xlab="Schoeners' D", ylab='Density')
-lines(density(outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spHW',]$Schoeners_D), lwd=2)
+plot(density(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spHW',]$Schoeners_D_simi),ylim=c(0,7), lwd=2, col='red', main='spHW', xlab="Schoener's D", ylab='Density')
+lines(density(outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spHW',]$Schoeners_D_simi), lwd=2)
 #
-plot(density(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spHW',]$Hellinger_I),ylim=c(0,5), lwd=2, col='red', main='spHW', xlab="Hellinger", ylab='Density')
-lines(density(outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spHW',]$Hellinger_I), lwd=2)
+plot(density(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spHW',]$Hellinger_I_simi),ylim=c(0,5), lwd=2, col='red', main='spHW', xlab="Hellinger", ylab='Density')
+lines(density(outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spHW',]$Hellinger_I_simi), lwd=2)
+legend(x='topright', legend=c('Multitemporal calibration', 'Monotemporal calibration'), lty=1, col=c('red','black'), bty='n', cex=0.8)
 #
-plot(density(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spCD',]$Schoeners_D),ylim=c(0,5), lwd=2, col='red', main='spCD', xlab="Schoeners' D", ylab='Density')
-lines(density(outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spCD',]$Schoeners_D), lwd=2)
+plot(density(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spCD',]$Schoeners_D_simi),ylim=c(0,5), lwd=2, col='red', main='spCD', xlab="Schoener's D", ylab='Density')
+lines(density(outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spCD',]$Schoeners_D_simi), lwd=2)
 #
-plot(density(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spCD',]$Hellinger_I),ylim=c(0,5), col='red', lwd=2, main='spCD', xlab="Hellinger", ylab='Density')
-lines(density(outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spCD',]$Hellinger_I), lwd=2)
+plot(density(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spCD',]$Hellinger_I_simi),ylim=c(0,5), col='red', lwd=2, main='spCD', xlab="Hellinger", ylab='Density')
+lines(density(outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spCD',]$Hellinger_I_simi), lwd=2)
 dev.off()
 
-## Shoener e Hellinger no tempo
-jpeg('/home/anderson/Documentos/Projetos/Sps artificiais/maxent/graficos - resultados oficiais/Shoener&HellingerXtempo.jpeg',width=600, height=600)
+## Schoener e Hellinger no tempo
+jpeg('/home/anderson/Documentos/Projetos/Sps artificiais/graficos - resultados oficiais/Shoener&HellingerXtempo.jpeg',width=600, height=600)
 par(mfrow=c(2,2), mar=c(4,4,4,1), cex=1.2)
-plot(outputData[outputData$sdmType == 'multitemporal',]$Schoeners_D ~ as.factor(outputData[outputData$sdmType == 'multitemporal',]$kyrBP),type='p',ylab="Schoeners' D", xlab="Time (kyr BP)", ylim=c(0,1), col=rgb(0,0,0,alpha=0.5), main='Multitemporal')
+plot(outputData[outputData$sdmType == 'multitemporal',]$Schoeners_D_simi ~ as.factor(outputData[outputData$sdmType == 'multitemporal',]$kyrBP),type='p',ylab="Schoeners' D", xlab="Time (kyr BP)", ylim=c(0,1), col=rgb(0,0,0,alpha=0.5), main='Multitemporal')
 #
-plot(outputData[outputData$sdmType == 'multitemporal',]$Hellinger_I ~ as.factor(outputData[outputData$sdmType == 'multitemporal',]$kyrBP),type='p',ylab="Hellinger",xlab="Time (kyr BP)",ylim=c(0,1),col=rgb(0,0,0,alpha=0.5), main='Multitemporal')
+plot(outputData[outputData$sdmType == 'multitemporal',]$Hellinger_I_simi ~ as.factor(outputData[outputData$sdmType == 'multitemporal',]$kyrBP),type='p',ylab="Hellinger",xlab="Time (kyr BP)",ylim=c(0,1),col=rgb(0,0,0,alpha=0.5), main='Multitemporal')
 #
-plot(outputData[outputData$sdmType == 'monotemporal',]$Schoeners_D ~ as.factor(outputData[outputData$sdmType == 'monotemporal',]$kyrBP),type='p',ylab="Schoeners' D",xlab="Time (kyr BP)",ylim=c(0,1),col=rgb(0,0,0,alpha=0.5), main='Monotemporal')
+plot(outputData[outputData$sdmType == 'monotemporal',]$Schoeners_D_simi ~ as.factor(outputData[outputData$sdmType == 'monotemporal',]$kyrBP),type='p',ylab="Schoeners' D",xlab="Time (kyr BP)",ylim=c(0,1),col=rgb(0,0,0,alpha=0.5), main='Monotemporal')
 #
-plot(outputData[outputData$sdmType == 'monotemporal',]$Hellinger_I ~ as.factor(outputData[outputData$sdmType == 'monotemporal',]$kyrBP),type='p',ylab="Hellinger",xlab="Time (kyr BP)",ylim=c(0,1),col=rgb(0,0,0,alpha=0.5), main='Monotemporal')
+plot(outputData[outputData$sdmType == 'monotemporal',]$Hellinger_I_simi ~ as.factor(outputData[outputData$sdmType == 'monotemporal',]$kyrBP),type='p',ylab="Hellinger",xlab="Time (kyr BP)",ylim=c(0,1),col=rgb(0,0,0,alpha=0.5), main='Monotemporal')
 dev.off()
 
 ## Shoener e Hellinger no tempo - sps
-jpeg('/home/anderson/Documentos/Projetos/Sps artificiais/maxent/graficos - resultados oficiais/Shoener&HellingerXtempo_sps.jpeg', width=1200, height=1200)
+jpeg('/home/anderson/Documentos/Projetos/Sps artificiais/graficos - resultados oficiais/Shoener&HellingerXtempo_sps.jpeg', width=1200, height=1200)
 par(mfrow=c(2,2), pch=1, mar=c(7,7,3,3), cex=1.5, cex.lab=2, cex.axis=2, cex.main=2)
-plot(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spHW',]$Schoeners_D ~ as.factor(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spHW',]$kyrBP),type='p',ylab="Schoeners' D",xlab="Time (kyr BP)", main='spHW', ylim=c(0,1), col=rgb(0,0,0,alpha=0.5))
+plot(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spHW',]$Schoeners_D_simi ~ as.factor(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spHW',]$kyrBP),type='p',ylab="Schoener's D",xlab="Time (kyr BP)", main='spHW', ylim=c(0,1), col=rgb(0,0,0,alpha=0.5))
 #
-plot(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spHW',]$Hellinger_I ~ as.factor(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spHW',]$kyrBP),type='p',ylab="Hellinger",xlab="Time (kyr BP)", main='spHW',ylim=c(0,1), col=rgb(0,0,0,alpha=0.5))
+plot(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spHW',]$Hellinger_I_simi ~ as.factor(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spHW',]$kyrBP),type='p',ylab="Hellinger",xlab="Time (kyr BP)", main='spHW',ylim=c(0,1), col=rgb(0,0,0,alpha=0.5))
 #
-plot(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spCD',]$Schoeners_D ~ as.factor(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spHW',]$kyrBP),type='p',ylab="Schoeners' D",xlab="Time (kyr BP)", main='spCD', ylim=c(0,1), col=rgb(0,0,0,alpha=0.5))
+plot(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spCD',]$Schoeners_D_simi ~ as.factor(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spHW',]$kyrBP),type='p',ylab="Schoeners' D",xlab="Time (kyr BP)", main='spCD', ylim=c(0,1), col=rgb(0,0,0,alpha=0.5))
 #
-plot(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spCD',]$Hellinger_I ~ as.factor(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spHW',]$kyrBP),type='p',ylab="Hellinger",xlab="Time (kyr BP)", main='spCD',ylim=c(0,1), col=rgb(0,0,0,alpha=0.5))
+plot(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spCD',]$Hellinger_I_simi ~ as.factor(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spHW',]$kyrBP),type='p',ylab="Hellinger",xlab="Time (kyr BP)", main='spCD',ylim=c(0,1), col=rgb(0,0,0,alpha=0.5))
 dev.off()
 
+## Schoener X sample size X tempo - spHW
+jpeg('/home/anderson/Documentos/Projetos/Sps artificiais/graficos - resultados oficiais/SchoenerXtempoXsample_spHW.jpeg', width=1200, height=1200)
+par(mfrow=c(3,2), pch=1, mar=c(7,7,3,3), cex=1.5, cex.lab=2, cex.axis=2, cex.main=2)
+plot(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spHW' & outputData$sampleSize == 10,]$Schoeners_D_simi ~ as.factor(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spHW' & outputData$sampleSize == 10,]$kyrBP),type='p',ylab="Schoener's D",xlab="Time (kyr BP)", main='10 pts', ylim=c(0,1), col=rgb(0,0,0,alpha=0.5))
+#
+plot(outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spHW' & outputData$sampleSize == 10,]$Schoeners_D_simi ~ as.factor(outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spHW' & outputData$sampleSize == 10,]$kyrBP),type='p',ylab="Schoener's D",xlab="Time (kyr BP)", main='10 pts', ylim=c(0,1), col=rgb(0,0,0,alpha=0.5))
+#
+plot(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spHW' & outputData$sampleSize == 50,]$Schoeners_D_simi ~ as.factor(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spHW' & outputData$sampleSize == 50,]$kyrBP),type='p',ylab="Schoener's D",xlab="Time (kyr BP)", main='50 pts', ylim=c(0,1), col=rgb(0,0,0,alpha=0.5))
+#
+plot(outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spHW' & outputData$sampleSize == 50,]$Schoeners_D_simi ~ as.factor(outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spHW' & outputData$sampleSize == 50,]$kyrBP),type='p',ylab="Schoener's D",xlab="Time (kyr BP)", main='50 pts', ylim=c(0,1), col=rgb(0,0,0,alpha=0.5))
+#
+plot(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spHW' & outputData$sampleSize == 100,]$Schoeners_D_simi ~ as.factor(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spHW' & outputData$sampleSize == 100,]$kyrBP),type='p',ylab="Schoener's D",xlab="Time (kyr BP)", main='100 pts', ylim=c(0,1), col=rgb(0,0,0,alpha=0.5))
+#
+plot(outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spHW' & outputData$sampleSize == 100,]$Schoeners_D_simi ~ as.factor(outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spHW' & outputData$sampleSize == 100,]$kyrBP),type='p',ylab="Schoener's D",xlab="Time (kyr BP)", main='100 pts', ylim=c(0,1), col=rgb(0,0,0,alpha=0.5))
+dev.off()
+
+## Schoener X sample size X tempo - spCD
+jpeg('/home/anderson/Documentos/Projetos/Sps artificiais/graficos - resultados oficiais/SchoenerXtempoXsample_spCD.jpeg', width=1200, height=1200)
+par(mfrow=c(3,2), pch=1, mar=c(7,7,3,3), cex=1.5, cex.lab=2, cex.axis=2, cex.main=2)
+plot(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spCD' & outputData$sampleSize == 10,]$Schoeners_D_simi ~ as.factor(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spCD' & outputData$sampleSize == 10,]$kyrBP),type='p',ylab="Schoener's D",xlab="Time (kyr BP)", main='10 pts', ylim=c(0,1), col=rgb(0,0,0,alpha=0.5))
+#
+plot(outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spCD' & outputData$sampleSize == 10,]$Schoeners_D_simi ~ as.factor(outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spCD' & outputData$sampleSize == 10,]$kyrBP),type='p',ylab="Schoener's D",xlab="Time (kyr BP)", main='10 pts', ylim=c(0,1), col=rgb(0,0,0,alpha=0.5))
+#
+plot(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spCD' & outputData$sampleSize == 50,]$Schoeners_D_simi ~ as.factor(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spCD' & outputData$sampleSize == 50,]$kyrBP),type='p',ylab="Schoener's D",xlab="Time (kyr BP)", main='50 pts', ylim=c(0,1), col=rgb(0,0,0,alpha=0.5))
+#
+plot(outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spCD' & outputData$sampleSize == 50,]$Schoeners_D_simi ~ as.factor(outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spCD' & outputData$sampleSize == 50,]$kyrBP),type='p',ylab="Schoener's D",xlab="Time (kyr BP)", main='50 pts', ylim=c(0,1), col=rgb(0,0,0,alpha=0.5))
+#
+plot(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spCD' & outputData$sampleSize == 100,]$Schoeners_D_simi ~ as.factor(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spCD' & outputData$sampleSize == 100,]$kyrBP),type='p',ylab="Schoener's D",xlab="Time (kyr BP)", main='100 pts', ylim=c(0,1), col=rgb(0,0,0,alpha=0.5))
+#
+plot(outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spCD' & outputData$sampleSize == 100,]$Schoeners_D_simi ~ as.factor(outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spCD' & outputData$sampleSize == 100,]$kyrBP),type='p',ylab="Schoener's D",xlab="Time (kyr BP)", main='100 pts', ylim=c(0,1), col=rgb(0,0,0,alpha=0.5))
+dev.off()
+
+
 ## Tamanho amostral - dados totais
-jpeg('/home/anderson/Documentos/Projetos/Sps artificiais/maxent/graficos - resultados oficiais/boxplot_sampleSize_dadosTotais.jpeg', width=800, height=900)
+jpeg('/home/anderson/Documentos/Projetos/Sps artificiais/graficos - resultados oficiais/boxplot_sampleSize_dadosTotais.jpeg', width=800, height=900)
 par(mfrow=c(2,2), cex=1.5)
-boxplot(outputData[outputData$sdmType == 'multitemporal',]$Schoeners_D ~ outputData[outputData$sdmType == 'multitemporal',]$sampleSize, ylim=c(0,1), xlab='Sample Size', ylab="Schoeners' D", main='Multitemporal')
-boxplot(outputData[outputData$sdmType == 'monotemporal',]$Schoeners_D ~ outputData[outputData$sdmType == 'monotemporal',]$sampleSize, ylim=c(0,1), xlab='Sample Size', ylab="Schoeners' D", main='Monotemporal')
-boxplot(outputData[outputData$sdmType == 'multitemporal',]$Hellinger_I ~ outputData[outputData$sdmType == 'multitemporal',]$sampleSize, ylim=c(0,1), xlab='Sample Size', ylab="Hellinger", main='Multitemporal')
-boxplot(outputData[outputData$sdmType == 'monotemporal',]$Hellinger_I ~ outputData[outputData$sdmType == 'monotemporal',]$sampleSize, ylim=c(0,1), xlab='Sample Size', ylab="Hellinger", main='Monotemporal')
+boxplot(outputData[outputData$sdmType == 'multitemporal',]$Schoeners_D_simi~ outputData[outputData$sdmType == 'multitemporal',]$sampleSize, ylim=c(0,1), xlab='Sample Size', ylab="Schoeners' D", main='Multitemporal')
+boxplot(outputData[outputData$sdmType == 'monotemporal',]$Schoeners_D_simi ~ outputData[outputData$sdmType == 'monotemporal',]$sampleSize, ylim=c(0,1), xlab='Sample Size', ylab="Schoeners' D", main='Monotemporal')
+boxplot(outputData[outputData$sdmType == 'multitemporal',]$Hellinger_I_simi ~ outputData[outputData$sdmType == 'multitemporal',]$sampleSize, ylim=c(0,1), xlab='Sample Size', ylab="Hellinger", main='Multitemporal')
+boxplot(outputData[outputData$sdmType == 'monotemporal',]$Hellinger_I_simi ~ outputData[outputData$sdmType == 'monotemporal',]$sampleSize, ylim=c(0,1), xlab='Sample Size', ylab="Hellinger", main='Monotemporal')
 dev.off()
 
 ## Tamanho amostral - spHW
-jpeg('/home/anderson/Documentos/Projetos/Sps artificiais/maxent/graficos - resultados oficiais/boxplot_sampleSize_spHW.jpeg', width=800, height=900)
+jpeg('/home/anderson/Documentos/Projetos/Sps artificiais/graficos - resultados oficiais/boxplot_sampleSize_spHW.jpeg', width=800, height=900)
 par(mfrow=c(2,2), cex=1.5)
-boxplot(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spHW',]$Schoeners_D ~ outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spHW',]$sampleSize, ylim=c(0,1), xlab='Sample Size', ylab="Schoeners' D", main='Multitemporal')
-boxplot(outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spHW',]$Schoeners_D ~ outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spHW',]$sampleSize, ylim=c(0,1), xlab='Sample Size', ylab="Schoeners' D", main='Monotemporal')
-boxplot(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spHW',]$Hellinger_I ~ outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spHW',]$sampleSize, ylim=c(0,1), xlab='Sample Size', ylab="Hellinger", main='Multitemporal')
-boxplot(outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spHW',]$Hellinger_I ~ outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spHW',]$sampleSize, ylim=c(0,1), xlab='Sample Size', ylab="Hellinger", main='Monotemporal')
+boxplot(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spHW',]$Schoeners_D_simi ~ outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spHW',]$sampleSize, ylim=c(0,1), xlab='Sample Size', ylab="Schoener's D", main='Multitemporal')
+boxplot(outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spHW',]$Schoeners_D_simi ~ outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spHW',]$sampleSize, ylim=c(0,1), xlab='Sample Size', ylab="Schoener's D", main='Monotemporal')
+boxplot(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spHW',]$Hellinger_I_simi ~ outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spHW',]$sampleSize, ylim=c(0,1), xlab='Sample Size', ylab="Hellinger", main='Multitemporal')
+boxplot(outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spHW',]$Hellinger_I_simi ~ outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spHW',]$sampleSize, ylim=c(0,1), xlab='Sample Size', ylab="Hellinger", main='Monotemporal')
 dev.off()
 
+
 ## Tamanho amostral - spCD
-jpeg('/home/anderson/Documentos/Projetos/Sps artificiais/maxent/graficos - resultados oficiais/boxplot_sampleSize_spCD.jpeg', width=800, height=900)
+jpeg('/home/anderson/Documentos/Projetos/Sps artificiais/graficos - resultados oficiais/boxplot_sampleSize_spCD.jpeg', width=800, height=900)
 par(mfrow=c(2,2), cex=1.5)
-boxplot(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spCD',]$Schoeners_D ~ outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spCD',]$sampleSize, ylim=c(0,1), xlab='Sample Size', ylab="Schoeners' D", main='Multitemporal')
-boxplot(outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spCD',]$Schoeners_D ~ outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spCD',]$sampleSize, ylim=c(0,1), xlab='Sample Size', ylab="Schoeners' D", main='Monotemporal')
-boxplot(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spCD',]$Hellinger_I ~ outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spCD',]$sampleSize, ylim=c(0,1), xlab='Sample Size', ylab="Hellinger", main='Multitemporal')
-boxplot(outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spCD',]$Hellinger_I ~ outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spCD',]$sampleSize, ylim=c(0,1), xlab='Sample Size', ylab="Hellinger", main='Monotemporal')
+boxplot(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spCD',]$Schoeners_D_simi ~ outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spCD',]$sampleSize, ylim=c(0,1), xlab='Sample Size', ylab="Schoeners' D", main='Multitemporal')
+boxplot(outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spCD',]$Schoeners_D_simi ~ outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spCD',]$sampleSize, ylim=c(0,1), xlab='Sample Size', ylab="Schoener's D", main='Monotemporal')
+boxplot(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spCD',]$Hellinger_I_simi ~ outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spCD',]$sampleSize, ylim=c(0,1), xlab='Sample Size', ylab="Hellinger", main='Multitemporal')
+boxplot(outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spCD',]$Hellinger_I_simi ~ outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spCD',]$sampleSize, ylim=c(0,1), xlab='Sample Size', ylab="Hellinger", main='Monotemporal')
 dev.off()
 
 ## Shoener's D e Hellinger X número de camadas no SDMmultitemporal
 jpeg('/home/anderson/Documentos/Projetos/Sps artificiais/graficos - resultados oficiais/boxplot_NumberOfTimeLayers.jpeg', height=1000, width=600)
 par(mfrow=c(3,2), cex=1.3)
-boxplot(outputData[outputData$sdmType == 'multitemporal',]$Schoeners_D~ outputData[outputData$sdmType == 'multitemporal',]$numbOfTimeLayers, xlab='Number of time layers', ylab="Schoener's D", main='Full dataset')
+boxplot(outputData[outputData$sdmType == 'multitemporal',]$Schoeners_D_simi~ outputData[outputData$sdmType == 'multitemporal',]$numbOfTimeLayers, xlab='Number of time layers', ylab="Schoener's D", main='Full dataset')
 ##
-boxplot(outputData[outputData$sdmType == 'multitemporal',]$Hellinger_I~ outputData[outputData$sdmType == 'multitemporal',]$numbOfTimeLayers, xlab='Number of time layers', ylab="Hellinger", main='Full dataset')
+boxplot(outputData[outputData$sdmType == 'multitemporal',]$Hellinger_I_simi ~ outputData[outputData$sdmType == 'multitemporal',]$numbOfTimeLayers, xlab='Number of time layers', ylab="Hellinger", main='Full dataset')
 ##
-boxplot(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spHW',]$Schoeners_D~ outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spHW',]$numbOfTimeLayers, xlab='Number of time layers', ylab="Schoener's D", main='spHW')
+boxplot(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spHW',]$Schoeners_D_simi~ outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spHW',]$numbOfTimeLayers, xlab='Number of time layers', ylab="Schoener's D", main='spHW')
 ##
-boxplot(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spHW',]$Hellinger_I~ outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spHW',]$numbOfTimeLayers, xlab='Number of time layers', ylab="Hellinger", main='spHW')
+boxplot(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spHW',]$Hellinger_I_simi~ outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spHW',]$numbOfTimeLayers, xlab='Number of time layers', ylab="Hellinger", main='spHW')
 ##
-boxplot(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spCD',]$Schoeners_D~ outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spCD',]$numbOfTimeLayers, xlab='Number of time layers', ylab="Schoener's D", main='spCD')
+boxplot(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spCD',]$Schoeners_D_simi~ outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spCD',]$numbOfTimeLayers, xlab='Number of time layers', ylab="Schoener's D", main='spCD')
 ##
-boxplot(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spCD',]$Hellinger_I~ outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spCD',]$numbOfTimeLayers, xlab='Number of time layers', ylab="Hellinger", main='spCD')
+boxplot(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spCD',]$Hellinger_I_simi~ outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spCD',]$numbOfTimeLayers, xlab='Number of time layers', ylab="Hellinger", main='spCD')
+dev.off()
+
+##graficos para clamping
+
+projectFolder = "/home/anderson/Documentos/Projetos/Sps artificiais/"
+sdmTypes = c("multitemporal", "monotemporal")
+spsTypes = c("spHW", "spCD")
+sampleSizes = c(50,100) #c(10,  50, 100)
+numRep = 5
+clampList = list()
+territory = list()
+
+for(h in 1:length(sdmTypes)){
+    for(i in 1:length(spsTypes)){
+        for(m in 1:length(sampleSizes)){
+            for(n in 1:numRep){
+                for(l in 1:24){
+                    sdmClampPath = paste(projectFolder,'maxent/',sdmTypes[h],'/',spsTypes[i],'/',spsTypes[i],'.sample',sampleSizes[m],'.replica',n,'/proj_',l,'kyr/','proj_',l,'kyr_ClampingMask.grd',sep='') #caminho do mapa de suitability gerado por SDM
+                    layer_i = raster(sdmClampPath)
+                    scenName = paste(sdmTypes[h],'_proj_',l-1,'kyr_',spsTypes[i],'.sample',sampleSizes[m],'.replica',n,sep='')
+                    clampList[[scenName]] = layer_i
+                    ##
+                    territory[[scenName]] = ( sum(getValues(layer_i)>0,na.rm=TRUE)/ncell(getValues(layer_i)) ) * 100
+                }
+            }
+        }
+    }
+}
+
+##tranformando a lista em stack de gridfiles
+clampStack = stack(clampList)
+
+##multitemporal
+
+##todos os mapas de clamping - multitemporal, spHW, sample 10 pts (todos as camadas temporais)
+scenNames =  grep(pattern='^multitemporal.*spHW.*sample10.*replica1', x=names(clampStack), value=TRUE) #separando os nomes
+jpeg('/home/anderson/Documentos/Projetos/Sps artificiais/graficos - resultados oficiais/Clamping/clamp_Multitemporal_SpHW_sample10_replica1_parte01.jpg', width=1000, height=1100)
+par(cex.axis=1, cex.main=2)
+plot(clampStack[[scenNames[1:12]]], col=c('white','black'), main=c(paste('spHW ',0:11,'kyr BP',sep='')), legend=FALSE) + plot(AmSulShape,add=TRUE)
+grid()
+dev.off()
+##
+jpeg('/home/anderson/Documentos/Projetos/Sps artificiais/graficos - resultados oficiais/Clamping/clamp_Multitemporal_SpHW_sample10_replica1_parte02.jpg', width=1000, height=1100)
+par(cex.axis=1, cex.main=2)
+plot(clampStack[[scenNames[12:22]]], col=c('white','black'), main=c(paste('spHW ',12:22,'kyr BP',sep='')), legend=FALSE) + plot(AmSulShape,add=TRUE)
+grid()
+dev.off()
+
+##todos os mapas de clamping - multitemporal, spCD, sample 10 pts ( todos as camadas temporais)
+scenNames =  grep(pattern='^multitemporal.*spCD.*sample10.*replica1', x=names(clampStack), value=TRUE) #separando os nomes
+jpeg('/home/anderson/Documentos/Projetos/Sps artificiais/graficos - resultados oficiais/Clamping/clamp_Multitemporal_SpCD_sample10_replica1_parte01.jpg', width=1000, height=1100)
+par(cex.axis=1, cex.main=2)
+plot(clampStack[[scenNames[1:12]]], col=c('white','black'), main=c(paste('spCD ',0:11,'kyr BP',sep='')), legend=FALSE) + plot(AmSulShape,add=TRUE)
+grid()
+dev.off()
+##
+jpeg('/home/anderson/Documentos/Projetos/Sps artificiais/graficos - resultados oficiais/Clamping/clamp_Multitemporal_SpCD_sample10_replica1_parte02.jpg', width=1000, height=1100)
+par(cex.axis=1, cex.main=2)
+plot(clampStack[[scenNames[12:22]]], col=c('white','black'), main=c(paste('spCD ',12:22,'kyr BP',sep='')), legend=FALSE) + plot(AmSulShape,add=TRUE)
+grid()
+dev.off()
+
+##todos os mapas de clamping - multitemporal, spHW, sample 50 pts (todos as camadas temporais)
+scenNames =  grep(pattern='^multitemporal.*spHW.*sample50.*replica1', x=names(clampStack), value=TRUE) #separando os nomes
+jpeg('/home/anderson/Documentos/Projetos/Sps artificiais/graficos - resultados oficiais/Clamping/clamp_Multitemporal_SpHW_sample50_replica1_parte01.jpg', width=1000, height=1100)
+par(cex.axis=1, cex.main=2)
+plot(clampStack[[scenNames[1:12]]], col=c('white','black'), main=c(paste('spHW ',0:11,'kyr BP',sep='')), legend=FALSE) + plot(AmSulShape,add=TRUE)
+grid()
+dev.off()
+##
+jpeg('/home/anderson/Documentos/Projetos/Sps artificiais/graficos - resultados oficiais/Clamping/clamp_Multitemporal_SpHW_sample50_replica1_parte02.jpg', width=1000, height=1100)
+par(cex.axis=1, cex.main=2)
+plot(clampStack[[scenNames[12:22]]], col=c('white','black'), main=c(paste('spHW ',12:22,'kyr BP',sep='')), legend=FALSE) + plot(AmSulShape,add=TRUE)
+grid()
+dev.off()
+
+##todos os mapas de clamping - multitemporal, spCD, sample 50 pts ( todos as camadas temporais)
+scenNames =  grep(pattern='^multitemporal.*spCD.*sample50.*replica1', x=names(clampStack), value=TRUE) #separando os nomes
+jpeg('/home/anderson/Documentos/Projetos/Sps artificiais/graficos - resultados oficiais/Clamping/clamp_Multitemporal_SpCD_sample50_replica1_parte01.jpg', width=1000, height=1100)
+par(cex.axis=1, cex.main=2)
+plot(clampStack[[scenNames[1:12]]], col=c('white','black'), main=c(paste('spCD ',0:11,'kyr BP',sep='')), legend=FALSE) + plot(AmSulShape,add=TRUE)
+grid()
+dev.off()
+##
+jpeg('/home/anderson/Documentos/Projetos/Sps artificiais/graficos - resultados oficiais/Clamping/clamp_Multitemporal_SpCD_sample50_replica1_parte02.jpg', width=1000, height=1100)
+par(cex.axis=1, cex.main=2)
+plot(clampStack[[scenNames[12:22]]], col=c('white','black'), main=c(paste('spCD ',12:22,'kyr BP',sep='')), legend=FALSE) + plot(AmSulShape,add=TRUE)
+grid()
+dev.off()
+
+##todos os mapas de clamping - multitemporal, spHW, sample 100 pts (todos as camadas temporais)
+scenNames =  grep(pattern='^multitemporal.*spHW.*sample100.*replica1', x=names(clampStack), value=TRUE) #separando os nomes
+jpeg('/home/anderson/Documentos/Projetos/Sps artificiais/graficos - resultados oficiais/Clamping/clamp_Multitemporal_SpHW_sample100_replica1_parte01.jpg', width=1000, height=1100)
+par(cex.axis=1, cex.main=2)
+plot(clampStack[[scenNames[1:12]]], col=c('white','black'), main=c(paste('spHW ',0:11,'kyr BP',sep='')), legend=FALSE) + plot(AmSulShape,add=TRUE)
+grid()
+dev.off()
+##
+jpeg('/home/anderson/Documentos/Projetos/Sps artificiais/graficos - resultados oficiais/Clamping/clamp_Multitemporal_SpHW_sample100_replica1_parte02.jpg', width=1000, height=1100)
+par(cex.axis=1, cex.main=2)
+plot(clampStack[[scenNames[12:22]]], col=c('white','black'), main=c(paste('spHW ',12:22,'kyr BP',sep='')), legend=FALSE) + plot(AmSulShape,add=TRUE)
+grid()
+dev.off()
+
+##todos os mapas de clamping - multitemporal, spCD, sample 100 pts ( todos as camadas temporais)
+scenNames =  grep(pattern='^multitemporal.*spCD.*sample100.*replica1', x=names(clampStack), value=TRUE) #separando os nomes
+jpeg('/home/anderson/Documentos/Projetos/Sps artificiais/graficos - resultados oficiais/Clamping/clamp_Multitemporal_SpCD_sample100_replica1_parte01.jpg', width=1000, height=1100)
+par(cex.axis=1, cex.main=2)
+plot(clampStack[[scenNames[1:12]]], col=c('white','black'), main=c(paste('spCD ',0:11,'kyr BP',sep='')), legend=FALSE) + plot(AmSulShape,add=TRUE)
+grid()
+dev.off()
+##
+jpeg('/home/anderson/Documentos/Projetos/Sps artificiais/graficos - resultados oficiais/Clamping/clamp_Multitemporal_SpCD_sample100_replica1_parte02.jpg', width=1000, height=1100)
+par(cex.axis=1, cex.main=2)
+plot(clampStack[[scenNames[12:22]]], col=c('white','black'), main=c(paste('spCD ',12:22,'kyr BP',sep='')), legend=FALSE) + plot(AmSulShape,add=TRUE)
+grid()
 dev.off()
 
 
+###monotemporal
+
+##todos os mapas de clamping - monotemporal, spHW, sample 10 pts (todos as camadas temporais)
+scenNames =  grep(pattern='^monotemporal.*spHW.*sample10.*replica1', x=names(clampStack), value=TRUE) #separando os nomes
+jpeg('/home/anderson/Documentos/Projetos/Sps artificiais/graficos - resultados oficiais/Clamping/clamp_Monotemporal_SpHW_sample10_replica1_parte01.jpg', width=1000, height=1100)
+par(cex.axis=1, cex.main=2)
+plot(clampStack[[scenNames[1:12]]], col=c('white','black'), main=c(paste('spHW ',0:11,'kyr BP',sep='')), legend=FALSE) + plot(AmSulShape,add=TRUE)
+grid()
+dev.off()
+##
+jpeg('/home/anderson/Documentos/Projetos/Sps artificiais/graficos - resultados oficiais/Clamping/clamp_Monotemporal_SpHW_sample10_replica1_parte02.jpg', width=1000, height=1100)
+par(cex.axis=1, cex.main=2)
+plot(clampStack[[scenNames[12:22]]], col=c('white','black'), main=c(paste('spHW ',12:22,'kyr BP',sep='')), legend=FALSE) + plot(AmSulShape,add=TRUE)
+grid()
+dev.off()
+
+##todos os mapas de clamping - monotemporal, spCD, sample 10 pts ( todos as camadas temporais)
+scenNames =  grep(pattern='^monotemporal.*spCD.*sample10.*replica1', x=names(clampStack), value=TRUE) #separando os nomes
+jpeg('/home/anderson/Documentos/Projetos/Sps artificiais/graficos - resultados oficiais/Clamping/clamp_Monotemporal_SpCD_sample10_replica1_parte01.jpg', width=1000, height=1100)
+par(cex.axis=1, cex.main=2)
+plot(clampStack[[scenNames[1:12]]], col=c('white','black'), main=c(paste('spCD ',0:11,'kyr BP',sep='')), legend=FALSE) + plot(AmSulShape,add=TRUE)
+grid()
+dev.off()
+##
+jpeg('/home/anderson/Documentos/Projetos/Sps artificiais/graficos - resultados oficiais/Clamping/clamp_Monotemporal_SpCD_sample10_replica1_parte02.jpg', width=1000, height=1100)
+par(cex.axis=1, cex.main=2)
+plot(clampStack[[scenNames[12:22]]], col=c('white','black'), main=c(paste('spCD ',12:22,'kyr BP',sep='')), legend=FALSE) + plot(AmSulShape,add=TRUE)
+grid()
+dev.off()
+
+##todos os mapas de clamping - monotemporal, spHW, sample 50 pts (todos as camadas temporais)
+scenNames =  grep(pattern='^monotemporal.*spHW.*sample50.*replica1', x=names(clampStack), value=TRUE) #separando os nomes
+jpeg('/home/anderson/Documentos/Projetos/Sps artificiais/graficos - resultados oficiais/Clamping/clamp_Monotemporal_SpHW_sample50_replica1_parte01.jpg', width=1000, height=1100)
+par(cex.axis=1, cex.main=2)
+plot(clampStack[[scenNames[1:12]]], col=c('white','black'), main=c(paste('spHW ',0:11,'kyr BP',sep='')), legend=FALSE) + plot(AmSulShape,add=TRUE)
+grid()
+dev.off()
+##
+jpeg('/home/anderson/Documentos/Projetos/Sps artificiais/graficos - resultados oficiais/Clamping/clamp_Monotemporal_SpHW_sample50_replica1_parte02.jpg', width=1000, height=1100)
+par(cex.axis=1, cex.main=2)
+plot(clampStack[[scenNames[12:22]]], col=c('white','black'), main=c(paste('spHW ',12:22,'kyr BP',sep='')), legend=FALSE) + plot(AmSulShape,add=TRUE)
+grid()
+dev.off()
+
+##todos os mapas de clamping - monotemporal, spCD, sample 50 pts ( todos as camadas temporais)
+scenNames =  grep(pattern='^monotemporal.*spCD.*sample50.*replica1', x=names(clampStack), value=TRUE) #separando os nomes
+jpeg('/home/anderson/Documentos/Projetos/Sps artificiais/graficos - resultados oficiais/Clamping/clamp_Monotemporal_SpCD_sample50_replica1_parte01.jpg', width=1000, height=1100)
+par(cex.axis=1, cex.main=2)
+plot(clampStack[[scenNames[1:12]]], col=c('white','black'), main=c(paste('spCD ',0:11,'kyr BP',sep='')), legend=FALSE) + plot(AmSulShape,add=TRUE)
+grid()
+dev.off()
+##
+jpeg('/home/anderson/Documentos/Projetos/Sps artificiais/graficos - resultados oficiais/Clamping/clamp_Monotemporal_SpCD_sample50_replica1_parte02.jpg', width=1000, height=1100)
+par(cex.axis=1, cex.main=2)
+plot(clampStack[[scenNames[12:22]]], col=c('white','black'), main=c(paste('spCD ',12:22,'kyr BP',sep='')), legend=FALSE) + plot(AmSulShape,add=TRUE)
+grid()
+dev.off()
+
+##todos os mapas de clamping - monotemporal, spHW, sample 100 pts (todos as camadas temporais)
+scenNames =  grep(pattern='^monotemporal.*spHW.*sample100.*replica1', x=names(clampStack), value=TRUE) #separando os nomes
+jpeg('/home/anderson/Documentos/Projetos/Sps artificiais/graficos - resultados oficiais/Clamping/clamp_Monotemporal_SpHW_sample100_replica1_parte01.jpg', width=1000, height=1100)
+par(cex.axis=1, cex.main=2)
+plot(clampStack[[scenNames[1:12]]], col=c('white','black'), main=c(paste('spHW ',0:11,'kyr BP',sep='')), legend=FALSE) + plot(AmSulShape,add=TRUE)
+grid()
+dev.off()
+##
+jpeg('/home/anderson/Documentos/Projetos/Sps artificiais/graficos - resultados oficiais/Clamping/clamp_Monotemporal_SpHW_sample100_replica1_parte02.jpg', width=1000, height=1100)
+par(cex.axis=1, cex.main=2)
+plot(clampStack[[scenNames[12:22]]], col=c('white','black'), main=c(paste('spHW ',12:22,'kyr BP',sep='')), legend=FALSE) + plot(AmSulShape,add=TRUE)
+grid()
+dev.off()
+
+##todos os mapas de clamping - monotemporal, spCD, sample 100 pts ( todos as camadas temporais)
+scenNames =  grep(pattern='^monotemporal.*spCD.*sample100.*replica1', x=names(clampStack), value=TRUE) #separando os nomes
+jpeg('/home/anderson/Documentos/Projetos/Sps artificiais/graficos - resultados oficiais/Clamping/clamp_Monotemporal_SpCD_sample100_replica1_parte01.jpg', width=1000, height=1100)
+par(cex.axis=1, cex.main=2)
+plot(clampStack[[scenNames[1:12]]], col=c('white','black'), main=c(paste('spCD ',0:11,'kyr BP',sep='')), legend=FALSE) + plot(AmSulShape,add=TRUE)
+grid()
+dev.off()
+##
+jpeg('/home/anderson/Documentos/Projetos/Sps artificiais/graficos - resultados oficiais/Clamping/clamp_Monotemporal_SpCD_sample100_replica1_parte02.jpg', width=1000, height=1100)
+par(cex.axis=1, cex.main=2)
+plot(clampStack[[scenNames[12:22]]], col=c('white','black'), main=c(paste('spCD ',12:22,'kyr BP',sep='')), legend=FALSE) + plot(AmSulShape,add=TRUE)
+grid()
+dev.off()
+
+
+##clamping X tempo - multitemporal, spHW, sample 50pts
+
+jpeg('/home/anderson/Documentos/Projetos/Sps artificiais/graficos - resultados oficiais/clampXtempo.jpeg')
+par(mfrow=c(2,2), lwd=2, cex=0.9)
+scenNames50 =  grep(pattern='^multitemporal.*spHW.*50', x=names(territory), value=TRUE)
+scenNames100 =  grep(pattern='^multitemporal.*spHW.*100', x=names(territory), value=TRUE)
+plot(as.numeric(territory[which(scenNames50==names(territory))]), ylim=c(0,1), type='b',col='black', ylab='South America area (in %)', xlab='Time (in kyr BP)', main='spHW')
+points(as.numeric(territory[which(scenNames100==names(territory))]), ylim=c(0,1), type='b',col='red')
+##
+scenNames50 =  grep(pattern='^multitemporal.*spCD.*50', x=names(territory), value=TRUE)
+scenNames100 =  grep(pattern='^multitemporal.*spCD.*100', x=names(territory), value=TRUE)
+plot(as.numeric(territory[which(scenNames50==names(territory))]), ylim=c(0,1), type='b',col='black', ylab='South America area (in %)', xlab='Time (in kyr BP)', main='spCD')
+points(as.numeric(territory[which(scenNames100==names(territory))]), ylim=c(0,1), type='b',col='red')
+##
+legend('topright',legend=c('sample size = 50 pts', 'sample size = 100 pts'), pch=1, col=c('black','red'), cex=0.85, bty='n')
+##
+scenNames50 =  grep(pattern='^monotemporal.*spHW.*50', x=names(territory), value=TRUE)
+scenNames100 =  grep(pattern='^monotemporal.*spHW.*100', x=names(territory), value=TRUE)
+plot(as.numeric(territory[which(scenNames50==names(territory))]), ylim=c(0,1), type='b',col='black', ylab='South America area (in %)', xlab='Time (in kyr BP)', main='spHW')
+points(as.numeric(territory[which(scenNames100==names(territory))]), ylim=c(0,1), type='b',col='red')
+##
+scenNames50 =  grep(pattern='^monotemporal.*spCD.*50', x=names(territory), value=TRUE)
+scenNames100 =  grep(pattern='^monotemporal.*spCD.*100', x=names(territory), value=TRUE)
+plot(as.numeric(territory[which(scenNames50==names(territory))]), ylim=c(0,1), type='b',col='black', ylab='South America area (in %)', xlab='Time (in kyr BP)', main='spCD')
+points(as.numeric(territory[which(scenNames100==names(territory))]), ylim=c(0,1), type='b',col='red')
+##
+dev.off()
+
+
+
+#############3CCONTINUAR DAQUI: ARRUMAR OS GRAFICOS ABAIXO ###################3
+
+
+
+##correlacao entre clamping e niche overlap
+
+scenNames =  grep(pattern='^multitemporal.*spHW.*sample100.*replica1', x=names(territory), value=TRUE)
+##
+plot( outputData[outputData$sdmType=='multitemporal' &
+                     outputData$sp=='spHW' &
+                     outputData$sampleSize==100 &
+                     outputData$replica==1,]$Schoeners_D_simi ~ as.numeric(territory[which(scenNames==names(territory))]), xlim=c(0,0.3), ylim=c(0.2,1) )
+
+scenNames =  grep(pattern='^multitemporal.*spHW.*sample50.*replica1', x=names(territory), value=TRUE)
+##
+points( outputData[outputData$sdmType=='multitemporal' &
+                     outputData$sp=='spHW' &
+                     outputData$sampleSize==50 &
+                     outputData$replica==1,]$Schoeners_D_simi ~ as.numeric(territory[which(scenNames==names(territory))]), xlim=c(0,0.3), ylim=c(0.2,1), col='blue')
+
+scenNames =  grep(pattern='^multitemporal.*spHW.*sample10.*replica1', x=names(territory), value=TRUE)
+##
+points( outputData[outputData$sdmType=='multitemporal' &
+                     outputData$sp=='spHW' &
+                     outputData$sampleSize==10 &
+                     outputData$replica==1,]$Schoeners_D_simi ~ as.numeric(territory[which(scenNames==names(territory))]), xlim=c(0,0.3), ylim=c(0.2,1), col='red')
+
+##correlacao entre Schoener X % de clamping na Am. Sul - sample size 100 pts
+cor(outputData[outputData$sdmType=='multitemporal' &
+                     outputData$sp=='spHW' &
+                     outputData$sampleSize==100 &
+                     outputData$replica==1,]$Schoeners_D_simi, as.numeric(territory[which(scenNames==names(territory))]), method='pearson')
+
+##correlacao entre Schoener X % de clamping na Am. Sul - sample size 50 pts
+cor(outputData[outputData$sdmType=='multitemporal' &
+                     outputData$sp=='spHW' &
+                     outputData$sampleSize==50 &
+                     outputData$replica==1,]$Schoeners_D_simi, as.numeric(territory[which(scenNames==names(territory))]), method='pearson')
+
+##correlacao entre Schoener X % de clamping na Am. Sul - sample size 10 pts
+cor(outputData[outputData$sdmType=='multitemporal' &
+                     outputData$sp=='spHW' &
+                     outputData$sampleSize==10 &
+                     outputData$replica==1,]$Schoeners_D_simi, as.numeric(territory[which(scenNames==names(territory))]), method='pearson')
 
 
 
