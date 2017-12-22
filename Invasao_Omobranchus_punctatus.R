@@ -236,16 +236,15 @@ myBiomodData = BIOMOD_FormatingData(resp.var = spNat,
 ##parametrizando os modelos
 myBiomodOption <- BIOMOD_ModelingOptions(
     MAXENT.Phillips=list(
-        path_to_maxent.jar='/home/anderson/R/x86_64-pc-linux-gnu-library/3.3/dismo/java',
-        maximumiterations=1000,
-        linear=TRUE,
-        quadratic=TRUE,
-        product=FALSE,
-        threshold=FALSE,
-        hinge=FALSE,
-        maximumiterations=1000,
-        convergencethreshold=1.0E-5,
-        threads=2))
+        path_to_maxent.jar = '/home/anderson/R/x86_64-pc-linux-gnu-library/3.3/dismo/java/maxent.jar',
+        linear = TRUE,
+        quadratic = TRUE,
+        product = FALSE,
+        threshold = FALSE,
+        hinge = FALSE,
+        maximumiterations = 500,
+        convergencethreshold = 1.0E-5,
+        threads = 1))
 
 ##rodando o(s) algoritmo(s) (i.e. SDMs)
 myBiomodModelOut <- BIOMOD_Modeling(
@@ -254,7 +253,7 @@ myBiomodModelOut <- BIOMOD_Modeling(
     models.options = myBiomodOption,
     NbRunEval = 10,
     DataSplit = 75,
-    VarImport = 10,
+    VarImport = 5,
     models.eval.meth = c('TSS','ROC'),
     SaveObj = TRUE,
     rescal.all.models = TRUE,
@@ -276,7 +275,7 @@ whichModel = names(evaluationScores['TSS','Testing.data',,,][which(evaluationSco
 modelName = grep(pattern=whichModel, myBiomodModelOut@models.computed, value=TRUE)
                         
 ##rodando algoritmo de projecao para AREA NATIVA
-myBiomodProj <- BIOMOD_Projection(
+myBiomodProjNat <- BIOMOD_Projection(
     modeling.output = myBiomodModelOut,
     new.env = predAreaNat, #variaveis preditoras para area nativa (feito na PARTE 2)
     proj.name = 'AreaNativa',
@@ -284,10 +283,10 @@ myBiomodProj <- BIOMOD_Projection(
     binary.meth = 'TSS',
     compress = 'TRUE',
     build.clamping.mask = 'TRUE',
-    output.format = '.tif')
+    output.format = '.grd')
 
 ##rodando algoritmo de projecao para AREA INVADIDA
-myBiomodProj <- BIOMOD_Projection(
+myBiomodProjInv <- BIOMOD_Projection(
     modeling.output = myBiomodModelOut,
     new.env = predAreaInv, #variaveis preditoras para area invadida (feito na PARTE 2)
     proj.name = 'AreaInvadida',
@@ -295,5 +294,119 @@ myBiomodProj <- BIOMOD_Projection(
     binary.meth = 'TSS',
     compress = 'TRUE',
     build.clamping.mask = 'TRUE',
-    output.format = '.tif')
+    output.format = '.grd')
 
+
+## salvando imagens no HD
+
+mapInv = raster('/home/anderson/Documentos/Projetos/Invasao_Omobranchus_punctatus/maxent/Omobranchus.punctatus/proj_AreaInvadida/proj_AreaInvadida_Omobranchus.punctatus_TSSbin.grd')
+#
+jpeg(paste(projectFolder,'/mapInv.jpg',sep=''), width=900, height=900)
+plot(mapInv)
+points(spInv,cex=1.5)
+dev.off()
+
+mapNat = raster('/home/anderson/Documentos/Projetos/Invasao_Omobranchus_punctatus/maxent/Omobranchus.punctatus/proj_AreaNativa/proj_AreaNativa_Omobranchus.punctatus_TSSbin.grd')
+#
+jpeg(paste(projectFolder,'/mapNat.jpg',sep=''), width=900, height=900)
+plot(mapNat)
+points(spNat,cex=1.5)
+dev.off()
+
+
+## PARTE 5: mapa de invasao
+
+
+## ##avaliando a correlacao nas variaveis ambientais
+## predAreaNatMatrix = getValues(predictors)
+## corTest = as.data.frame(cor(predAreaNatMatrix,use="complete.obs"))
+## write.csv(corTest,paste(projectFolder,'/corTestAreaNat.csv',sep=''))
+
+##variaveis e parametros locais especificos para o biomod2 OBS: os dados de
+myRespName = 'Omobranchus_punctatus_Global' #nome
+coordinates(spData) = ~lon+lat
+myResp = spData
+myExpl = predictors[[c('bathy_2o5m',
+                       'biogeo01_2o5m',
+                       'biogeo02_2o5m',
+                       'biogeo05_2o5m',
+                       'biogeo06_2o5m',
+                       'biogeo07_2o5m',
+                       'biogeo08_2o5m',
+                       'biogeo11_2o5m',
+                       'biogeo13_2o5m',
+                       'biogeo16_2o5m')]]
+
+
+##ajuste de dados de entrada para biomod2
+myBiomodData = BIOMOD_FormatingData(resp.var = myResp,
+                                    expl.var = myExpl,
+                                    resp.name = 'Omobranchus_punctatus_Global',
+                                    PA.nb.rep = 1)
+
+## ##inspecionando o objeto gerado pela funcao do biomod2
+## myBiomodData
+## plot(myBiomodData)
+
+##parametrizando os modelos
+myBiomodOption <- BIOMOD_ModelingOptions(
+    MAXENT.Phillips=list(
+        path_to_maxent.jar = '/home/anderson/R/x86_64-pc-linux-gnu-library/3.3/dismo/java/maxent.jar',
+        linear = TRUE,
+        quadratic = TRUE,
+        product = FALSE,
+        threshold = FALSE,
+        hinge = FALSE,
+        maximumiterations = 500,
+        convergencethreshold = 1.0E-5,
+        threads = 1))
+
+##rodando o(s) algoritmo(s) (i.e. SDMs)
+myBiomodModelOut <- BIOMOD_Modeling(
+    myBiomodData,
+    models = c('MAXENT.Phillips'),
+    models.options = myBiomodOption,
+    NbRunEval = 10,
+    DataSplit = 75,
+    VarImport = 10,
+    models.eval.meth = c('TSS','ROC'),
+    SaveObj = TRUE,
+    rescal.all.models = TRUE,
+    do.full.models = FALSE,
+    modeling.id = 'mapaInvasao')
+
+##My output data
+evaluationScores = get_evaluations(myBiomodModelOut)
+
+##gravando estatistcas basicas do modelo
+statResultsGlobal = data.frame(sp = 'Omobranchus_punctatus',
+                                    AUC = mean(evaluationScores['ROC','Testing.data',,,]),
+                                    TSS = mean(evaluationScores['TSS','Testing.data',,,]))
+
+write.csv(statResultsGlobal,file=paste(projectFolder,'/maxent/statResultsGlobal.csv',sep=''),row.names=FALSE)
+                                            
+##selecionando o melhor modelo para projecao
+whichModel = names(evaluationScores['TSS','Testing.data',,,][which(evaluationScores['TSS','Testing.data',,,]== max(evaluationScores['TSS','Testing.data',,,]) )])
+modelName = grep(pattern=whichModel, myBiomodModelOut@models.computed, value=TRUE)
+
+##rodando algoritmo de projecao para AREA INVADIDA
+myBiomodProjInv <- BIOMOD_Projection(
+    modeling.output = myBiomodModelOut,
+    new.env = predAreaInv, #variaveis preditoras para area invadida (feito na PARTE 2)
+    proj.name = 'AreaInvadida',
+    selected.models = modelName,
+    binary.meth = 'TSS',
+    compress = 'TRUE',
+    build.clamping.mask = 'TRUE',
+    output.format = '.grd')
+
+mapa = get_predictions(myBiomodProjInv)
+mapa = raster('/home/anderson/Documentos/Projetos/Invasao_Omobranchus_punctatus/maxent/Omobranchus.punctatus.Global/proj_AreaInvadida/proj_AreaInvadida_Omobranchus.punctatus.Global_TSSbin.grd')
+
+plot(mapa)
+points(spInv[which(spInv$occ == 1),c('lon','lat')])
+
+
+impVar = rowMeans(impData[,,,'PA1'])
+
+variables_importance(myBiomodModelOut, predAreaNat, method="full_rand", nb_rand=3)
