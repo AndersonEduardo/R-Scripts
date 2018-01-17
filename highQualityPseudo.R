@@ -53,7 +53,7 @@ for(i in 1:Nsp){
             ## plot(fx~x,ylim=c(0,1.2))
 
             ##condicao para nao permitir distribuicoes vazias (i.e. inexistente) ou tbm sobre a Am. Sul toda. Condicao: distribuicao > 1% ou <95% da america do sul
-            while( (sum(datMat[,5]) < 0.1*(nrow(datMat))) | (sum(datMat[,5]) > 0.75*(nrow(datMat))) ){
+            while( (sum(datMat[,5]) < 0.25*(nrow(datMat))) | (sum(datMat[,5]) > 0.75*(nrow(datMat))) ){
                 
                 ##equacoes para as dimensoes do nicho das especies
                 betaBio1 = runif(n=1, min=0.001, max=1)*sample(x=c(-1,1), size=1) #parametro para cada equacao de cada especie
@@ -84,6 +84,7 @@ for(i in 1:Nsp){
                 ## plot(fBio1Sp_i~varBio1,xlab='Bioclim 01',ylab='Suitability',ylim=c(0,1))
                 ## plot(fBio12Sp_i~varBio12,xlab='Bioclim 12',ylab='Suitability',ylim=c(0,1))
                 ##dev.off()
+                
             }            
             
             ##raster da distribuicao modelada
@@ -206,7 +207,7 @@ for(i in 1:Nsp){
                 myBiomodData,
                 models = c('MAXENT.Phillips','GLM', 'GAM', 'MARS', 'CTA', 'GBM', 'RF'),
                 models.options = myBiomodOption,
-                NbRunEval = 3,
+                NbRunEval = 10,
                 DataSplit = 75,
                 models.eval.meth = c('TSS','ROC'),
                 do.full.models = FALSE,
@@ -214,25 +215,70 @@ for(i in 1:Nsp){
             
             ##My output data
             evaluationScores = get_evaluations(myBiomodModelOut)
+
+            TSSspec = as.numeric(apply(evaluationScores['TSS','Specificity',,,], 1, max))
+            AUCspec = as.numeric(apply(evaluationScores['ROC','Specificity',,,], 1, max))
+
+            tabBestScoresTSS = data.frame(evaluationScores['TSS','Specificity',,,], bestvalue=TSSspec)
+            tabBestScoresAUC = data.frame(evaluationScores['ROC','Specificity',,,], bestvalue=AUCspec)
+
+            bestModelRunTSS = vector()
+            bestModelRunAUC = vector()
             
-            ##gravando estatistcas basicas do modelo
+            for (i in 1:nrow(tabScores)){
+                bestRunNameTSS = names(tabBestScoresTSS)[match(tabBestScoresTSS$bestvalue[i], tabBestScoresTSS[i, 1:ncol(tabBestScoresTSS)-1])]
+                bestModelRunTSS = append(bestModelRunTSS, bestRunNameTSS)
+                ##
+                bestRunNameAUC = names(tabBestScoresAUC)[match(tabBestScoresAUC$bestvalue[i], tabBestScoresAUC[i, 1:ncol(tabBestScoresAUC)-1])]
+                bestModelRunAUC = append(bestModelRunAUC, bestRunNameAUC)
+            }
+            
+            
+            ##gravando estatisticas basicas do melhor modelo de cada algoritmo
             statResultsSDMnormal = rbind(statResultsSDMnormal,
                                          cbind(sp = i,
                                                model = colnames(evaluationScores[,'Specificity',,,]),
-                                               TSSspec = round(as.numeric(rowMeans(evaluationScores['TSS','Specificity',,,])),3),
-                                               AUCspec = round(as.numeric(rowMeans(evaluationScores['ROC','Specificity',,,])),3)),
+                                               TSSspec = TSSspec,
+                                               bestModelRunTSS = bestModelRunTSS,
+                                               AUCspec = AUCspec,
+                                               bestModelRunAUC = bestModelRunAUC),
                                          stringsAsFactors = FALSE)
             
             write.csv(statResultsSDMnormal, file=paste(projectFolder,'/StatisticalResults_SDMnormal','.csv',sep=''), row.names=FALSE)
+
+
+
+
+
+            #### ##### #### continuar daqui   #### ##### ####
+
+            
+
+
+
             
             ##selecao do modelo de maior sensibilidade
-            tssMax = max(as.numeric(statResultsSDMnormal[which(statResultsSDMnormal$sp == i),]$TSSspec))
-            aucMax = max(as.numeric(statResultsSDMnormal[which(statResultsSDMnormal$sp == i),]$AUCspec))
-            bestAlgorithmTSS = statResultsSDMnormal[which(statResultsSDMnormal$TSSspec==tssMax),]$model
-            bestAlgorithmAUC = statResultsSDMnormal[which(statResultsSDMnormal$TSSspec==tssMax),]$model
-            ind = match(bestAlgorithmTSS, bestAlgorithmAUC)
-            modelToProj = bestAlgorithmAUC[ind]
-            modelNames = grep(pattern=paste(modelToProj,collapse='|'), x=myBiomodModelOut@models.computed, value=TRUE)
+
+            ## tssMax = max(as.numeric(statResultsSDMnormal[which(statResultsSDMnormal$sp == i),]$TSSspec))
+            ## aucMax = max(as.numeric(statResultsSDMnormal[which(statResultsSDMnormal$sp == i),]$AUCspec))
+            ## bestAlgorithmTSS = statResultsSDMnormal[which(statResultsSDMnormal$TSSspec==tssMax),]$model
+            ## bestAlgorithmAUC = statResultsSDMnormal[which(statResultsSDMnormal$TSSspec==tssMax),]$model
+            ## ind = match(bestAlgorithmTSS, bestAlgorithmAUC)
+            ## modelToProj = bestAlgorithmAUC[ind]
+            ## modelNames = grep(pattern=paste(modelToProj,collapse='|'), x=myBiomodModelOut@models.computed, value=TRUE)
+
+            tssMax = max(as.numeric(statResultsSDMnormal[which(statResultsSDMnormal$sp == i),]$TSSspec)) #maior valor TSS
+            aucMax = max(as.numeric(statResultsSDMnormal[which(statResultsSDMnormal$sp == i),]$AUCspec)) #maior valor AUC
+            indexBestTSS = match(tssMax, statResultsSDMnormal[which(statResultsSDMnormal$sp == i),]$TSSspec) #linha do maior TSS
+            indexBestAUC = match(aucMax, statResultsSDMnormal[which(statResultsSDMnormal$sp == i),]$AUCspec) #linha do maior AUC
+            bestAlgorithmTSS = statResultsSDMnormal[which(statResultsSDMnormal$sp == i),]$model[indexBestTSS] #nome do melhor
+            bestAlgorithmAUC = statResultsSDMnormal[which(statResultsSDMnormal$sp == i),]$model[indexBestAUC] #nome do melhor
+
+
+            patterns = paste(bestRunTSS,bestAlgorithmTSS,sep='_')
+            
+            modelNames = grep(pattern=paste(c(bestAlgorithmTSS,bestAlgorithmAUC),collapse='|'), x=myBiomodModelOut@models.computed, value=TRUE) #
+           
             
             ## if (bestAlgorithmTSS == bestAlgorithmAUC){
             ##     modelToProj = bestAlgorithmTSS
@@ -276,18 +322,46 @@ for(i in 1:Nsp){
             ##definindo variaveis e parametros locais
             betterPseudo = list()
             betterPseudoVar = list()
+
+            ## estrategia 1 ##
+            ##amostrando pontos diretamente das areas de ausencia (abaixo do threshold) obtidas na etapa 1
             
             ##projecoes de ausencias do SDM (rodado na etapa 2, acima)
             binTSS = raster(paste(projectFolder,'/SDMnormal/','sp',i,'.sample',sampleSizes[j],'.SDMnormal','/proj_sp',i,'_sample',sampleSizes[j],'_SDMnormal','/proj_sp',i,'_sample',sampleSizes[j],'_SDMnormal_sp',i,'.sample',sampleSizes[j],'.SDMnormal_ensemble_TSSbin.grd' ,sep=''))
             binAUC = raster(paste(projectFolder,'/SDMnormal/','sp',i,'.sample',sampleSizes[j],'.SDMnormal','/proj_sp',i,'_sample',sampleSizes[j],'_SDMnormal','/proj_sp',i,'_sample',sampleSizes[j],'_SDMnormal_sp',i,'.sample',sampleSizes[j],'.SDMnormal_ensemble_ROCbin.grd' ,sep=''))
+            projStackBIN = stack(binTSS,binAUC) #empilhando mapas binarios (feitos com threshold a partir do AUC e TSS)
+            projAbs = sum(projStackBIN) #somando (para depois pegar areas ausencia que ambos os thresolds concordam)
+                        
+            ## amostrando pseudoausencias melhoradas
+            values(projAbs)[values(projAbs) != 0] = NA  #tranformando areas diferentes de zero em NA (retando somente os dados de ausencia)          
+            betterPseudoPoints = dismo::randomPoints(mask=projAbs, n=1000) #sorteando pontos da distribuicao modelada
+
+            ## estrategia 2 ##            
+            ## invete o mapa de suitability, depois usa o threshold para "recortar" a area como sendo modelada para ausencias
+
+            ##projecoes de ausencias do SDM (rodado na etapa 2, acima)
+            suitabMap = raster(paste(projectFolder,'/SDMnormal/','sp',i,'.sample',sampleSizes[j],'.SDMnormal','/proj_sp',i,'_sample',sampleSizes[j],'_SDMnormal','/proj_sp',i,'_sample',sampleSizes[j],'_SDMnormal_sp',i,'.sample',sampleSizes[j],'.SDMnormal_ensemble.grd' ,sep=''))
+            suitabMapInvert = 1/(suitabMap+1)
+
             projStackBIN = stack(binTSS,binAUC)
             projAbs = sum(projStackBIN)
+
+
+
+            projSuitBin = projAbs > 0
+            pts = dismo::randomPoints(mask=projSuitBin, n=1000)
+                        
+            ptsDF = extract(projSuitBin, pts) #obtendo as variaveis preditoras nos pontos
+            ptsDF = data.frame(pts,ptsDF); names(ptsDF) = c('lon','lat','pres')
+
+
+            dismo::evaluate(ptsDF[which(ptsDF$pres==1),], ptsDF[which(ptsDF$pres==0),], myBiomodModelOut)
             
-            ##for (k in 1:nlayers(projStackBIN)){
+
+
+
+
             
-            ## >> AMOSTRANDO PSEUDOAUSENCIAS MELHORADAS <<
-            values(projAbs)[values(projAbs) != 0] = NA            
-            betterPseudoPoints = dismo::randomPoints(mask=projAbs, n=1000) #sorteando pontos da distribuicao modelada
             ##betterPseudoDF = extract(projStackBIN[[k]], be tterPseudoPoints) #distinguindo entre occ e ausencia
             betterPseudoDF = data.frame(lon=betterPseudoPoints[,1], lat=betterPseudoPoints[,2], occ=0) #distinguindo entre occ e ausencia
             ##betterPseudo[[k]] =  data.frame(lon=betterPseudoPoints[,1], lat=betterPseudoPoints[,2], occ=betterPseudoDF) #data.frame
