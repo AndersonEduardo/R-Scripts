@@ -8,6 +8,24 @@ timeOne = Sys.time()
 library(raster)
 library(biomod2)
 
+################################
+###### DEM area de estudos #####
+################################
+
+library(elevatr)
+crs(AmSulShape) = crs(raster())
+
+elevationRaw <- get_elev_raster(suitabMap, z=5, src="aws")
+elevationRawCrop = crop(elevation,extent(suitabMap))
+elevation =  projectRaster(elevation2,suitabMap)
+writeRaster(elevation, '/home/anderson/PosDoc/dados_ambientais/DEM/DEM.tif', overwrite=TRUE)
+
+################################
+################################
+################################
+
+
+
 ##definindo prametros e variaveis globais
 projectFolder = "/home/anderson/Documentos/Projetos/Improved pseudo-absences" #pasta do projeto
 envVarFolder = "/home/anderson/PosDoc/dados_ambientais/dados_projeto" #pasta com as variaveis ambientais
@@ -40,9 +58,9 @@ for(i in 1:Nsp){
             
             ##definindo parametros e variaveis locais
             ##matriz##
-            datMat = as.data.frame(predictors, xy=TRUE, na.rm=TRUE) #transformando raster em data.frame
+            datMat = as.data.frame(stack(predictors,elevation), xy=TRUE, na.rm=TRUE) #transformando raster em data.frame
             datMat = data.frame(datMat, fSp=0)
-            names(datMat) = c('lon', 'lat', 'bio1', 'bio12', paste('sp',i,sep='')) #ajustando os nomes das colunas do data.frame
+            names(datMat) = c('lon', 'lat', 'bio1', 'bio12', 'elevation', paste('sp',i,sep='')) #ajustando os nomes das colunas do data.frame
             
             ## x = 1:100
             ## a=1 #altura do pico
@@ -58,31 +76,38 @@ for(i in 1:Nsp){
                 ##equacoes para as dimensoes do nicho das especies
                 betaBio1 = runif(n=1, min=0.001, max=1)*sample(x=c(-1,1), size=1) #parametro para cada equacao de cada especie
                 betaBio12 = runif(n=1, min=0.001, max=1)*sample(x=c(-1,1), size=1) #parametro para cada equacao de cada especie
+                betaElev = runif(n=1, min=0.001, max=1), size=1) #parametro para cada equacao de cada especie
                 alphaBio1 = runif(n=1, min=0.1*max(datMat$bio1), max=0.9*max(datMat$bio1)) #parametro para cada equacao de cada especie
                 alphaBio12 = runif(n=1, min=0.1*max(datMat$bio12), max=0.9*max(datMat$bio12)) #parametro para cada equacao de cada especie
+                alphaElev = runif(n=1, min=0.1*max(datMat$bio12), max=0.9*max(datMat$bio12)) #parametro para cada equacao de cada especie
 
+                
                 ## betaBio1 = abs(rnorm(n=Nsp,mean=0.1,sd=0.1)) #parametro para cada equacao de cada especie
                 ## betaBio12 = abs(rnorm(n=Nsp,mean=0.001,sd=0.1)) #parametro para cada equacao de cada especie
                 ## alphaBio1 = abs(rnorm(n=Nsp,mean=quantile(x=varBio1,probs=0.5,na.rm=TRUE))) #parametro para cada equacao de cada especie
                 ## alphaBio12 = abs(rnorm(n=Nsp,mean=quantile(x=varBio12,probs=0.5,na.rm=TRUE))) #parametro para cada equacao de cada especie
                 varBio1 = datMat$bio1 #variavel ambiental bioclim01
                 varBio12 = datMat$bio12 #variavel ambiental bioclim12
+                varElev = datMat$elevation
 
                 ##solucao numerica para a equacoes do nicho de cada especie
                 fBio1Sp_i = as.integer( 1/(1+exp(betaBio1*(varBio1-alphaBio1))) > 0.1 ) #solucao da equacao com output binario ("suitability")
                 fBio12Sp_i = as.integer( 1/(1+exp(-betaBio12*(varBio12-alphaBio12))) > 0.1 ) #solucao da equacao com output binario ("suitability")
-                ##fBio1Sp_i = 1/(1+exp(-betaBio1[i]*(varBio1-alphaBio1[i]))) #solucao da equacao com output continuo ("suitability")
-                ##fBio12Sp_i = 1/(1+exp(-betaBio12[i]*(varBio12-alphaBio12[i]))) #solucao da equacao com output continuo ("suitability")
-                ##fBio1Sp_i = as.integer( exp(-((varBio1-alphaBio1)^2/(2*betaBio1^2))) > 0.1 ) #solucao da equacao com output binario ("suitability")
-                ##fBio12Sp_i = as.integer( exp(-((varBio12-alphaBio12)^2/(2*betaBio12^2))) > 0.1 ) #solucao da equacao com output binario ("suitability")
+                fElevSp_i = as.integer( 1/(1+exp(-betaElev*(varElev-alphaElev))) > 0.1 ) #solucao da equacao com output binario ("suitability")
+                
+                ## fBio1Sp_i = 1/(1+exp(-betaBio1[i]*(varBio1-alphaBio1[i]))) #solucao da equacao com output continuo ("suitability")
+                ## fBio12Sp_i = 1/(1+exp(-betaBio12[i]*(varBio12-alphaBio12[i]))) #solucao da equacao com output continuo ("suitability")
+                ## fBio1Sp_i = as.integer( exp(-((varBio1-alphaBio1)^2/(2*betaBio1^2))) > 0.1 ) #solucao da equacao com output binario ("suitability")
+                ## fBio12Sp_i = as.integer( exp(-((varBio12-alphaBio12)^2/(2*betaBio12^2))) > 0.1 ) #solucao da equacao com output binario ("suitability")
                 ##datMat = data.frame(cbind(datMat,fSp=fBio1Sp_i*fBio12Sp_i)) #adicionando ao data.frame
                 ##names(datMat)[ncol(datMat)] = paste('sp',i,sep='') #ajustando os nomes das especies no data.farme
-                datMat[,5] = fBio1Sp_i*fBio12Sp_i
+                datMat[,5] = fBio1Sp_i*fBio12Sp_i*fElevSp_i
                 ##salvando graficos das equacoes de cada especie
                 ##jpeg(filename=paste('/home/anderson/Documentos/Projetos/divSpsSid/','functions_sp',i,'.jpeg',sep=''))
                 ##par(mfrow=c(1,2))
-                ## plot(fBio1Sp_i~varBio1,xlab='Bioclim 01',ylab='Suitability',ylim=c(0,1))
-                ## plot(fBio12Sp_i~varBio12,xlab='Bioclim 12',ylab='Suitability',ylim=c(0,1))
+                plot(fBio1Sp_i~varBio1,xlab='Bioclim 01',ylab='Suitability',ylim=c(0,1))
+                plot(fBio12Sp_i~varBio12,xlab='Bioclim 12',ylab='Suitability',ylim=c(0,1))
+                plot(fElevSp_i~varElev,xlab='Elevation',ylab='Suitability',ylim=c(0,1))
                 ##dev.off()
                 
             }            
