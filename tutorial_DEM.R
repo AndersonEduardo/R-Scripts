@@ -76,4 +76,22 @@ elev_expand <- get_elev_raster(lake, z = 10, expand = 1500, api_key = key)
 plot(elev_expand)
 plot(lake, add = TRUE)
 
+##################################
+###### DEM da America do Sul #####
+##################################
+
+library(elevatr)
+crs(AmSulShape) = crs(raster())
+
+elevationRaw <- get_elev_raster(suitabMap, z=5, src="aws")
+elevationRawCrop = crop(elevation,extent(suitabMap))
+elevation =  projectRaster(elevation2,suitabMap)
+writeRaster(elevation, '/home/anderson/PosDoc/dados_ambientais/DEM/DEM.tif', overwrite=TRUE)
+
+plot(elevation)
+
+################################
+################################
+################################
+
 

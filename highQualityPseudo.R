@@ -8,37 +8,20 @@ timeOne = Sys.time()
 library(raster)
 library(biomod2)
 
-################################
-###### DEM area de estudos #####
-################################
-
-library(elevatr)
-crs(AmSulShape) = crs(raster())
-
-elevationRaw <- get_elev_raster(suitabMap, z=5, src="aws")
-elevationRawCrop = crop(elevation,extent(suitabMap))
-elevation =  projectRaster(elevation2,suitabMap)
-writeRaster(elevation, '/home/anderson/PosDoc/dados_ambientais/DEM/DEM.tif', overwrite=TRUE)
-
-################################
-################################
-################################
-
-
-
 ##definindo prametros e variaveis globais
-projectFolder = "/home/anderson/Documentos/Projetos/Improved pseudo-absences" #pasta do projeto
+projectFolder = "/home/anderson/Documentos/Projetos/Improved pseudo-absences_TESTE" #pasta do projeto
 envVarFolder = "/home/anderson/PosDoc/dados_ambientais/dados_projeto" #pasta com as variaveis ambientais
 envVarPaths = list.files(path=envVarFolder, full.names=TRUE) #lista com os caminhos das camadas no sistema (comp.)
 AmSulShape = rgdal::readOGR("/home/anderson/PosDoc/shapefiles/Am_Sul/borders.shp") #shape da America do Sul
 maxentFolder = '/home/anderson/Documentos/Projetos/Sps artificiais/maxent' #pasta para resultados do maxent
 ## spsTypes = c('spHW', 'spHD', 'spCD') #nomes das especies
 ## sdmTypes = c('normal','optimized')
-sampleSizes = c(10,20,40,80)
-NumRep = 10 #numero de replicas (de cada cenario amostral)
+sampleSizes = 100  #c(10,20,40,80,160)
+NumRep = 2 #10 #numero de replicas (de cada cenario amostral)
 ##variaveis preditoras
-predictors = stack(list.files(path=envVarPaths[1],full.names=TRUE, pattern='.asc')) #predictors com todas as variaveis (presente)
-predictors = predictors[[c('bioclim_01','bioclim_12')]]
+elevation = raster('/home/anderson/PosDoc/dados_ambientais/DEM/DEM.tif')
+predictors = stack(list.files(path=envVarPaths[1],full.names=TRUE, pattern='.asc'),elevation) #predictors com todas as variaveis (presente)
+predictors = predictors[[c('bioclim_01','bioclim_12','DEM')]]
 predictors = stack(mask(x=predictors, mask=AmSulShape))
 crs(predictors) = CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0') #ajustando CRS
 Nsp = NumRep #numero de especies a serem criadas e trabalhadas igual ao numero de replicas
@@ -58,7 +41,7 @@ for(i in 1:Nsp){
             
             ##definindo parametros e variaveis locais
             ##matriz##
-            datMat = as.data.frame(stack(predictors,elevation), xy=TRUE, na.rm=TRUE) #transformando raster em data.frame
+            datMat = as.data.frame(predictors, xy=TRUE, na.rm=TRUE) #transformando raster em data.frame
             datMat = data.frame(datMat, fSp=0)
             names(datMat) = c('lon', 'lat', 'bio1', 'bio12', 'elevation', paste('sp',i,sep='')) #ajustando os nomes das colunas do data.frame
             
@@ -71,15 +54,16 @@ for(i in 1:Nsp){
             ## plot(fx~x,ylim=c(0,1.2))
 
             ##condicao para nao permitir distribuicoes vazias (i.e. inexistente) ou tbm sobre a Am. Sul toda. Condicao: distribuicao > 1% ou <95% da america do sul
-            while( (sum(datMat[,5]) < 0.25*(nrow(datMat))) | (sum(datMat[,5]) > 0.5*(nrow(datMat))) ){
-                
+            while( (sum(datMat[,paste('sp',i,sep='')]) < 0.05*(nrow(datMat))) | (sum(datMat[,paste('sp',i,sep='')]) > 0.5*(nrow(datMat))) ){
+
                 ##equacoes para as dimensoes do nicho das especies
                 betaBio1 = runif(n=1, min=0.001, max=1)*sample(x=c(-1,1), size=1) #parametro para cada equacao de cada especie
                 betaBio12 = runif(n=1, min=0.001, max=1)*sample(x=c(-1,1), size=1) #parametro para cada equacao de cada especie
-                betaElev = runif(n=1, min=0.001, max=1), size=1) #parametro para cada equacao de cada especie
-                alphaBio1 = runif(n=1, min=0.1*max(datMat$bio1), max=0.9*max(datMat$bio1)) #parametro para cada equacao de cada especie
-                alphaBio12 = runif(n=1, min=0.1*max(datMat$bio12), max=0.9*max(datMat$bio12)) #parametro para cada equacao de cada especie
-                alphaElev = runif(n=1, min=0.1*max(datMat$bio12), max=0.9*max(datMat$bio12)) #parametro para cada equacao de cada especie
+                betaElev = runif(n=1, min=0.001, max=1)*sample(x=c(-1,1), size=1) #parametro para cada equacao de cada especie
+                ##
+                alphaBio1 = runif(n=1, min=quantile(datMat$bio1, probs=0.25, na.rm=TRUE), max=quantile(datMat$bio1, probs=0.75, na.rm=TRUE)) #parametro para cada equacao de cada especie
+                alphaBio12 = runif(n=1, min=quantile(datMat$bio12, probs=0.25, na.rm=TRUE), max=quantile(datMat$bio12, probs=0.75, na.rm=TRUE)) #parametro para cada equacao de cada especie
+                alphaElev = runif(n=1, min=quantile(datMat$elevation, probs=0.25, na.rm=TRUE), max=quantile(datMat$elevation, probs=0.75, na.rm=TRUE)) #parametro para cada equacao de cada especie
 
                 
                 ## betaBio1 = abs(rnorm(n=Nsp,mean=0.1,sd=0.1)) #parametro para cada equacao de cada especie
@@ -89,7 +73,7 @@ for(i in 1:Nsp){
                 varBio1 = datMat$bio1 #variavel ambiental bioclim01
                 varBio12 = datMat$bio12 #variavel ambiental bioclim12
                 varElev = datMat$elevation
-
+                
                 ##solucao numerica para a equacoes do nicho de cada especie
                 fBio1Sp_i = as.integer( 1/(1+exp(betaBio1*(varBio1-alphaBio1))) > 0.1 ) #solucao da equacao com output binario ("suitability")
                 fBio12Sp_i = as.integer( 1/(1+exp(-betaBio12*(varBio12-alphaBio12))) > 0.1 ) #solucao da equacao com output binario ("suitability")
@@ -99,18 +83,20 @@ for(i in 1:Nsp){
                 ## fBio12Sp_i = 1/(1+exp(-betaBio12[i]*(varBio12-alphaBio12[i]))) #solucao da equacao com output continuo ("suitability")
                 ## fBio1Sp_i = as.integer( exp(-((varBio1-alphaBio1)^2/(2*betaBio1^2))) > 0.1 ) #solucao da equacao com output binario ("suitability")
                 ## fBio12Sp_i = as.integer( exp(-((varBio12-alphaBio12)^2/(2*betaBio12^2))) > 0.1 ) #solucao da equacao com output binario ("suitability")
+                
                 ##datMat = data.frame(cbind(datMat,fSp=fBio1Sp_i*fBio12Sp_i)) #adicionando ao data.frame
                 ##names(datMat)[ncol(datMat)] = paste('sp',i,sep='') #ajustando os nomes das especies no data.farme
-                datMat[,5] = fBio1Sp_i*fBio12Sp_i*fElevSp_i
+                datMat[,paste('sp',i,sep='')] = fBio1Sp_i*fBio12Sp_i *fElevSp_i
+                
                 ##salvando graficos das equacoes de cada especie
                 ##jpeg(filename=paste('/home/anderson/Documentos/Projetos/divSpsSid/','functions_sp',i,'.jpeg',sep=''))
                 ##par(mfrow=c(1,2))
-                plot(fBio1Sp_i~varBio1,xlab='Bioclim 01',ylab='Suitability',ylim=c(0,1))
-                plot(fBio12Sp_i~varBio12,xlab='Bioclim 12',ylab='Suitability',ylim=c(0,1))
-                plot(fElevSp_i~varElev,xlab='Elevation',ylab='Suitability',ylim=c(0,1))
+                ## plot(fBio1Sp_i~varBio1,xlab='Bioclim 01',ylab='Suitability',ylim=c(0,1))
+                ## plot(fBio12Sp_i~varBio12,xlab='Bioclim 12',ylab='Suitability',ylim=c(0,1))
+                ## plot(fElevSp_i~varElev,xlab='Elevation',ylab='Suitability',ylim=c(0,1)) 
                 ##dev.off()
                 
-            }            
+            }
             
             ##raster da distribuicao modelada
             SpDist = datMat[,c('lon','lat',paste('sp',i,sep=''))] #extraindo lon/lat e suitability (ou pres-aus) de cada especie
@@ -118,6 +104,7 @@ for(i in 1:Nsp){
             gridded(SpDist) = TRUE #definindo gridded
             proj4string(SpDist) = '+proj=lcc +lat_1=48 +lat_2=33 +lon_0=-100 +ellps=WGS84' #definindo proj
             rasterSpDist = raster(SpDist) #criando objeto raster
+
             ##criando imagem da distribuicao de cada especie
             jpeg(filename=paste(projectFolder,'/virtual species/sp',i,'.jpeg',sep=''))
             plot(rasterSpDist)
@@ -162,7 +149,6 @@ for(i in 1:Nsp){
             ##parametrizando os modelos
             myBiomodOption <- BIOMOD_ModelingOptions(
                 MAXENT.Phillips = list(path_to_maxent.jar="/home/anderson/R/x86_64-pc-linux-gnu-library/3.3/dismo/java",
-                                       maximumiterations=1000,
                                        linear=TRUE,
                                        quadratic=TRUE,
                                        product=FALSE,
@@ -241,7 +227,7 @@ for(i in 1:Nsp){
             ##My output data
             evaluationScores = get_evaluations(myBiomodModelOut)
 
-            ##maior valore de TSS e AUC de cada algoritmo implementado
+            ##maior valore de especificidade de cada algoritmo implementado (tanto para TSS qto para AUC)
             TSSspec = as.numeric(apply(evaluationScores['TSS','Specificity',,,], 1, max))
             AUCspec = as.numeric(apply(evaluationScores['ROC','Specificity',,,], 1, max))
 
@@ -252,26 +238,38 @@ for(i in 1:Nsp){
             ##vetores vazios (para os nomes dos melhores modelos)
             bestModelRunTSS = vector()
             bestModelRunAUC = vector()
+            TSSvalues = vector()
+            AUCvalues = vector()
             
             for (l in 1:nrow(tabBestScoresTSS)){
-                bestRunNameTSS = names(tabBestScoresTSS)[match(tabBestScoresTSS$bestvalue[l], tabBestScoresTSS[l, 1:ncol(tabBestScoresTSS)-1])]
-                bestModelRunTSS = append(bestModelRunTSS, bestRunNameTSS)
+                bestRunNameTSS = names(tabBestScoresTSS)[match(tabBestScoresTSS$bestvalue[l], tabBestScoresTSS[l, 1:ncol(tabBestScoresTSS)-1])] #pegando o nome do melhor modelo (e.g. RUN2)
+                TSSvalueBestModel = evaluationScores['TSS','Testing.data',l,bestRunNameTSS,] #pegando o TSS do melhor modelo
+                bestModelRunTSS = append(bestModelRunTSS, bestRunNameTSS) #empilhando os nomes dos melhores modelos
+                TSSvalues = append(TSSvalues, TSSvalueBestModel)
                 ##
-                bestRunNameAUC = names(tabBestScoresAUC)[match(tabBestScoresAUC$bestvalue[l], tabBestScoresAUC[l, 1:ncol(tabBestScoresAUC)-1])]
+                bestRunNameAUC = names(tabBestScoresAUC)[match(tabBestScoresAUC$bestvalue[l], tabBestScoresAUC[l, 1:ncol(tabBestScoresAUC)-1])] #pegando o nome do melhor modelo (e.g. RUN2)
+                AUCvalueBestModel = evaluationScores['ROC','Testing.data',l,bestRunNameTSS,] #pegando o AUC do melhor modelo
                 bestModelRunAUC = append(bestModelRunAUC, bestRunNameAUC)
+                AUCvalues = append(AUCvalues, AUCvalueBestModel)
             }
             
             
             ##gravando estatisticas basicas do melhor modelo de cada algoritmo
             statResultsSDMnormal = rbind(statResultsSDMnormal,
                                          cbind(sp = i,
-                                               model = colnames(evaluationScores[,'Specificity',,,]),
-                                               TSSspec = TSSspec,
-                                               meanTSS = as.numeric(apply(evaluationScores['TSS','Specificity',,,], 1, mean)),
-                                               bestModelRunTSS = bestModelRunTSS,
-                                               AUCspec = AUCspec,
-                                               meanAUC = as.numeric(apply(evaluationScores['ROC','Specificity',,,], 1, mean)),
-                                               bestModelRunAUC = bestModelRunAUC),
+                                               ##tss
+                                               model = colnames(evaluationScores[,'Testing.data',,,]),
+                                               meanTSSValue = as.numeric(apply(evaluationScores['TSS','Testing.data',,,], 1, mean)),
+                                               meanTSSspecificity = as.numeric(apply(evaluationScores['TSS','Specificity',,,], 1, mean)),
+                                               maxTSSspecificity = TSSspec,
+                                               bestModelTSS = bestModelRunTSS,
+                                               TSSvalue_bestModel= TSSvalues,
+                                               ##auc
+                                               meanAUCValue = as.numeric(apply(evaluationScores['ROC','Testing.data',,,], 1, mean)),
+                                               meanAUCspecificity = as.numeric(apply(evaluationScores['ROC','Specificity',,,], 1, mean)),
+                                               maxAUCspecificity = AUCspec,
+                                               bestModelAUC = bestModelRunAUC,
+                                               AUCvalue_bestModel= AUCvalues),
                                          stringsAsFactors = FALSE)
             
             write.csv(statResultsSDMnormal, file=paste(projectFolder,'/StatisticalResults_SDMnormal','.csv',sep=''), row.names=FALSE)
@@ -291,13 +289,13 @@ for(i in 1:Nsp){
             aucMax = max(AUCspec)
 
             ##formacao de vetor com nome e RUN do melhor modelo (TSS)
-            bestAlgorithmTSS = statResultsSDMnormal[which(statResultsSDMnormal$TSSspec==tssMax),]$model
-            bestRunTSS = statResultsSDMnormal[which(statResultsSDMnormal$TSSspec==tssMax),]$bestModelRunTSS
+            bestAlgorithmTSS = statResultsSDMnormal[which(statResultsSDMnormal$maxTSSspecificity==tssMax),]$model
+            bestRunTSS = statResultsSDMnormal[which(statResultsSDMnormal$maxTSSspecificity==tssMax),]$bestModelTSS
             patternsTSS = paste(bestRunTSS,bestAlgorithmTSS,sep='_')
 
             ##formacao de vetor com nome e RUN do melhor modelo (AUC)
-            bestAlgorithmAUC = statResultsSDMnormal[which(statResultsSDMnormal$AUCspec==aucMax),]$model
-            bestRunAUC = statResultsSDMnormal[which(statResultsSDMnormal$AUCspec==aucMax),]$bestModelRunAUC
+            bestAlgorithmAUC = statResultsSDMnormal[which(statResultsSDMnormal$maxAUCspecificity==aucMax),]$model
+            bestRunAUC = statResultsSDMnormal[which(statResultsSDMnormal$maxAUCspecificity==aucMax),]$bestModelAUC
             patternsAUC = paste(bestRunAUC,bestAlgorithmAUC,sep='_')
 
             ##nomes dos melhores modelos
@@ -345,9 +343,6 @@ for(i in 1:Nsp){
             ##definindo variaveis e parametros locais
             betterPseudo = list()
             betterPseudoVar = list()
-
-            ## estrategia 1 ##
-            ##amostrando pontos diretamente das areas de ausencia (abaixo do threshold) obtidas na etapa 1
             
             ##projecoes de ausencias do SDM (rodado na etapa 2, acima)
             binTSS = raster(paste(projectFolder,'/SDMnormal/','sp',i,'.sample',sampleSizes[j],'.SDMnormal','/proj_sp',i,'_sample',sampleSizes[j],'_SDMnormal','/proj_sp',i,'_sample',sampleSizes[j],'_SDMnormal_sp',i,'.sample',sampleSizes[j],'.SDMnormal_ensemble_TSSbin.grd' ,sep=''))
@@ -355,35 +350,9 @@ for(i in 1:Nsp){
             projStackBIN = stack(binTSS,binAUC) #empilhando mapas binarios (feitos com threshold a partir do AUC e TSS)
             projAbs = sum(projStackBIN) #somando (para depois pegar areas ausencia que ambos os thresolds concordam)
                         
-            ## amostrando pseudoausencias melhoradas
+            ## amostrando pontos diretamente das areas de ausencia (abaixo do threshold) obtidas na etapa 1 ##
             values(projAbs)[values(projAbs) != 0] = NA  #tranformando areas diferentes de zero em NA (retando somente os dados de ausencia)          
             betterPseudoPoints = dismo::randomPoints(mask=projAbs, n=1000) #sorteando pontos da distribuicao modelada
-
-            ## estrategia 2 ##            
-            ## invete o mapa de suitability, depois usa o threshold para "recortar" a area como sendo modelada para ausencias
-
-            ##projecoes de ausencias do SDM (rodado na etapa 2, acima)
-            suitabMap = raster(paste(projectFolder,'/SDMnormal/','sp',i,'.sample',sampleSizes[j],'.SDMnormal','/proj_sp',i,'_sample',sampleSizes[j],'_SDMnormal','/proj_sp',i,'_sample',sampleSizes[j],'_SDMnormal_sp',i,'.sample',sampleSizes[j],'.SDMnormal_ensemble.grd' ,sep=''))
-            suitabMapInvert = 1/(suitabMap+1)
-
-            projStackBIN = stack(binTSS,binAUC)
-            projAbs = sum(projStackBIN)
-
-
-
-            projSuitBin = projAbs > 0
-            pts = dismo::randomPoints(mask=projSuitBin, n=1000)
-                        
-            ptsDF = extract(projSuitBin, pts) #obtendo as variaveis preditoras nos pontos
-            ptsDF = data.frame(pts,ptsDF); names(ptsDF) = c('lon','lat','pres')
-
-
-            dismo::evaluate(ptsDF[which(ptsDF$pres==1),], ptsDF[which(ptsDF$pres==0),], myBiomodModelOut)
-            
-
-
-
-
             
             ##betterPseudoDF = extract(projStackBIN[[k]], be tterPseudoPoints) #distinguindo entre occ e ausencia
             betterPseudoDF = data.frame(lon=betterPseudoPoints[,1], lat=betterPseudoPoints[,2], occ=0) #distinguindo entre occ e ausencia
@@ -489,25 +458,63 @@ for(i in 1:Nsp){
                 myBiomodData,
                 models = c('MAXENT.Phillips','GLM', 'GAM', 'MARS', 'CTA', 'GBM', 'RF'),
                 models.options = myBiomodOption,
-                NbRunEval = 3,
+                NbRunEval = 10,
                 DataSplit = 75,
                 models.eval.meth = c('TSS','ROC'),
                 do.full.models = FALSE,
-                modeling.id = paste(myRespName,'_sample',sampleSizes[j],'_SDMnormal',sep=''))
+                modeling.id = paste(myRespName,'_sample',sampleSizes[j],'_SDMimproved',sep=''))
 
             
             ##My output data
+            rm(evaluationScores) ##apagando a inforacao da etapa 1
             evaluationScores = get_evaluations(myBiomodModelOut)
+
+            ##maior valore de especificidade de cada algoritmo implementado (tanto para TSS qto para AUC)
+            TSSspec = as.numeric(apply(evaluationScores['TSS','Specificity',,,], 1, max))
+            AUCspec = as.numeric(apply(evaluationScores['ROC','Specificity',,,], 1, max))
+
+            ##tabela auxiliar para obtencao das informacoes do melhor modelo
+            tabBestScoresTSS = data.frame(evaluationScores['TSS','Specificity',,,], bestvalue=TSSspec)
+            tabBestScoresAUC = data.frame(evaluationScores['ROC','Specificity',,,], bestvalue=AUCspec)
+
+            ##vetores vazios (para os nomes dos melhores modelos)
+            bestModelRunTSS = vector()
+            bestModelRunAUC = vector()
+            TSSvalues = vector()
+            AUCvalues = vector()
             
-            ##gravando estatistcas basicas do modelo
-            statResultsSDMnormal = rbind(statResultsSDMnormal,
-                                         cbind(sp = i,
-                                               model = colnames(evaluationScores[,'Specificity',,,]),
-                                               TSSspec = round(as.numeric(rowMeans(evaluationScores['TSS','Specificity',,,])),3),
-                                               AUCspec = round(as.numeric(rowMeans(evaluationScores['ROC','Specificity',,,])),3)),
-                                         stringsAsFactors = FALSE)
+            for (l in 1:nrow(tabBestScoresTSS)){
+                bestRunNameTSS = names(tabBestScoresTSS)[match(tabBestScoresTSS$bestvalue[l], tabBestScoresTSS[l, 1:ncol(tabBestScoresTSS)-1])] #pegando o nome do melhor modelo (e.g. RUN2)
+                TSSvalueBestModel = evaluationScores['TSS','Testing.data',l,bestRunNameTSS,] #pegando o TSS do melhor modelo
+                bestModelRunTSS = append(bestModelRunTSS, bestRunNameTSS) #empilhando os nomes dos melhores modelos
+                TSSvalues = append(TSSvalues, TSSvalueBestModel)
+                ##
+                bestRunNameAUC = names(tabBestScoresAUC)[match(tabBestScoresAUC$bestvalue[l], tabBestScoresAUC[l, 1:ncol(tabBestScoresAUC)-1])] #pegando o nome do melhor modelo (e.g. RUN2)
+                AUCvalueBestModel = evaluationScores['ROC','Testing.data',l,bestRunNameTSS,] #pegando o AUC do melhor modelo
+                bestModelRunAUC = append(bestModelRunAUC, bestRunNameAUC)
+                AUCvalues = append(AUCvalues, AUCvalueBestModel)
+            }
             
-            write.csv(statResultsSDMimproved,file=paste(projectFolder,'/StatisticalResults_SDMimproved','.csv',sep=''),row.names=FALSE)
+            
+            ##gravando estatisticas basicas do melhor modelo de cada algoritmo
+            statResultsSDMimproved = rbind(statResultsSDMimproved,
+                                           cbind(sp = i,
+                                                 ##tss
+                                                 model = colnames(evaluationScores[,'Testing.data',,,]),
+                                                 meanTSSValue = as.numeric(apply(evaluationScores['TSS','Testing.data',,,], 1, mean)),
+                                                 meanTSSspecificity = as.numeric(apply(evaluationScores['TSS','Specificity',,,], 1, mean)),
+                                                 maxTSSspecificity = TSSspec,
+                                                 bestModelTSS = bestModelRunTSS,
+                                                 TSSvalue_bestModel= TSSvalues,
+                                                 ##auc
+                                                 meanAUCValue = as.numeric(apply(evaluationScores['ROC','Testing.data',,,], 1, mean)),
+                                                 meanAUCspecificity = as.numeric(apply(evaluationScores['ROC','Specificity',,,], 1, mean)),
+                                                 maxAUCspecificity = AUCspec,
+                                                 bestModelAUC = bestModelRunAUC,
+                                                 AUCvalue_bestModel= AUCvalues),
+                                           stringsAsFactors = FALSE)
+            
+            write.csv(statResultsSDMimproved, file=paste(projectFolder,'/StatisticalResults_SDMimproved','.csv',sep=''), row.names=FALSE)
 
             ##implementando projecoes do modelo
             
@@ -537,8 +544,8 @@ timeOne - Sys.time()
 setwd(projectFolder)
 
 ##planilhas de dados
-#statResultsSDMimproved = read.csv(paste(projectFolder,'/StatisticalResults_SDMimproved','.csv',sep=''), header=TRUE)
-#statResultsSDMnormal = read.csv(paste(projectFolder,'/StatisticalResults_SDMnormal','.csv',sep=''), header=TRUE)
+statResultsSDMimproved = read.csv(paste(projectFolder,'/StatisticalResults_SDMimproved','.csv',sep=''), header=TRUE)
+statResultsSDMnormal = read.csv(paste(projectFolder,'/StatisticalResults_SDMnormal','.csv',sep=''), header=TRUE)
 
 statResultsSDMimproved = read.csv(paste(projectFolder,'/improved','.csv',sep=''), header=TRUE)
 statResultsSDMnormal = read.csv(paste(projectFolder,'/normal','.csv',sep=''), header=TRUE)
