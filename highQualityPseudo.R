@@ -8,25 +8,46 @@ timeOne = Sys.time()
 library(raster)
 library(biomod2)
 
-##definindo prametros e variaveis globais
-projectFolder = "/home/anderson/Documentos/Projetos/Improved pseudo-absences_TESTE" #pasta do projeto
-envVarFolder = "/home/anderson/PosDoc/dados_ambientais/dados_projeto" #pasta com as variaveis ambientais
-envVarPaths = list.files(path=envVarFolder, full.names=TRUE) #lista com os caminhos das camadas no sistema (comp.)
-AmSulShape = rgdal::readOGR("/home/anderson/PosDoc/shapefiles/Am_Sul/borders.shp") #shape da America do Sul
-maxentFolder = '/home/anderson/Documentos/Projetos/Sps artificiais/maxent' #pasta para resultados do maxent
+# ##definindo prametros e variaveis globais (NOTEBOOK)
+# projectFolder = "/home/anderson/Documentos/Projetos/Improved pseudo-absences_TESTE" #pasta do projeto
+# envVarFolder = "/home/anderson/PosDoc/dados_ambientais/dados_projeto" #pasta com as variaveis ambientais
+# envVarPaths = list.files(path=envVarFolder, full.names=TRUE) #lista com os caminhos das camadas no sistema (comp.)
+# AmSulShape = rgdal::readOGR("/home/anderson/PosDoc/shapefiles/Am_Sul/borders.shp") #shape da America do Sul
+# maxentFolder = '/home/anderson/Documentos/Projetos/Sps artificiais/maxent' #pasta para resultados do maxent
+# ## spsTypes = c('spHW', 'spHD', 'spCD') #nomes das especies
+# ## sdmTypes = c('normal','optimized')
+# sampleSizes = 100  #c(10,20,40,80,160)
+# NumRep = 2 #10 #numero de replicas (de cada cenario amostral)
+# ##variaveis preditoras
+# elevation = raster('/home/anderson/PosDoc/dados_ambientais/DEM/DEM.tif')
+# predictors = stack(list.files(path=envVarPaths[1],full.names=TRUE, pattern='.asc'),elevation) #predictors com todas as variaveis (presente)
+# predictors = predictors[[c('bioclim_01','bioclim_12','DEM')]]
+# predictors = stack(mask(x=predictors, mask=AmSulShape))
+# crs(predictors) = CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0') #ajustando CRS
+# Nsp = NumRep #numero de especies a serem criadas e trabalhadas igual ao numero de replicas
+# statResultsSDMnormal = data.frame() #tabela de estatisticas basicas do modelo
+# statResultsSDMimproved = data.frame()
+
+##definindo prametros e variaveis globais (LORIEN)
+projectFolder = "J:/Pesquisadorxs/Anderson_Eduardo/high_quality_PA" #pasta do projeto
+envVarFolder = "J:/Pesquisadorxs/Anderson_Eduardo/dados_projeto/000" #pasta com as variaveis ambientais
+envVarPaths = list.files(path=envVarFolder, pattern='.asc', full.names=TRUE) #lista com os caminhos das camadas no sistema (comp.)
+AmSulShape = rgdal::readOGR("J:/Pesquisadorxs/Anderson_Eduardo/shapefiles/Am_Sul/borders.shp") #shape da America do Sul
+maxentFolder = 'C:/Users/WS/Documents/R/win-library/3.4/dismo/java/maxent.jar' #pasta para resultados do maxent
 ## spsTypes = c('spHW', 'spHD', 'spCD') #nomes das especies
 ## sdmTypes = c('normal','optimized')
-sampleSizes = 100  #c(10,20,40,80,160)
-NumRep = 2 #10 #numero de replicas (de cada cenario amostral)
+sampleSizes = c(10,20,40,80,160)
+NumRep = 10 #numero de replicas (de cada cenario amostral)
 ##variaveis preditoras
-elevation = raster('/home/anderson/PosDoc/dados_ambientais/DEM/DEM.tif')
-predictors = stack(list.files(path=envVarPaths[1],full.names=TRUE, pattern='.asc'),elevation) #predictors com todas as variaveis (presente)
+elevation = raster('J:/Pesquisadorxs/Anderson_Eduardo/DEM/DEM.tif')
+predictors = stack(envVarPaths,elevation) #predictors com todas as variaveis (presente)
 predictors = predictors[[c('bioclim_01','bioclim_12','DEM')]]
 predictors = stack(mask(x=predictors, mask=AmSulShape))
 crs(predictors) = CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0') #ajustando CRS
 Nsp = NumRep #numero de especies a serem criadas e trabalhadas igual ao numero de replicas
 statResultsSDMnormal = data.frame() #tabela de estatisticas basicas do modelo
 statResultsSDMimproved = data.frame() 
+
 
 ##definindo diretorio de trabalho (importante porque o biomod2 salva tudo automaticamente)
 setwd(projectFolder)
@@ -148,7 +169,7 @@ for(i in 1:Nsp){
             
             ##parametrizando os modelos
             myBiomodOption <- BIOMOD_ModelingOptions(
-                MAXENT.Phillips = list(path_to_maxent.jar="/home/anderson/R/x86_64-pc-linux-gnu-library/3.3/dismo/java",
+                MAXENT.Phillips = list(path_to_maxent.jar=maxentFolder,
                                        linear=TRUE,
                                        quadratic=TRUE,
                                        product=FALSE,
@@ -228,8 +249,8 @@ for(i in 1:Nsp){
             evaluationScores = get_evaluations(myBiomodModelOut)
 
             ##maior valore de especificidade de cada algoritmo implementado (tanto para TSS qto para AUC)
-            TSSspec = as.numeric(apply(evaluationScores['TSS','Specificity',,,], 1, max))
-            AUCspec = as.numeric(apply(evaluationScores['ROC','Specificity',,,], 1, max))
+            TSSspec = as.numeric(apply(evaluationScores['TSS','Specificity',,,], 1, max, na.rm=TRUE))
+            AUCspec = as.numeric(apply(evaluationScores['ROC','Specificity',,,], 1, max, na.rm=TRUE))
 
             ##tabela auxiliar para obtencao das informacoes do melhor modelo
             tabBestScoresTSS = data.frame(evaluationScores['TSS','Specificity',,,], bestvalue=TSSspec)
@@ -259,14 +280,14 @@ for(i in 1:Nsp){
                                          cbind(sp = i,
                                                ##tss
                                                model = colnames(evaluationScores[,'Testing.data',,,]),
-                                               meanTSSValue = as.numeric(apply(evaluationScores['TSS','Testing.data',,,], 1, mean)),
+                                               meanTSSValue = as.numeric(apply(evaluationScores['TSS','Testing.data',,,], 1, mean, na.rm=TRUE)),
                                                meanTSSspecificity = as.numeric(apply(evaluationScores['TSS','Specificity',,,], 1, mean)),
                                                maxTSSspecificity = TSSspec,
                                                bestModelTSS = bestModelRunTSS,
                                                TSSvalue_bestModel= TSSvalues,
                                                ##auc
-                                               meanAUCValue = as.numeric(apply(evaluationScores['ROC','Testing.data',,,], 1, mean)),
-                                               meanAUCspecificity = as.numeric(apply(evaluationScores['ROC','Specificity',,,], 1, mean)),
+                                               meanAUCValue = as.numeric(apply(evaluationScores['ROC','Testing.data',,,], 1, mean, na.rm=TRUE)),
+                                               meanAUCspecificity = as.numeric(apply(evaluationScores['ROC','Specificity',,,], 1, mean, na.rm=TRUE)),
                                                maxAUCspecificity = AUCspec,
                                                bestModelAUC = bestModelRunAUC,
                                                AUCvalue_bestModel= AUCvalues),
@@ -387,7 +408,7 @@ for(i in 1:Nsp){
             
             ##parametrizando os modelos
             myBiomodOption <- BIOMOD_ModelingOptions(
-                MAXENT.Phillips = list(path_to_maxent.jar="/home/anderson/R/x86_64-pc-linux-gnu-library/3.3/dismo/java",
+                MAXENT.Phillips = list(path_to_maxent.jar=maxentFolder,
                                        maximumiterations=1000,
                                        linear=TRUE,
                                        quadratic=TRUE,
@@ -470,8 +491,8 @@ for(i in 1:Nsp){
             evaluationScores = get_evaluations(myBiomodModelOut)
 
             ##maior valore de especificidade de cada algoritmo implementado (tanto para TSS qto para AUC)
-            TSSspec = as.numeric(apply(evaluationScores['TSS','Specificity',,,], 1, max))
-            AUCspec = as.numeric(apply(evaluationScores['ROC','Specificity',,,], 1, max))
+            TSSspec = as.numeric(apply(evaluationScores['TSS','Specificity',,,], 1, max, na.rm=TRUE))
+            AUCspec = as.numeric(apply(evaluationScores['ROC','Specificity',,,], 1, max, na.rm=TRUE))
 
             ##tabela auxiliar para obtencao das informacoes do melhor modelo
             tabBestScoresTSS = data.frame(evaluationScores['TSS','Specificity',,,], bestvalue=TSSspec)
@@ -501,14 +522,14 @@ for(i in 1:Nsp){
                                            cbind(sp = i,
                                                  ##tss
                                                  model = colnames(evaluationScores[,'Testing.data',,,]),
-                                                 meanTSSValue = as.numeric(apply(evaluationScores['TSS','Testing.data',,,], 1, mean)),
-                                                 meanTSSspecificity = as.numeric(apply(evaluationScores['TSS','Specificity',,,], 1, mean)),
+                                                 meanTSSValue = as.numeric(apply(evaluationScores['TSS','Testing.data',,,], 1, mean, na.rm=TRUE)),
+                                                 meanTSSspecificity = as.numeric(apply(evaluationScores['TSS','Specificity',,,], 1, mean, na.rm=TRUE)),
                                                  maxTSSspecificity = TSSspec,
                                                  bestModelTSS = bestModelRunTSS,
                                                  TSSvalue_bestModel= TSSvalues,
                                                  ##auc
-                                                 meanAUCValue = as.numeric(apply(evaluationScores['ROC','Testing.data',,,], 1, mean)),
-                                                 meanAUCspecificity = as.numeric(apply(evaluationScores['ROC','Specificity',,,], 1, mean)),
+                                                 meanAUCValue = as.numeric(apply(evaluationScores['ROC','Testing.data',,,], 1, mean, na.rm=TRUE)),
+                                                 meanAUCspecificity = as.numeric(apply(evaluationScores['ROC','Specificity',,,], 1, mean, na.rm=TRUE)),
                                                  maxAUCspecificity = AUCspec,
                                                  bestModelAUC = bestModelRunAUC,
                                                  AUCvalue_bestModel= AUCvalues),
@@ -529,7 +550,7 @@ for(i in 1:Nsp){
                 build.clamping.mask = 'TRUE',
                 output.format = '.grd')
 
-        }, error=function(e){cat("ERROR :",conditionMessage(e), "\n")})
+        }, error=function(e){cat("ERROR :",conditionMessage(e), "/n")})
     }
 }
 
