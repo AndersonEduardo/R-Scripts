@@ -8,45 +8,45 @@ timeOne = Sys.time()
 library(raster)
 library(biomod2)
 
-# ##definindo prametros e variaveis globais (NOTEBOOK)
-# projectFolder = "/home/anderson/Documentos/Projetos/Improved pseudo-absences_TESTE" #pasta do projeto
-# envVarFolder = "/home/anderson/PosDoc/dados_ambientais/dados_projeto" #pasta com as variaveis ambientais
-# envVarPaths = list.files(path=envVarFolder, full.names=TRUE) #lista com os caminhos das camadas no sistema (comp.)
-# AmSulShape = rgdal::readOGR("/home/anderson/PosDoc/shapefiles/Am_Sul/borders.shp") #shape da America do Sul
-# maxentFolder = '/home/anderson/Documentos/Projetos/Sps artificiais/maxent' #pasta para resultados do maxent
-# ## spsTypes = c('spHW', 'spHD', 'spCD') #nomes das especies
-# ## sdmTypes = c('normal','optimized')
-# sampleSizes = 100  #c(10,20,40,80,160)
-# NumRep = 2 #10 #numero de replicas (de cada cenario amostral)
-# ##variaveis preditoras
-# elevation = raster('/home/anderson/PosDoc/dados_ambientais/DEM/DEM.tif')
-# predictors = stack(list.files(path=envVarPaths[1],full.names=TRUE, pattern='.asc'),elevation) #predictors com todas as variaveis (presente)
-# predictors = predictors[[c('bioclim_01','bioclim_12','DEM')]]
-# predictors = stack(mask(x=predictors, mask=AmSulShape))
-# crs(predictors) = CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0') #ajustando CRS
-# Nsp = NumRep #numero de especies a serem criadas e trabalhadas igual ao numero de replicas
-# statResultsSDMnormal = data.frame() #tabela de estatisticas basicas do modelo
-# statResultsSDMimproved = data.frame()
-
-##definindo prametros e variaveis globais (LORIEN)
-projectFolder = "J:/Pesquisadorxs/Anderson_Eduardo/high_quality_PA" #pasta do projeto
-envVarFolder = "J:/Pesquisadorxs/Anderson_Eduardo/dados_projeto/000" #pasta com as variaveis ambientais
-envVarPaths = list.files(path=envVarFolder, pattern='.asc', full.names=TRUE) #lista com os caminhos das camadas no sistema (comp.)
-AmSulShape = rgdal::readOGR("J:/Pesquisadorxs/Anderson_Eduardo/shapefiles/Am_Sul/borders.shp") #shape da America do Sul
-maxentFolder = 'C:/Users/WS/Documents/R/win-library/3.4/dismo/java/maxent.jar' #pasta para resultados do maxent
+##definindo prametros e variaveis globais (NOTEBOOK)
+projectFolder = "/home/anderson/Documentos/Projetos/Improved pseudo-absences_TESTE" #pasta do projeto
+envVarFolder = "/home/anderson/PosDoc/dados_ambientais/dados_projeto" #pasta com as variaveis ambientais
+envVarPaths = list.files(path=envVarFolder, full.names=TRUE) #lista com os caminhos das camadas no sistema (comp.)
+AmSulShape = rgdal::readOGR("/home/anderson/PosDoc/shapefiles/Am_Sul/borders.shp") #shape da America do Sul
+maxentFolder = '/home/anderson/R/x86_64-pc-linux-gnu-library/3.3/dismo/java/maxent.jar' #pasta para resultados do maxent
 ## spsTypes = c('spHW', 'spHD', 'spCD') #nomes das especies
 ## sdmTypes = c('normal','optimized')
-sampleSizes = c(10,20,40,80,160)
-NumRep = 10 #numero de replicas (de cada cenario amostral)
+sampleSizes = 100  #c(10,20,40,80,160)
+NumRep = 2 #10 #numero de replicas (de cada cenario amostral)
 ##variaveis preditoras
-elevation = raster('J:/Pesquisadorxs/Anderson_Eduardo/DEM/DEM.tif')
-predictors = stack(envVarPaths,elevation) #predictors com todas as variaveis (presente)
+elevation = raster('/home/anderson/PosDoc/dados_ambientais/DEM/DEM.tif')
+predictors = stack(list.files(path=envVarPaths[1],full.names=TRUE, pattern='.asc'),elevation) #predictors com todas as variaveis (presente)
 predictors = predictors[[c('bioclim_01','bioclim_12','DEM')]]
 predictors = stack(mask(x=predictors, mask=AmSulShape))
 crs(predictors) = CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0') #ajustando CRS
 Nsp = NumRep #numero de especies a serem criadas e trabalhadas igual ao numero de replicas
 statResultsSDMnormal = data.frame() #tabela de estatisticas basicas do modelo
-statResultsSDMimproved = data.frame() 
+statResultsSDMimproved = data.frame()
+
+## ##definindo prametros e variaveis globais (LORIEN)
+## projectFolder = "J:/Pesquisadorxs/Anderson_Eduardo/high_quality_PA" #pasta do projeto
+## envVarFolder = "J:/Pesquisadorxs/Anderson_Eduardo/dados_projeto/000" #pasta com as variaveis ambientais
+## envVarPaths = list.files(path=envVarFolder, pattern='.asc', full.names=TRUE) #lista com os caminhos das camadas no sistema (comp.)
+## AmSulShape = rgdal::readOGR("J:/Pesquisadorxs/Anderson_Eduardo/shapefiles/Am_Sul/borders.shp") #shape da America do Sul
+## maxentFolder = 'C:/Users/WS/Documents/R/win-library/3.4/dismo/java/maxent.jar' #pasta para resultados do maxent
+## ## spsTypes = c('spHW', 'spHD', 'spCD') #nomes das especies
+## ## sdmTypes = c('normal','optimized')
+## sampleSizes = c(10,20,40,80,160)
+## NumRep = 10 #numero de replicas (de cada cenario amostral)
+## ##variaveis preditoras
+## elevation = raster('J:/Pesquisadorxs/Anderson_Eduardo/DEM/DEM.tif')
+## predictors = stack(envVarPaths,elevation) #predictors com todas as variaveis (presente)
+## predictors = predictors[[c('bioclim_01','bioclim_12','DEM')]]
+## predictors = stack(mask(x=predictors, mask=AmSulShape))
+## crs(predictors) = CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0') #ajustando CRS
+## Nsp = NumRep #numero de especies a serem criadas e trabalhadas igual ao numero de replicas
+## statResultsSDMnormal = data.frame() #tabela de estatisticas basicas do modelo
+## statResultsSDMimproved = data.frame() 
 
 
 ##definindo diretorio de trabalho (importante porque o biomod2 salva tudo automaticamente)
@@ -119,18 +119,22 @@ for(i in 1:Nsp){
                 
             }
             
-            ##raster da distribuicao modelada
+            ##raster da distribuicao de adequabilidade climatica modelada
             SpDist = datMat[,c('lon','lat',paste('sp',i,sep=''))] #extraindo lon/lat e suitability (ou pres-aus) de cada especie
             coordinates(SpDist) = ~lon+lat #definindo colunas das coordenadas
             gridded(SpDist) = TRUE #definindo gridded
             proj4string(SpDist) = '+proj=lcc +lat_1=48 +lat_2=33 +lon_0=-100 +ellps=WGS84' #definindo proj
             rasterSpDist = raster(SpDist) #criando objeto raster
 
+            ##mapa da distribuicao (presenca/ausencia) com automato celular
+            source("/home/anderson/Área de Trabalho/rangeByAC.R")
+            SpDistAC = rangeByAC(rasterSpDist)            
+            
             ##criando imagem da distribuicao de cada especie
             jpeg(filename=paste(projectFolder,'/virtual species/sp',i,'.jpeg',sep=''))
-            plot(rasterSpDist)
+            plot(SpDistAC)
             dev.off()
-            writeRaster(x=rasterSpDist, filename=paste(projectFolder,'/virtual species/sp',i,'.asc',sep=''), overwrite=TRUE)
+            writeRaster(x=SpDistAC, filename=paste(projectFolder,'/virtual species/sp',i,'.asc',sep=''), overwrite=TRUE)
 
             
             ##PARTE 2: modelando ausencias 
@@ -141,10 +145,10 @@ for(i in 1:Nsp){
             
             ##definindo variaveis e parametros locais
             ##occPoints = read.csv(paste(mainSampleFolder,sdmTypes[h],'/',spsTypes[i],'/occ',sampleSizes[j],'.csv',sep=''),header=TRUE) #abrindo pontos de ocorrencia
-            values(rasterSpDist)[values(rasterSpDist)==0] = NA
+            values(SpDistAC)[values(SpDistAC)==0] = NA
             
             ##amostra de pontos
-            occPoints = dismo::randomPoints(mask=rasterSpDist, n=sampleSizes[j]) #sorteando pontos da distribuicao modelada
+            occPoints = dismo::randomPoints(mask=SpDistAC, n=sampleSizes[j]) #sorteando pontos da distribuicao modelada
             occPoints = data.frame(lon=occPoints[,1],lat=occPoints[,2])
 
             myResp <- data.frame(lon=occPoints[,1], lat=occPoints[,2])
@@ -236,7 +240,7 @@ for(i in 1:Nsp){
             
             ##rodando o(s) algoritmo(s) (i.e. SDMs)
             myBiomodModelOut <- BIOMOD_Modeling(
-                myBiomodData,
+                data = myBiomodData,
                 models = c('MAXENT.Phillips','GLM', 'GAM', 'MARS', 'CTA', 'GBM', 'RF'),
                 models.options = myBiomodOption,
                 NbRunEval = 10,
@@ -333,7 +337,7 @@ for(i in 1:Nsp){
             ##rodando algortmo de projecao (i.e. rodando a projecao)
             myBiomodProj <- BIOMOD_Projection(
                 modeling.output = myBiomodModelOut,
-                new.env = predictors,
+                new.env = myExpl,
                 proj.name = paste('sp',i,'_sample',sampleSizes[j],'_SDMnormal',sep=''),
                 selected.models = modelNames,
                 compress = 'TRUE',
@@ -394,7 +398,7 @@ for(i in 1:Nsp){
             myRespName <- paste('sp',i,sep='')  # nome do cenario atual (para biomod2)
             myResp <- dataSet[,c('occ')] # variavel resposta (para biomod2)
             myRespXY <- dataSet[,c('lon','lat')] # coordenadas associadas a variavel resposta (para biomod2)
-            myExpl = dataSet[,c('bioclim_01','bioclim_12')]  #variavel preditora (para biomod2)
+            myExpl = dataSet[,c('bioclim_01','bioclim_12','DEM')]  #variavel preditora (para biomod2)
             
             ##ajuste de dados de entrada para biomod2
             myBiomodData <- BIOMOD_FormatingData(resp.var = myResp,
@@ -475,8 +479,9 @@ for(i in 1:Nsp){
             )            
 
             ##rodando o(s) algoritmo(s) (i.e. SDMs)
+            rm(myBiomodModelOut) #removendo informacoes da etapa anterior
             myBiomodModelOut <- BIOMOD_Modeling(
-                myBiomodData,
+                data = myBiomodData,
                 models = c('MAXENT.Phillips','GLM', 'GAM', 'MARS', 'CTA', 'GBM', 'RF'),
                 models.options = myBiomodOption,
                 NbRunEval = 10,
@@ -540,9 +545,12 @@ for(i in 1:Nsp){
             ##implementando projecoes do modelo
             
             ##rodando algortmo de projecao (i.e. rodando a projecao)
+            rm(myBiomodProj) #removendo informacao da etapa anterior
+            myExpl = predictors
+
             myBiomodProj <- BIOMOD_Projection(
                 modeling.output = myBiomodModelOut,
-                new.env = predictors,
+                new.env = myExpl,
                 proj.name = paste(myRespName,'_sample',sampleSizes[j],'_SDMimproved',sep=''),
                 selected.models = 'all',
                 binary.meth = 'TSS',
