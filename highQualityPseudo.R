@@ -19,9 +19,9 @@ maxentFolder = '/home/anderson/R/x86_64-pc-linux-gnu-library/3.3/dismo/java/maxe
 sampleSizes = 100  #c(10,20,40,80,160)
 NumRep = 2 #10 #numero de replicas (de cada cenario amostral)
 ##variaveis preditoras
-elevation = raster('/home/anderson/PosDoc/dados_ambientais/DEM/DEM.tif')
-predictors = stack(list.files(path=envVarPaths[1],full.names=TRUE, pattern='.asc'),elevation) #predictors com todas as variaveis (presente)
-predictors = predictors[[c('bioclim_01','bioclim_12','DEM')]]
+## elevation = raster('/home/anderson/PosDoc/dados_ambientais/DEM/DEM.tif')
+predictors = stack(list.files(path=envVarPaths[1],full.names=TRUE, pattern='.asc')) #predictors com todas as variaveis (presente)
+predictors = predictors[[c('bioclim_01','bioclim_12')]]
 predictors = stack(mask(x=predictors, mask=AmSulShape))
 crs(predictors) = CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0') #ajustando CRS
 Nsp = NumRep #numero de especies a serem criadas e trabalhadas igual ao numero de replicas
@@ -64,7 +64,7 @@ for(i in 1:Nsp){
             ##matriz##
             datMat = as.data.frame(predictors, xy=TRUE, na.rm=TRUE) #transformando raster em data.frame
             datMat = data.frame(datMat, fSp=0)
-            names(datMat) = c('lon', 'lat', 'bio1', 'bio12', 'elevation', paste('sp',i,sep='')) #ajustando os nomes das colunas do data.frame
+            names(datMat) = c('lon', 'lat', 'bio1', 'bio12', paste('sp',i,sep='')) #ajustando os nomes das colunas do data.frame
             
             ## x = 1:100
             ## a=1 #altura do pico
@@ -84,7 +84,7 @@ for(i in 1:Nsp){
                 ##
                 alphaBio1 = runif(n=1, min=quantile(datMat$bio1, probs=0.25, na.rm=TRUE), max=quantile(datMat$bio1, probs=0.75, na.rm=TRUE)) #parametro para cada equacao de cada especie
                 alphaBio12 = runif(n=1, min=quantile(datMat$bio12, probs=0.25, na.rm=TRUE), max=quantile(datMat$bio12, probs=0.75, na.rm=TRUE)) #parametro para cada equacao de cada especie
-                alphaElev = runif(n=1, min=quantile(datMat$elevation, probs=0.25, na.rm=TRUE), max=quantile(datMat$elevation, probs=0.75, na.rm=TRUE)) #parametro para cada equacao de cada especie
+                ## alphaElev = runif(n=1, min=quantile(datMat$elevation, probs=0.25, na.rm=TRUE), max=quantile(datMat$elevation, probs=0.75, na.rm=TRUE)) #parametro para cada equacao de cada especie
 
                 
                 ## betaBio1 = abs(rnorm(n=Nsp,mean=0.1,sd=0.1)) #parametro para cada equacao de cada especie
@@ -93,12 +93,12 @@ for(i in 1:Nsp){
                 ## alphaBio12 = abs(rnorm(n=Nsp,mean=quantile(x=varBio12,probs=0.5,na.rm=TRUE))) #parametro para cada equacao de cada especie
                 varBio1 = datMat$bio1 #variavel ambiental bioclim01
                 varBio12 = datMat$bio12 #variavel ambiental bioclim12
-                varElev = datMat$elevation
+                ## varElev = datMat$elevation
                 
                 ##solucao numerica para a equacoes do nicho de cada especie
                 fBio1Sp_i = as.integer( 1/(1+exp(betaBio1*(varBio1-alphaBio1))) > 0.1 ) #solucao da equacao com output binario ("suitability")
                 fBio12Sp_i = as.integer( 1/(1+exp(-betaBio12*(varBio12-alphaBio12))) > 0.1 ) #solucao da equacao com output binario ("suitability")
-                fElevSp_i = as.integer( 1/(1+exp(-betaElev*(varElev-alphaElev))) > 0.1 ) #solucao da equacao com output binario ("suitability")
+                ## fElevSp_i = as.integer( 1/(1+exp(-betaElev*(varElev-alphaElev))) > 0.1 ) #solucao da equacao com output binario ("suitability")
                 
                 ## fBio1Sp_i = 1/(1+exp(-betaBio1[i]*(varBio1-alphaBio1[i]))) #solucao da equacao com output continuo ("suitability")
                 ## fBio12Sp_i = 1/(1+exp(-betaBio12[i]*(varBio12-alphaBio12[i]))) #solucao da equacao com output continuo ("suitability")
@@ -107,7 +107,7 @@ for(i in 1:Nsp){
                 
                 ##datMat = data.frame(cbind(datMat,fSp=fBio1Sp_i*fBio12Sp_i)) #adicionando ao data.frame
                 ##names(datMat)[ncol(datMat)] = paste('sp',i,sep='') #ajustando os nomes das especies no data.farme
-                datMat[,paste('sp',i,sep='')] = fBio1Sp_i*fBio12Sp_i *fElevSp_i
+                datMat[,paste('sp',i,sep='')] = fBio1Sp_i*fBio12Sp_i ##*fElevSp_i
                 
                 ##salvando graficos das equacoes de cada especie
                 ##jpeg(filename=paste('/home/anderson/Documentos/Projetos/divSpsSid/','functions_sp',i,'.jpeg',sep=''))
@@ -127,7 +127,7 @@ for(i in 1:Nsp){
             rasterSpDist = raster(SpDist) #criando objeto raster
 
             ##mapa da distribuicao (presenca/ausencia) com automato celular
-            source("/home/anderson/Área de Trabalho/rangeByAC.R")
+            source("/home/anderson/R/R-Scripts/rangeByAC.R")
             SpDistAC = rangeByAC(rasterSpDist)            
             
             ##criando imagem da distribuicao de cada especie
