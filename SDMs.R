@@ -179,6 +179,9 @@ suitability11kyr = extract(x=raster.layer.11,y=ponto11kyr,buffer=2000)
 output11kyr = data.frame(unlist(suitability11kyr))
 names(output11kyr) = 'suitability'
 
+##media dos valores de suitability (11kyrBP)
+jacares11kyr = getValues(raster.layer.11)
+colMeans(jacares11kyr, na.rm=TRUE)
 
 ##suitability no registro fossil de 21 kyr
 raster.layer.21 = stack(list.files(paste(projectFolder,teste,'/Passado/Raster Layers',sep=''),full.names=TRUE,pattern=glob2rx('*21*BP.asc')))
@@ -189,6 +192,11 @@ suitability21kyr = extract(x=raster.layer.21,y=ponto11kyr,buffer=2000)
 ##meanSuit21kyr = colMeans(as.data.frame(suitability21kyr$'21kyr'))
 output21kyr = data.frame(unlist(suitability21kyr))
 names(output21kyr) = 'suitability'
+
+##media dos valores de suitability (21kyrBP)
+jacares21kyr = getValues(raster.layer.21)
+apply(jacares21kyr, 2, median, na.rm=TRUE)
+colMeans(jacares21kyr, na.rm=TRUE)
 
 ##suitability no registro fossil de 19 e 20 kyr
 kyr19 = list.files(paste(projectFolder,teste,'/Passado/Raster Layers',sep=''),full.names=TRUE,pattern=glob2rx('*19*BP.asc'))
@@ -202,6 +210,11 @@ suitability19kyr = extract(x=raster.layer.19,y=ponto19,buffer=2000)
 output19kyr = data.frame(unlist(suitability19kyr))
 names(output19kyr) = 'suitability'
 
+##media dos valores de suitability (19 e 20kyrBP)
+mcoypus = getValues(raster.layer.19)
+apply(mcoypus, 2, median, na.rm=TRUE)
+colMeans(mcoypus, na.rm=TRUE)
+
 ##suitability no registro fossil de 13 e 14 kyr
 kyr13 = list.files(paste(projectFolder,teste,'/Passado/Raster Layers',sep=''),full.names=TRUE,pattern=glob2rx('*13*BP.asc'))
 kyr14 = list.files(paste(projectFolder,teste,'/Passado/Raster Layers',sep=''),full.names=TRUE,pattern=glob2rx('*14*BP.asc'))
@@ -213,6 +226,11 @@ suitability13kyr = extract(x=raster.layer.13,y=ponto13,buffer=2000)
 #meanSuit19kyr = colMeans(as.data.frame(suitability19kyr$'19kyr'))
 output13kyr = data.frame(unlist(suitability13kyr))
 names(output13kyr) = 'suitability'
+
+##media dos valores de suitability (13 e 14kyrBP)
+lmaxim = getValues(raster.layer.13)
+apply(lmaxim, 2, median, na.rm=TRUE)
+colMeans(lmaxim, na.rm=TRUE)
 
 ##tabela unificada
 suitabTable = rbind(output11kyr,output21kyr,output19kyr,output13kyr)
