@@ -8,25 +8,25 @@ timeOne = Sys.time()
 library(raster)
 library(biomod2)
 
-# ##definindo prametros e variaveis globais (NOTEBOOK)
-# projectFolder = "/home/anderson/Documentos/Projetos/Improved pseudo-absences_TESTE" #pasta do projeto
-# envVarFolder = "/home/anderson/PosDoc/dados_ambientais/dados_projeto" #pasta com as variaveis ambientais
-# envVarPaths = list.files(path=envVarFolder, full.names=TRUE) #lista com os caminhos das camadas no sistema (comp.)
-# AmSulShape = rgdal::readOGR("/home/anderson/PosDoc/shapefiles/Am_Sul/borders.shp") #shape da America do Sul
-# maxentFolder = '/home/anderson/R/x86_64-pc-linux-gnu-library/3.3/dismo/java/maxent.jar' #pasta para resultados do maxent
-# ## spsTypes = c('spHW', 'spHD', 'spCD') #nomes das especies
-# ## sdmTypes = c('normal','optimized')
-# sampleSizes = 100  #c(10,20,40,80,160)
-# NumRep = 2 #10 #numero de replicas (de cada cenario amostral)
-# ##variaveis preditoras
-# ## elevation = raster('/home/anderson/PosDoc/dados_ambientais/DEM/DEM.tif')
-# predictors = stack(list.files(path=envVarPaths[1],full.names=TRUE, pattern='.asc')) #predictors com todas as variaveis (presente)
-# predictors = predictors[[c('bioclim_01','bioclim_12')]]
-# predictors = stack(mask(x=predictors, mask=AmSulShape))
-# crs(predictors) = CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0') #ajustando CRS
-# Nsp = NumRep #numero de especies a serem criadas e trabalhadas igual ao numero de replicas
-# statResultsSDMnormal = data.frame() #tabela de estatisticas basicas do modelo
-# statResultsSDMimproved = data.frame()
+##definindo prametros e variaveis globais (NOTEBOOK)
+projectFolder = "/home/anderson/Documentos/Projetos/Improved pseudo-absences" #pasta do projeto
+envVarFolder = "/home/anderson/PosDoc/dados_ambientais/dados_projeto" #pasta com as variaveis ambientais
+envVarPaths = list.files(path=envVarFolder, full.names=TRUE) #lista com os caminhos das camadas no sistema (comp.)
+AmSulShape = rgdal::readOGR("/home/anderson/PosDoc/shapefiles/Am_Sul/borders.shp") #shape da America do Sul
+maxentFolder = '/home/anderson/R/x86_64-pc-linux-gnu-library/3.3/dismo/java/maxent.jar' #pasta para resultados do maxent
+## spsTypes = c('spHW', 'spHD', 'spCD') #nomes das especies
+## sdmTypes = c('normal','optimized')
+sampleSizes = 100  #c(10,20,40,80,160)
+NumRep = 2 #10 #numero de replicas (de cada cenario amostral)
+##variaveis preditoras
+## elevation = raster('/home/anderson/PosDoc/dados_ambientais/DEM/DEM.tif')
+predictors = stack(list.files(path=envVarPaths[1],full.names=TRUE, pattern='.asc')) #predictors com todas as variaveis (presente)
+predictors = predictors[[c('bioclim_01','bioclim_12')]]
+predictors = stack(mask(x=predictors, mask=AmSulShape))
+crs(predictors) = CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0') #ajustando CRS
+Nsp = NumRep #numero de especies a serem criadas e trabalhadas igual ao numero de replicas
+statResultsSDMnormal = data.frame() #tabela de estatisticas basicas do modelo
+statResultsSDMimproved = data.frame()
 
 # ##definindo prametros e variaveis globais (LORIEN)
 # projectFolder = "J:/Pesquisadorxs/Anderson_Eduardo/high_quality_PA" #pasta do projeto
@@ -48,31 +48,52 @@ library(biomod2)
 # statResultsSDMnormal = data.frame() #tabela de estatisticas basicas do modelo
 # statResultsSDMimproved = data.frame()
 
-##definindo prametros e variaveis globais (PC nupeg)
-projectFolder = "D:/Anderson_Eduardo/SDM com pseudoausencias melhoradas" #pasta do projeto
-envVarFolder = "D:/Anderson_Eduardo/variaveis ambientais AmSul 120kyr/000" #pasta com as variaveis ambientais
-envVarPaths = list.files(path=envVarFolder, pattern='.asc', full.names=TRUE) #lista com os caminhos das camadas no sistema (comp.)
-AmSulShape = rgdal::readOGR("D:/Anderson_Eduardo/shapefiles/Am_Sul/borders.shp") #shape da America do Sul
-maxentFolder = 'D:/R-3.4.3/library/dismo/java/maxent/maxent.jar' #pasta para resultados do maxent
-## spsTypes = c('spHW', 'spHD', 'spCD') #nomes das especies
-## sdmTypes = c('normal','optimized')
-sampleSizes = c(20,40,80,160)
-NumRep = 10 #numero de replicas (de cada cenario amostral)
-##variaveis preditoras
-#elevation = raster('J:/Pesquisadorxs/Anderson_Eduardo/DEM/DEM.tif')
-predictors = stack(envVarPaths) #predictors com todas as variaveis (presente)
-predictors = predictors[[c('bioclim_01','bioclim_12')]]
-predictors = stack(mask(x=predictors, mask=AmSulShape))
-crs(predictors) = CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0') #ajustando CRS
-Nsp = NumRep #numero de especies a serem criadas e trabalhadas igual ao numero de replicas
-statResultsSDMnormal = data.frame() #tabela de estatisticas basicas do modelo
-statResultsSDMimproved = data.frame()
+## ##definindo prametros e variaveis globais (PC nupeg)
+## projectFolder = "D:/Anderson_Eduardo/SDM com pseudoausencias melhoradas" #pasta do projeto
+## envVarFolder = "D:/Anderson_Eduardo/variaveis ambientais AmSul 120kyr/000" #pasta com as variaveis ambientais
+## envVarPaths = list.files(path=envVarFolder, pattern='.asc', full.names=TRUE) #lista com os caminhos das camadas no sistema (comp.)
+## AmSulShape = rgdal::readOGR("D:/Anderson_Eduardo/shapefiles/Am_Sul/borders.shp") #shape da America do Sul
+## maxentFolder = 'D:/R-3.4.3/library/dismo/java/maxent/maxent.jar' #pasta para resultados do maxent
+## ## spsTypes = c('spHW', 'spHD', 'spCD') #nomes das especies
+## ## sdmTypes = c('normal','optimized')
+## sampleSizes = 40 #c(20,40,80,160)
+## NumRep = 10 #numero de replicas (de cada cenario amostral)
+## ##variaveis preditoras
+## #elevation = raster('J:/Pesquisadorxs/Anderson_Eduardo/DEM/DEM.tif')
+## predictors = stack(envVarPaths) #predictors com todas as variaveis (presente)
+## predictors = predictors[[c('bioclim_01','bioclim_12')]]
+## predictors = stack(mask(x=predictors, mask=AmSulShape))
+## crs(predictors) = CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0') #ajustando CRS
+## Nsp = NumRep #numero de especies a serem criadas e trabalhadas igual ao numero de replicas
+## statResultsSDMnormal = data.frame() #tabela de estatisticas basicas do modelo
+## statResultsSDMimproved = data.frame()
+
+## funcoes autorais :-)
+source('D:/Anderson_Eduardo/SDM com pseudoausencias melhoradas/makeSpecies.R')
+source('D:/Anderson_Eduardo/rangeByAC.R')
+source('D:/Anderson_Eduardo/SDM com pseudoausencias melhoradas/makeOutput.R')
+source('D:/Anderson_Eduardo/SDM com pseudoausencias melhoradas/bestModel.R')
 
 
 ##definindo diretorio de trabalho (importante porque o biomod2 salva tudo automaticamente)
 setwd(projectFolder)
 
 for(i in 1:Nsp){
+  
+  
+  ##PARTE 1: criando as especie artificial
+  
+  SpDistAC = makeSpecies(predictors, i)
+  
+  ##criando imagem da distribuicao de cada especie
+  jpeg(filename=paste(projectFolder,'/virtual species/sp',i,'.jpeg',sep=''))
+  plot(SpDistAC)
+  dev.off()
+  ##
+  writeRaster(x=SpDistAC, filename=paste(projectFolder,'/virtual species/sp',i,'.asc',sep=''), overwrite=TRUE)
+  rm(SpDistAC) ##teste do bug persistente
+  
+
   for(j in 1:length(sampleSizes)){
     tryCatch({
       
@@ -80,83 +101,84 @@ for(i in 1:Nsp){
       ##PARTE 1: criando as especie artificial
       
       
-      ##definindo parametros e variaveis locais
-      ##matriz##
-      datMat = as.data.frame(predictors, xy=TRUE, na.rm=TRUE) #transformando raster em data.frame
-      datMat = data.frame(datMat, fSp=0)
-      names(datMat) = c('lon', 'lat', 'bio1', 'bio12', paste('sp',i,sep='')) #ajustando os nomes das colunas do data.frame
+      # ##definindo parametros e variaveis locais
+      # ##matriz##
+      # datMat = as.data.frame(predictors, xy=TRUE, na.rm=TRUE) #transformando raster em data.frame
+      # datMat = data.frame(datMat, fSp=0)
+      # names(datMat) = c('lon', 'lat', 'bio1', 'bio12', paste('sp',i,sep='')) #ajustando os nomes das colunas do data.frame
+      # 
+      # ## x = 1:100
+      # ## a=1 #altura do pico
+      # ## b=10 #posicao do centro
+      # ## c=1 #largura
+      # ## #
+      # ## fx = exp(-((x-b)^2/(2*c^2)))
+      # ## plot(fx~x,ylim=c(0,1.2))
+      # 
+      # ##condicao para nao permitir distribuicoes vazias (i.e. inexistente) ou tbm sobre a Am. Sul toda. Condicao: distribuicao > 1% ou <95% da america do sul
+      # while( (sum(datMat[,paste('sp',i,sep='')]) < 0.05*(nrow(datMat))) | (sum(datMat[,paste('sp',i,sep='')]) > 0.5*(nrow(datMat))) ){
+      #   
+      #   ##equacoes para as dimensoes do nicho das especies
+      #   betaBio1 = runif(n=1, min=0.001, max=1)*sample(x=c(-1,1), size=1) #parametro para cada equacao de cada especie
+      #   betaBio12 = runif(n=1, min=0.001, max=1)*sample(x=c(-1,1), size=1) #parametro para cada equacao de cada especie
+      #   betaElev = runif(n=1, min=0.001, max=1)*sample(x=c(-1,1), size=1) #parametro para cada equacao de cada especie
+      #   ##
+      #   alphaBio1 = runif(n=1, min=quantile(datMat$bio1, probs=0.25, na.rm=TRUE), max=quantile(datMat$bio1, probs=0.75, na.rm=TRUE)) #parametro para cada equacao de cada especie
+      #   alphaBio12 = runif(n=1, min=quantile(datMat$bio12, probs=0.25, na.rm=TRUE), max=quantile(datMat$bio12, probs=0.75, na.rm=TRUE)) #parametro para cada equacao de cada especie
+      #   ## alphaElev = runif(n=1, min=quantile(datMat$elevation, probs=0.25, na.rm=TRUE), max=quantile(datMat$elevation, probs=0.75, na.rm=TRUE)) #parametro para cada equacao de cada especie
+      #   
+      #   
+      #   ## betaBio1 = abs(rnorm(n=Nsp,mean=0.1,sd=0.1)) #parametro para cada equacao de cada especie
+      #   ## betaBio12 = abs(rnorm(n=Nsp,mean=0.001,sd=0.1)) #parametro para cada equacao de cada especie
+      #   ## alphaBio1 = abs(rnorm(n=Nsp,mean=quantile(x=varBio1,probs=0.5,na.rm=TRUE))) #parametro para cada equacao de cada especie
+      #   ## alphaBio12 = abs(rnorm(n=Nsp,mean=quantile(x=varBio12,probs=0.5,na.rm=TRUE))) #parametro para cada equacao de cada especie
+      #   varBio1 = datMat$bio1 #variavel ambiental bioclim01
+      #   varBio12 = datMat$bio12 #variavel ambiental bioclim12
+      #   ## varElev = datMat$elevation
+      #   
+      #   ##solucao numerica para a equacoes do nicho de cada especie
+      #   fBio1Sp_i = as.integer( 1/(1+exp(betaBio1*(varBio1-alphaBio1))) > 0.1 ) #solucao da equacao com output binario ("suitability")
+      #   fBio12Sp_i = as.integer( 1/(1+exp(-betaBio12*(varBio12-alphaBio12))) > 0.1 ) #solucao da equacao com output binario ("suitability")
+      #   ## fElevSp_i = as.integer( 1/(1+exp(-betaElev*(varElev-alphaElev))) > 0.1 ) #solucao da equacao com output binario ("suitability")
+      #   
+      #   ## fBio1Sp_i = 1/(1+exp(-betaBio1[i]*(varBio1-alphaBio1[i]))) #solucao da equacao com output continuo ("suitability")
+      #   ## fBio12Sp_i = 1/(1+exp(-betaBio12[i]*(varBio12-alphaBio12[i]))) #solucao da equacao com output continuo ("suitability")
+      #   ## fBio1Sp_i = as.integer( exp(-((varBio1-alphaBio1)^2/(2*betaBio1^2))) > 0.1 ) #solucao da equacao com output binario ("suitability")
+      #   ## fBio12Sp_i = as.integer( exp(-((varBio12-alphaBio12)^2/(2*betaBio12^2))) > 0.1 ) #solucao da equacao com output binario ("suitability")
+      #   
+      #   ##datMat = data.frame(cbind(datMat,fSp=fBio1Sp_i*fBio12Sp_i)) #adicionando ao data.frame
+      #   ##names(datMat)[ncol(datMat)] = paste('sp',i,sep='') #ajustando os nomes das especies no data.farme
+      #   datMat[,paste('sp',i,sep='')] = fBio1Sp_i*fBio12Sp_i ##*fElevSp_i
+      #   
+      #   ##salvando graficos das equacoes de cada especie
+      #   ##jpeg(filename=paste('/home/anderson/Documentos/Projetos/divSpsSid/','functions_sp',i,'.jpeg',sep=''))
+      #   ##par(mfrow=c(1,2))
+      #   ## plot(fBio1Sp_i~varBio1,xlab='Bioclim 01',ylab='Suitability',ylim=c(0,1))
+      #   ## plot(fBio12Sp_i~varBio12,xlab='Bioclim 12',ylab='Suitability',ylim=c(0,1))
+      #   ## plot(fElevSp_i~varElev,xlab='Elevation',ylab='Suitability',ylim=c(0,1)) 
+      #   ##dev.off()
+      #   
+      # }
+      # 
+      # ##raster da distribuicao de adequabilidade climatica modelada
+      # SpDist = datMat[,c('lon','lat',paste('sp',i,sep=''))] #extraindo lon/lat e suitability (ou pres-aus) de cada especie
+      # coordinates(SpDist) = ~lon+lat #definindo colunas das coordenadas
+      # gridded(SpDist) = TRUE #definindo gridded
+      # proj4string(SpDist) = '+proj=lcc +lat_1=48 +lat_2=33 +lon_0=-100 +ellps=WGS84' #definindo proj
+      # rasterSpDist = raster(SpDist) #criando objeto raster
+      # 
+      # ##mapa da distribuicao (presenca/ausencia) com automato celular
+      # ##source("/home/anderson/R/R-Scripts/rangeByAC.R")
+      # ##source("J:/Pesquisadorxs/Anderson_Eduardo/high_quality_PA/rangeByAC.R")
+      # source('D:/Anderson_Eduardo/rangeByAC.R')
+      # SpDistAC = rangeByAC(rasterSpDist)      
       
-      ## x = 1:100
-      ## a=1 #altura do pico
-      ## b=10 #posicao do centro
-      ## c=1 #largura
-      ## #
-      ## fx = exp(-((x-b)^2/(2*c^2)))
-      ## plot(fx~x,ylim=c(0,1.2))
-      
-      ##condicao para nao permitir distribuicoes vazias (i.e. inexistente) ou tbm sobre a Am. Sul toda. Condicao: distribuicao > 1% ou <95% da america do sul
-      while( (sum(datMat[,paste('sp',i,sep='')]) < 0.05*(nrow(datMat))) | (sum(datMat[,paste('sp',i,sep='')]) > 0.5*(nrow(datMat))) ){
-        
-        ##equacoes para as dimensoes do nicho das especies
-        betaBio1 = runif(n=1, min=0.001, max=1)*sample(x=c(-1,1), size=1) #parametro para cada equacao de cada especie
-        betaBio12 = runif(n=1, min=0.001, max=1)*sample(x=c(-1,1), size=1) #parametro para cada equacao de cada especie
-        betaElev = runif(n=1, min=0.001, max=1)*sample(x=c(-1,1), size=1) #parametro para cada equacao de cada especie
-        ##
-        alphaBio1 = runif(n=1, min=quantile(datMat$bio1, probs=0.25, na.rm=TRUE), max=quantile(datMat$bio1, probs=0.75, na.rm=TRUE)) #parametro para cada equacao de cada especie
-        alphaBio12 = runif(n=1, min=quantile(datMat$bio12, probs=0.25, na.rm=TRUE), max=quantile(datMat$bio12, probs=0.75, na.rm=TRUE)) #parametro para cada equacao de cada especie
-        ## alphaElev = runif(n=1, min=quantile(datMat$elevation, probs=0.25, na.rm=TRUE), max=quantile(datMat$elevation, probs=0.75, na.rm=TRUE)) #parametro para cada equacao de cada especie
-        
-        
-        ## betaBio1 = abs(rnorm(n=Nsp,mean=0.1,sd=0.1)) #parametro para cada equacao de cada especie
-        ## betaBio12 = abs(rnorm(n=Nsp,mean=0.001,sd=0.1)) #parametro para cada equacao de cada especie
-        ## alphaBio1 = abs(rnorm(n=Nsp,mean=quantile(x=varBio1,probs=0.5,na.rm=TRUE))) #parametro para cada equacao de cada especie
-        ## alphaBio12 = abs(rnorm(n=Nsp,mean=quantile(x=varBio12,probs=0.5,na.rm=TRUE))) #parametro para cada equacao de cada especie
-        varBio1 = datMat$bio1 #variavel ambiental bioclim01
-        varBio12 = datMat$bio12 #variavel ambiental bioclim12
-        ## varElev = datMat$elevation
-        
-        ##solucao numerica para a equacoes do nicho de cada especie
-        fBio1Sp_i = as.integer( 1/(1+exp(betaBio1*(varBio1-alphaBio1))) > 0.1 ) #solucao da equacao com output binario ("suitability")
-        fBio12Sp_i = as.integer( 1/(1+exp(-betaBio12*(varBio12-alphaBio12))) > 0.1 ) #solucao da equacao com output binario ("suitability")
-        ## fElevSp_i = as.integer( 1/(1+exp(-betaElev*(varElev-alphaElev))) > 0.1 ) #solucao da equacao com output binario ("suitability")
-        
-        ## fBio1Sp_i = 1/(1+exp(-betaBio1[i]*(varBio1-alphaBio1[i]))) #solucao da equacao com output continuo ("suitability")
-        ## fBio12Sp_i = 1/(1+exp(-betaBio12[i]*(varBio12-alphaBio12[i]))) #solucao da equacao com output continuo ("suitability")
-        ## fBio1Sp_i = as.integer( exp(-((varBio1-alphaBio1)^2/(2*betaBio1^2))) > 0.1 ) #solucao da equacao com output binario ("suitability")
-        ## fBio12Sp_i = as.integer( exp(-((varBio12-alphaBio12)^2/(2*betaBio12^2))) > 0.1 ) #solucao da equacao com output binario ("suitability")
-        
-        ##datMat = data.frame(cbind(datMat,fSp=fBio1Sp_i*fBio12Sp_i)) #adicionando ao data.frame
-        ##names(datMat)[ncol(datMat)] = paste('sp',i,sep='') #ajustando os nomes das especies no data.farme
-        datMat[,paste('sp',i,sep='')] = fBio1Sp_i*fBio12Sp_i ##*fElevSp_i
-        
-        ##salvando graficos das equacoes de cada especie
-        ##jpeg(filename=paste('/home/anderson/Documentos/Projetos/divSpsSid/','functions_sp',i,'.jpeg',sep=''))
-        ##par(mfrow=c(1,2))
-        ## plot(fBio1Sp_i~varBio1,xlab='Bioclim 01',ylab='Suitability',ylim=c(0,1))
-        ## plot(fBio12Sp_i~varBio12,xlab='Bioclim 12',ylab='Suitability',ylim=c(0,1))
-        ## plot(fElevSp_i~varElev,xlab='Elevation',ylab='Suitability',ylim=c(0,1)) 
-        ##dev.off()
-        
-      }
-      
-      ##raster da distribuicao de adequabilidade climatica modelada
-      SpDist = datMat[,c('lon','lat',paste('sp',i,sep=''))] #extraindo lon/lat e suitability (ou pres-aus) de cada especie
-      coordinates(SpDist) = ~lon+lat #definindo colunas das coordenadas
-      gridded(SpDist) = TRUE #definindo gridded
-      proj4string(SpDist) = '+proj=lcc +lat_1=48 +lat_2=33 +lon_0=-100 +ellps=WGS84' #definindo proj
-      rasterSpDist = raster(SpDist) #criando objeto raster
-      
-      ##mapa da distribuicao (presenca/ausencia) com automato celular
-      ##source("/home/anderson/R/R-Scripts/rangeByAC.R")
-      ##source("J:/Pesquisadorxs/Anderson_Eduardo/high_quality_PA/rangeByAC.R")
-      source('D:/Anderson_Eduardo/rangeByAC.R')
-      SpDistAC = rangeByAC(rasterSpDist)            
-      
-      ##criando imagem da distribuicao de cada especie
-      jpeg(filename=paste(projectFolder,'/virtual species/sp',i,'_sampleSize',sampleSizes[j],'.jpeg',sep=''))
-      plot(SpDistAC)
-      dev.off()
-      writeRaster(x=SpDistAC, filename=paste(projectFolder,'/virtual species/sp',i,'sampleSize',sampleSizes[j],'.asc',sep=''), overwrite=TRUE)
+      # ##criando imagem da distribuicao de cada especie
+      # jpeg(filename=paste(projectFolder,'/virtual species/sp',i,'_sampleSize',sampleSizes[j],'.jpeg',sep=''))
+      # plot(SpDistAC)
+      # dev.off()
+      # writeRaster(x=SpDistAC, filename=paste(projectFolder,'/virtual species/sp',i,'sampleSize',sampleSizes[j],'.asc',sep=''), overwrite=TRUE)
+      # rm(SpDistAC)
       
       
       ##PARTE 2: modelando ausencias 
@@ -167,10 +189,12 @@ for(i in 1:Nsp){
       
       ##definindo variaveis e parametros locais
       ##occPoints = read.csv(paste(mainSampleFolder,sdmTypes[h],'/',spsTypes[i],'/occ',sampleSizes[j],'.csv',sep=''),header=TRUE) #abrindo pontos de ocorrencia
+      SpDistAC = raster(paste(projectFolder,'/virtual species/sp',i,'.asc',sep=''))
       values(SpDistAC)[values(SpDistAC)==0] = NA
       
       ##amostra de pontos
       occPoints = dismo::randomPoints(mask=SpDistAC, n=sampleSizes[j]) #sorteando pontos da distribuicao modelada
+      rm(SpDistAC) ##teste do bug persistente
       occPoints = data.frame(lon=occPoints[,1],lat=occPoints[,2])
       
       myResp <- data.frame(lon=occPoints[,1], lat=occPoints[,2])
@@ -339,7 +363,6 @@ for(i in 1:Nsp){
       #                                           stringsAsFactors = FALSE)
       # )
       
-      source('D:/Anderson_Eduardo/SDM com pseudoausencias melhoradas/makeOutput.R')
       statResultsSDMnormal = makeOutput(evaluationScores, statResultsSDMnormal, i, j, 'normal', sampleSizes[j])
       
       write.csv(statResultsSDMnormal, file=paste(projectFolder,'/StatisticalResults_SDMnormal.csv',sep=''), row.names=FALSE)
@@ -371,8 +394,7 @@ for(i in 1:Nsp){
       # ##nomes dos melhores modelos
       # modelNames = grep(pattern=paste(c(patternsTSS,patternsAUC),collapse='|'), x=myBiomodModelOut@models.computed, value=TRUE)
       
-      source('D:/Anderson_Eduardo/SDM com pseudoausencias melhoradas/bestModel.R')
-      modelNames = bestModel(evaluationScores)
+      modelNames = bestModel(evaluationScores, statResultsSDMnormal, myBiomodModelOut)
       rm(evaluationScores)
       
       ## if (bestAlgorithmTSS == bestAlgorithmAUC){
@@ -607,7 +629,6 @@ for(i in 1:Nsp){
       #                                           stringsAsFactors = FALSE)
       # )
       
-      source('D:/Anderson_Eduardo/SDM com pseudoausencias melhoradas/makeOutput.R')
       statResultsSDMimproved = makeOutput(evaluationScores, statResultsSDMimproved, i, j, 'improved', sampleSizes[j])
       rm(evaluationScores)
       
@@ -634,7 +655,7 @@ for(i in 1:Nsp){
 }
 
 ##calculando tempo gasto para processamento
-timeOne - Sys.time()
+Sys.time() - timeOne
 
 
 ##PARTE 4: graficos e analise dos resultados
@@ -647,8 +668,19 @@ setwd(projectFolder)
 statResultsSDMimproved = read.csv(paste(projectFolder,'/StatisticalResults_SDMimproved','.csv',sep=''), header=TRUE)
 statResultsSDMnormal = read.csv(paste(projectFolder,'/StatisticalResults_SDMnormal','.csv',sep=''), header=TRUE)
 
-statResultsSDMimproved = read.csv(paste(projectFolder,'/improved','.csv',sep=''), header=TRUE)
-statResultsSDMnormal = read.csv(paste(projectFolder,'/normal','.csv',sep=''), header=TRUE)
+## deixando so os cenarios que rodaram para os dois SDMs
+dim(statResultsSDMnormal)
+dim(statResultsSDMimproved)
+
+##obs: usar o merge() para recortar a planilha que for maior
+##exemplo:
+##newTab=merge(tabB,tabA,by=c('infoA','infoB'))[,-3] ##a terceira coluna e da planilha menor
+
+statResultsSDMimproved = merge(statResultsSDMnormal, statResultsSDMimproved, by=c())[] 
+
+
+# statResultsSDMimproved = read.csv(paste(projectFolder,'/improved','.csv',sep=''), header=TRUE)
+# statResultsSDMnormal = read.csv(paste(projectFolder,'/normal','.csv',sep=''), header=TRUE)
 
 ##boxplot AUC
 jpeg(filename='boxplotAUC.jpeg')
@@ -662,22 +694,22 @@ dev.off()
 
 ##AUC x sample size
 jpeg(filename='AUC_&_sampleSize.jpeg')
-plot(statResultsSDMnormal$bestModelAUC~statResultsSDMnormal$sampleSize, ylim=c(0,1), xlim=c(0,90), cex=2, pch=19, col=rgb(0,0,0,0.5), xlab='Sample size', ylab='AUC')
-tendenciaSDMnormalAUC = lm(statResultsSDMnormal$AUC~statResultsSDMnormal$sampleSize)
+plot(statResultsSDMnormal$AUCvalue_bestModel~statResultsSDMnormal$sampleSize, ylim=c(0,1), xlim=c(0,90), cex=2, pch=19, col=rgb(0,0,0,0.5), xlab='Sample size', ylab='AUC')
+tendenciaSDMnormalAUC = lm(statResultsSDMnormal$AUCvalue_bestModel~statResultsSDMnormal$sampleSize)
 abline(tendenciaSDMnormalAUC)
-points(statResultsSDMimproved$AUC~statResultsSDMimproved$sampleSize, ylim=c(0,1), xlim=c(0,90), cex=1.5, pch=20, col=rgb(0,0,1,0.5))
-tendenciaSDMimprovedAUC = lm(statResultsSDMimproved$AUC~statResultsSDMimproved$sampleSize)
+points(statResultsSDMimproved$AUCvalue_bestModel~statResultsSDMimproved$sampleSize, ylim=c(0,1), xlim=c(0,90), cex=1.5, pch=20, col=rgb(0,0,1,0.5))
+tendenciaSDMimprovedAUC = lm(statResultsSDMimproved$AUCvalue_bestModel~statResultsSDMimproved$sampleSize)
 abline(tendenciaSDMimprovedAUC, col='blue')
 legend('bottomleft',legend=c('SDM normal','SDM improved'), pch=c(19,20), col=c(rgb(0,0,0,0.5),rgb(0,0,1,0.5)))
 dev.off()
 
 ##TSS x sample size
 jpeg(filename='TSS_&_sampleSize.jpeg')
-plot(statResultsSDMnormal$TSS~statResultsSDMnormal$sampleSize, ylim=c(0,1), xlim=c(0,90), cex=2, pch=19, col=rgb(0,0,0,0.5), xlab='Sample size', ylab='TSS')
-tendenciaSDMnormalTSS = lm(statResultsSDMnormal$TSS~statResultsSDMnormal$sampleSize)
+plot(statResultsSDMnormal$TSSvalue_bestModel~statResultsSDMnormal$sampleSize, ylim=c(0,1), xlim=c(0,90), cex=2, pch=19, col=rgb(0,0,0,0.5), xlab='Sample size', ylab='TSS')
+tendenciaSDMnormalTSS = lm(statResultsSDMnormal$TSSvalue_bestModel~statResultsSDMnormal$sampleSize)
 abline(tendenciaSDMnormalTSS)
-points(statResultsSDMimproved$TSS~statResultsSDMimproved$sampleSize, ylim=c(0,1), xlim=c(0,90), cex=1.5, pch=20, col=rgb(0,0,1,0.5))
-tendenciaSDMimprovedTSS = lm(statResultsSDMimproved$TSS~statResultsSDMimproved$sampleSize)
+points(statResultsSDMimproved$TSSvalue_bestModel~statResultsSDMimproved$sampleSize, ylim=c(0,1), xlim=c(0,90), cex=1.5, pch=20, col=rgb(0,0,1,0.5))
+tendenciaSDMimprovedTSS = lm(statResultsSDMimproved$TSSvalue_bestModel~statResultsSDMimproved$sampleSize)
 abline(tendenciaSDMimprovedTSS, col='blue')
 legend('bottomleft',legend=c('SDM normal','SDM improved'), pch=c(19,20), col=c(rgb(0,0,0,0.5),rgb(0,0,1,0.5)))
 dev.off()
@@ -692,4 +724,23 @@ tssTest =  wilcox.test(statResultsSDMimproved$TSSvalue_bestModel,statResultsSDMn
 tssTest
 
 ##comparacao em termos de porcentagem
+
+set.seed(8354)
+r <-raster(matrix(ncol=5,nrow=5,abs(round(rnorm(25,5,5),0))))
+e <- extent(c(0,5,0,5))
+extent(r) <- e
+plot(r)
+pts = data.frame(2.5,2.5)
+points(pts,cex=3,pch=19)
+
+buf = adjacent(r,cellFromXY(r,pts),8)[,'to']
+
+
+xx=xyFromCell(r,buf)
+xx=data.frame(xx)
+coordinates(xx) = ~x+y
+gridded(xx) = TRUE
+
+plot(r)
+plot(xx,add=T)
 

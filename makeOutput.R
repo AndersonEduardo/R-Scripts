@@ -6,15 +6,15 @@
 
 makeOutput = function(outputDataRaw, data_frame, i_index,j_index, sdm_type, sample_size){
 
-	## parametros locais  
-	evaluationScores = outputDataRaw
+	  ## parametros locais  
+	  evaluationScores = outputDataRaw
   	statResults = data_frame
   	i = i_index
   	j = j_index
   	SDM = sdm_type
   	sampleSize = sample_size
   
-  	##e specificidade
+  	##especificidade
   	outputRawTSSspec = evaluationScores['TSS','Specificity',,,]
   	outputRawTSSspec = outputRawTSSspec[complete.cases(outputRawTSSspec),]
   	outputRawAUCspec = evaluationScores['ROC','Specificity',,,]
@@ -54,7 +54,7 @@ makeOutput = function(outputDataRaw, data_frame, i_index,j_index, sdm_type, samp
   	##medias
   	meanTSSValue = as.numeric(apply(outputRawTSSvalue, 1, mean, na.rm=TRUE))
   	meanTSSspecificity = as.numeric(apply(outputRawTSSspec, 1, mean, na.rm=TRUE))
- 	meanAUCValue = as.numeric(apply(outputRawAUCvalue, 1, mean, na.rm=TRUE))
+ 	  meanAUCValue = as.numeric(apply(outputRawAUCvalue, 1, mean, na.rm=TRUE))
   	meanAUCspecificity = as.numeric(apply(outputRawAUCspec, 1, mean, na.rm=TRUE))
   
   	##gravando estatisticas basicas do melhor modelo de cada algoritmo
