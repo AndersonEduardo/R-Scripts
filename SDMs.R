@@ -20,7 +20,7 @@ projectFolder = "/home/anderson/PosDoc/teste/"
 
 ####ABRINDO AS VARIAVEIS CLIMATICAS#####
 #abrindo shape da America do Sul
-AmSulShape = readShapePoly("/home/anderson/PosDoc/Am_Sul/borders.shp")
+AmSulShape = rgdal::readOGR("/home/anderson/PosDoc/shapefiles/Am_Sul/borders.shp")
 
 #abrindo e cortando camads de variaveis ambientais para o presente
 filesRaw <- stack(list.files(path=paste(envVarFolder,"dados_projeto/000",sep=''), pattern='asc', full.names=T)) ### stack all rasters in Bioclim folder
@@ -181,7 +181,7 @@ names(output11kyr) = 'suitability'
 
 ##media dos valores de suitability (11kyrBP)
 jacares11kyr = getValues(raster.layer.11)
-colMeans(jacares11kyr, na.rm=TRUE)
+apply(jacares11kyr, 2, median, na.rm=TRUE)
 
 ##suitability no registro fossil de 21 kyr
 raster.layer.21 = stack(list.files(paste(projectFolder,teste,'/Passado/Raster Layers',sep=''),full.names=TRUE,pattern=glob2rx('*21*BP.asc')))
@@ -196,7 +196,6 @@ names(output21kyr) = 'suitability'
 ##media dos valores de suitability (21kyrBP)
 jacares21kyr = getValues(raster.layer.21)
 apply(jacares21kyr, 2, median, na.rm=TRUE)
-colMeans(jacares21kyr, na.rm=TRUE)
 
 ##suitability no registro fossil de 19 e 20 kyr
 kyr19 = list.files(paste(projectFolder,teste,'/Passado/Raster Layers',sep=''),full.names=TRUE,pattern=glob2rx('*19*BP.asc'))
@@ -213,7 +212,6 @@ names(output19kyr) = 'suitability'
 ##media dos valores de suitability (19 e 20kyrBP)
 mcoypus = getValues(raster.layer.19)
 apply(mcoypus, 2, median, na.rm=TRUE)
-colMeans(mcoypus, na.rm=TRUE)
 
 ##suitability no registro fossil de 13 e 14 kyr
 kyr13 = list.files(paste(projectFolder,teste,'/Passado/Raster Layers',sep=''),full.names=TRUE,pattern=glob2rx('*13*BP.asc'))
@@ -230,7 +228,6 @@ names(output13kyr) = 'suitability'
 ##media dos valores de suitability (13 e 14kyrBP)
 lmaxim = getValues(raster.layer.13)
 apply(lmaxim, 2, median, na.rm=TRUE)
-colMeans(lmaxim, na.rm=TRUE)
 
 ##tabela unificada
 suitabTable = rbind(output11kyr,output21kyr,output19kyr,output13kyr)

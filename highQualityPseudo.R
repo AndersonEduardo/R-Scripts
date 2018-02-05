@@ -6,7 +6,10 @@ timeOne = Sys.time()
 
 ##abrindo pacotes necessarios
 library(raster)
+library(rJava)
 library(biomod2)
+Sys.setenv(JAVA_HOME = "/usr/lib/jvm/java-7-openjdk-amd64")
+options(java.parameters = "Xmx7g")
 
 ##definindo prametros e variaveis globais (NOTEBOOK)
 projectFolder = "/home/anderson/Documentos/Projetos/Improved pseudo-absences" #pasta do projeto
@@ -53,10 +56,8 @@ statResultsSDMimproved = data.frame()
 ## envVarFolder = "D:/Anderson_Eduardo/variaveis ambientais AmSul 120kyr/000" #pasta com as variaveis ambientais
 ## envVarPaths = list.files(path=envVarFolder, pattern='.asc', full.names=TRUE) #lista com os caminhos das camadas no sistema (comp.)
 ## AmSulShape = rgdal::readOGR("D:/Anderson_Eduardo/shapefiles/Am_Sul/borders.shp") #shape da America do Sul
-## maxentFolder = 'D:/R-3.4.3/library/dismo/java/maxent/maxent.jar' #pasta para resultados do maxent
-## ## spsTypes = c('spHW', 'spHD', 'spCD') #nomes das especies
-## ## sdmTypes = c('normal','optimized')
-## sampleSizes = 40 #c(20,40,80,160)
+## maxentFolder = 'D:/Anderson_Eduardo/maxent/maxent.jar' #pasta para resultados do maxent
+## sampleSizes = c(20,40,80,160)
 ## NumRep = 10 #numero de replicas (de cada cenario amostral)
 ## ##variaveis preditoras
 ## #elevation = raster('J:/Pesquisadorxs/Anderson_Eduardo/DEM/DEM.tif')
@@ -78,10 +79,11 @@ source('D:/Anderson_Eduardo/SDM com pseudoausencias melhoradas/bestModel.R')
 ##definindo diretorio de trabalho (importante porque o biomod2 salva tudo automaticamente)
 setwd(projectFolder)
 
+
+##PARTE 1: criando as especies artificiais
+
+
 for(i in 1:Nsp){
-  
-  
-  ##PARTE 1: criando as especie artificial
   
   SpDistAC = makeSpecies(predictors, i)
   
@@ -93,96 +95,14 @@ for(i in 1:Nsp){
   writeRaster(x=SpDistAC, filename=paste(projectFolder,'/virtual species/sp',i,'.asc',sep=''), overwrite=TRUE)
   rm(SpDistAC) ##teste do bug persistente
   
+}
 
+
+##PARTE 2: modelando ausencias 
+
+for(i in 1:Nsp){
   for(j in 1:length(sampleSizes)){
     tryCatch({
-      
-      
-      ##PARTE 1: criando as especie artificial
-      
-      
-      # ##definindo parametros e variaveis locais
-      # ##matriz##
-      # datMat = as.data.frame(predictors, xy=TRUE, na.rm=TRUE) #transformando raster em data.frame
-      # datMat = data.frame(datMat, fSp=0)
-      # names(datMat) = c('lon', 'lat', 'bio1', 'bio12', paste('sp',i,sep='')) #ajustando os nomes das colunas do data.frame
-      # 
-      # ## x = 1:100
-      # ## a=1 #altura do pico
-      # ## b=10 #posicao do centro
-      # ## c=1 #largura
-      # ## #
-      # ## fx = exp(-((x-b)^2/(2*c^2)))
-      # ## plot(fx~x,ylim=c(0,1.2))
-      # 
-      # ##condicao para nao permitir distribuicoes vazias (i.e. inexistente) ou tbm sobre a Am. Sul toda. Condicao: distribuicao > 1% ou <95% da america do sul
-      # while( (sum(datMat[,paste('sp',i,sep='')]) < 0.05*(nrow(datMat))) | (sum(datMat[,paste('sp',i,sep='')]) > 0.5*(nrow(datMat))) ){
-      #   
-      #   ##equacoes para as dimensoes do nicho das especies
-      #   betaBio1 = runif(n=1, min=0.001, max=1)*sample(x=c(-1,1), size=1) #parametro para cada equacao de cada especie
-      #   betaBio12 = runif(n=1, min=0.001, max=1)*sample(x=c(-1,1), size=1) #parametro para cada equacao de cada especie
-      #   betaElev = runif(n=1, min=0.001, max=1)*sample(x=c(-1,1), size=1) #parametro para cada equacao de cada especie
-      #   ##
-      #   alphaBio1 = runif(n=1, min=quantile(datMat$bio1, probs=0.25, na.rm=TRUE), max=quantile(datMat$bio1, probs=0.75, na.rm=TRUE)) #parametro para cada equacao de cada especie
-      #   alphaBio12 = runif(n=1, min=quantile(datMat$bio12, probs=0.25, na.rm=TRUE), max=quantile(datMat$bio12, probs=0.75, na.rm=TRUE)) #parametro para cada equacao de cada especie
-      #   ## alphaElev = runif(n=1, min=quantile(datMat$elevation, probs=0.25, na.rm=TRUE), max=quantile(datMat$elevation, probs=0.75, na.rm=TRUE)) #parametro para cada equacao de cada especie
-      #   
-      #   
-      #   ## betaBio1 = abs(rnorm(n=Nsp,mean=0.1,sd=0.1)) #parametro para cada equacao de cada especie
-      #   ## betaBio12 = abs(rnorm(n=Nsp,mean=0.001,sd=0.1)) #parametro para cada equacao de cada especie
-      #   ## alphaBio1 = abs(rnorm(n=Nsp,mean=quantile(x=varBio1,probs=0.5,na.rm=TRUE))) #parametro para cada equacao de cada especie
-      #   ## alphaBio12 = abs(rnorm(n=Nsp,mean=quantile(x=varBio12,probs=0.5,na.rm=TRUE))) #parametro para cada equacao de cada especie
-      #   varBio1 = datMat$bio1 #variavel ambiental bioclim01
-      #   varBio12 = datMat$bio12 #variavel ambiental bioclim12
-      #   ## varElev = datMat$elevation
-      #   
-      #   ##solucao numerica para a equacoes do nicho de cada especie
-      #   fBio1Sp_i = as.integer( 1/(1+exp(betaBio1*(varBio1-alphaBio1))) > 0.1 ) #solucao da equacao com output binario ("suitability")
-      #   fBio12Sp_i = as.integer( 1/(1+exp(-betaBio12*(varBio12-alphaBio12))) > 0.1 ) #solucao da equacao com output binario ("suitability")
-      #   ## fElevSp_i = as.integer( 1/(1+exp(-betaElev*(varElev-alphaElev))) > 0.1 ) #solucao da equacao com output binario ("suitability")
-      #   
-      #   ## fBio1Sp_i = 1/(1+exp(-betaBio1[i]*(varBio1-alphaBio1[i]))) #solucao da equacao com output continuo ("suitability")
-      #   ## fBio12Sp_i = 1/(1+exp(-betaBio12[i]*(varBio12-alphaBio12[i]))) #solucao da equacao com output continuo ("suitability")
-      #   ## fBio1Sp_i = as.integer( exp(-((varBio1-alphaBio1)^2/(2*betaBio1^2))) > 0.1 ) #solucao da equacao com output binario ("suitability")
-      #   ## fBio12Sp_i = as.integer( exp(-((varBio12-alphaBio12)^2/(2*betaBio12^2))) > 0.1 ) #solucao da equacao com output binario ("suitability")
-      #   
-      #   ##datMat = data.frame(cbind(datMat,fSp=fBio1Sp_i*fBio12Sp_i)) #adicionando ao data.frame
-      #   ##names(datMat)[ncol(datMat)] = paste('sp',i,sep='') #ajustando os nomes das especies no data.farme
-      #   datMat[,paste('sp',i,sep='')] = fBio1Sp_i*fBio12Sp_i ##*fElevSp_i
-      #   
-      #   ##salvando graficos das equacoes de cada especie
-      #   ##jpeg(filename=paste('/home/anderson/Documentos/Projetos/divSpsSid/','functions_sp',i,'.jpeg',sep=''))
-      #   ##par(mfrow=c(1,2))
-      #   ## plot(fBio1Sp_i~varBio1,xlab='Bioclim 01',ylab='Suitability',ylim=c(0,1))
-      #   ## plot(fBio12Sp_i~varBio12,xlab='Bioclim 12',ylab='Suitability',ylim=c(0,1))
-      #   ## plot(fElevSp_i~varElev,xlab='Elevation',ylab='Suitability',ylim=c(0,1)) 
-      #   ##dev.off()
-      #   
-      # }
-      # 
-      # ##raster da distribuicao de adequabilidade climatica modelada
-      # SpDist = datMat[,c('lon','lat',paste('sp',i,sep=''))] #extraindo lon/lat e suitability (ou pres-aus) de cada especie
-      # coordinates(SpDist) = ~lon+lat #definindo colunas das coordenadas
-      # gridded(SpDist) = TRUE #definindo gridded
-      # proj4string(SpDist) = '+proj=lcc +lat_1=48 +lat_2=33 +lon_0=-100 +ellps=WGS84' #definindo proj
-      # rasterSpDist = raster(SpDist) #criando objeto raster
-      # 
-      # ##mapa da distribuicao (presenca/ausencia) com automato celular
-      # ##source("/home/anderson/R/R-Scripts/rangeByAC.R")
-      # ##source("J:/Pesquisadorxs/Anderson_Eduardo/high_quality_PA/rangeByAC.R")
-      # source('D:/Anderson_Eduardo/rangeByAC.R')
-      # SpDistAC = rangeByAC(rasterSpDist)      
-      
-      # ##criando imagem da distribuicao de cada especie
-      # jpeg(filename=paste(projectFolder,'/virtual species/sp',i,'_sampleSize',sampleSizes[j],'.jpeg',sep=''))
-      # plot(SpDistAC)
-      # dev.off()
-      # writeRaster(x=SpDistAC, filename=paste(projectFolder,'/virtual species/sp',i,'sampleSize',sampleSizes[j],'.asc',sep=''), overwrite=TRUE)
-      # rm(SpDistAC)
-      
-      
-      ##PARTE 2: modelando ausencias 
-      
       
       ##diretorio para o biomod2 salvar resultados para SDMnormal
       setwd(file.path(projectFolder,'SDMnormal'))
@@ -219,7 +139,7 @@ for(i in 1:Nsp){
       
       ##parametrizando os modelos
       myBiomodOption <- BIOMOD_ModelingOptions(
-        MAXENT.Phillips = list(path_to_maxent.jar=maxentFolder,
+        MAXENT.Phillips = list(path_to_maxent.jar= maxentFolder,
                                linear=TRUE,
                                quadratic=TRUE,
                                product=FALSE,
@@ -288,7 +208,7 @@ for(i in 1:Nsp){
       ##rodando o(s) algoritmo(s) (i.e. SDMs)
       myBiomodModelOut <- BIOMOD_Modeling(
         data = myBiomodData,
-        models = c('MAXENT.Phillips','GLM', 'GAM', 'MARS', 'CTA', 'GBM', 'RF'),
+        models = c('MAXENT.Phillips', 'GLM', 'GAM', 'MARS', 'CTA', 'GBM', 'RF'),
         models.options = myBiomodOption,
         NbRunEval = 10,
         DataSplit = 75,
@@ -429,9 +349,17 @@ for(i in 1:Nsp){
       
       ##projStackBIN = projStack>0.5  #BinaryTransformation(projStack,"10")
       
-      
-      ##PARTE 3: SDM com pseudoausencias melhoradas
-      
+    }, error=function(e){cat("ERROR :",conditionMessage(e), "/n")})
+  }
+}
+
+
+
+##PARTE 3: SDM com pseudoausencias melhoradas
+
+for(i in 1:Nsp){
+  for(j in 1:length(sampleSizes)){
+    tryCatch({     
       
       ##diretorio para biomod salvar os resultados
       setwd(file.path(projectFolder,'SDMimproved'))
@@ -668,6 +596,9 @@ setwd(projectFolder)
 statResultsSDMimproved = read.csv(paste(projectFolder,'/StatisticalResults_SDMimproved','.csv',sep=''), header=TRUE)
 statResultsSDMnormal = read.csv(paste(projectFolder,'/StatisticalResults_SDMnormal','.csv',sep=''), header=TRUE)
 
+# statResultsSDMimproved = read.csv(paste(projectFolder,'/improved','.csv',sep=''), header=TRUE)
+# statResultsSDMnormal = read.csv(paste(projectFolder,'/normal','.csv',sep=''), header=TRUE)
+
 ## deixando so os cenarios que rodaram para os dois SDMs
 dim(statResultsSDMnormal)
 dim(statResultsSDMimproved)
@@ -676,28 +607,58 @@ dim(statResultsSDMimproved)
 ##exemplo:
 ##newTab=merge(tabB,tabA,by=c('infoA','infoB'))[,-3] ##a terceira coluna e da planilha menor
 
-statResultsSDMimproved = merge(statResultsSDMnormal, statResultsSDMimproved, by=c())[] 
+statResultsSDMnormal = merge(statResultsSDMimproved,
+           statResultsSDMnormal, 
+           by=c('sampleSize','sp','model'))[,c('SDM.y',
+                                               'sampleSize',
+                                               'sp',
+                                               'model', 
+                                               'meanTSSValue.y', 
+                                               'meanTSSspecificity.y', 
+                                               'maxTSSspecificity.y', 
+                                               'bestModelTSS.y', 
+                                               'TSSvalue_bestModel.y', 
+                                               'meanAUCValue.y', 
+                                               'meanAUCspecificity.y', 
+                                               'maxAUCspecificity.y', 
+                                               'bestModelAUC.y', 
+                                               'AUCvalue_bestModel.y')]
 
+##ajustando so nomes
+names(statResultsSDMnormal) = names(statResultsSDMimproved)
 
-# statResultsSDMimproved = read.csv(paste(projectFolder,'/improved','.csv',sep=''), header=TRUE)
-# statResultsSDMnormal = read.csv(paste(projectFolder,'/normal','.csv',sep=''), header=TRUE)
+##chacagem rapida
+for(i in c('MAXENT.Phillips','CTA',  'GAM',  'GBM',  'GLM',  'MARS', 'RF')){
+  print(paste(i, 
+    ' ==>> SDMnormal = ', dim(statResultsSDMnormal[statResultsSDMnormal$model==i,])[1], ' linhas e ', dim(statResultsSDMnormal[statResultsSDMnormal$model==i,])[2], ' colunas',
+    ' // ',
+    'SDMimproved = ', dim(statResultsSDMimproved[statResultsSDMimproved$model==i,])[1], ' linhas e ',dim(statResultsSDMimproved[statResultsSDMimproved$model==i,])[2], ' colunas',
+    sep=''))
+}
+
 
 ##boxplot AUC
 jpeg(filename='boxplotAUC.jpeg')
-boxplot(statResultsSDMnormal$AUC, statResultsSDMimproved$AUC, ylim=c(0,1), names=c('SDM normal','SDM improved'), ylab='AUC')
+boxplot(statResultsSDMnormal$AUCvalue_bestModel, statResultsSDMimproved$AUCvalue_bestModel, ylim=c(0,1), names=c('SDM normal','SDM improved'), ylab='AUC')
 dev.off()
+
+plot(density(statResultsSDMnormal$AUCvalue_bestModel, ylim=c(0,1), names=c('SDM normal','SDM improved'), ylab='TSS'), ylim=c(0,20),col='blue')
+lines(density(statResultsSDMimproved$AUCvalue_bestModel, ylim=c(0,1), names=c('SDM normal','SDM improved'), ylab='TSS'),col='red')
 
 ##boxplot TSS
 jpeg(filename='boxplotTSS.jpeg')
-boxplot(statResultsSDMnormal$TSS, statResultsSDMimproved$TSS, ylim=c(0,1), names=c('SDM normal','SDM improved'), ylab='TSS')
+boxplot(statResultsSDMnormal$TSSvalue_bestModel, statResultsSDMimproved$TSSvalue_bestModel, ylim=c(0,1), names=c('SDM normal','SDM improved'), ylab='TSS')
 dev.off()
+
+plot(density(statResultsSDMnormal$TSSvalue_bestModel, ylim=c(0,1), names=c('SDM normal','SDM improved'), ylab='TSS'), ylim=c(0,11),col='blue')
+lines(density(statResultsSDMimproved$TSSvalue_bestModel, ylim=c(0,1), names=c('SDM normal','SDM improved'), ylab='TSS'),col='red')
 
 ##AUC x sample size
 jpeg(filename='AUC_&_sampleSize.jpeg')
-plot(statResultsSDMnormal$AUCvalue_bestModel~statResultsSDMnormal$sampleSize, ylim=c(0,1), xlim=c(0,90), cex=2, pch=19, col=rgb(0,0,0,0.5), xlab='Sample size', ylab='AUC')
+plot(statResultsSDMnormal$AUCvalue_bestModel~statResultsSDMnormal$sampleSize, ylim=c(0,1), xlim=c(0,170), cex=2, pch=19, col=rgb(0,0,0,0.5), xlab='Sample size', ylab='AUC')
 tendenciaSDMnormalAUC = lm(statResultsSDMnormal$AUCvalue_bestModel~statResultsSDMnormal$sampleSize)
 abline(tendenciaSDMnormalAUC)
-points(statResultsSDMimproved$AUCvalue_bestModel~statResultsSDMimproved$sampleSize, ylim=c(0,1), xlim=c(0,90), cex=1.5, pch=20, col=rgb(0,0,1,0.5))
+points(statResultsSDMimproved$AUCvalue_bestModel~statResultsSDMimproved$sampleSize, ylim=c(0,1), xlim=c(0,170), cex=1.5, pch=20, col=rgb(0,0,1,0.5))
 tendenciaSDMimprovedAUC = lm(statResultsSDMimproved$AUCvalue_bestModel~statResultsSDMimproved$sampleSize)
 abline(tendenciaSDMimprovedAUC, col='blue')
 legend('bottomleft',legend=c('SDM normal','SDM improved'), pch=c(19,20), col=c(rgb(0,0,0,0.5),rgb(0,0,1,0.5)))
@@ -705,42 +666,56 @@ dev.off()
 
 ##TSS x sample size
 jpeg(filename='TSS_&_sampleSize.jpeg')
-plot(statResultsSDMnormal$TSSvalue_bestModel~statResultsSDMnormal$sampleSize, ylim=c(0,1), xlim=c(0,90), cex=2, pch=19, col=rgb(0,0,0,0.5), xlab='Sample size', ylab='TSS')
+plot(statResultsSDMnormal$TSSvalue_bestModel~statResultsSDMnormal$sampleSize, ylim=c(0,1), xlim=c(0,170), cex=2, pch=19, col=rgb(0,0,0,0.5), xlab='Sample size', ylab='TSS')
 tendenciaSDMnormalTSS = lm(statResultsSDMnormal$TSSvalue_bestModel~statResultsSDMnormal$sampleSize)
 abline(tendenciaSDMnormalTSS)
-points(statResultsSDMimproved$TSSvalue_bestModel~statResultsSDMimproved$sampleSize, ylim=c(0,1), xlim=c(0,90), cex=1.5, pch=20, col=rgb(0,0,1,0.5))
+points(statResultsSDMimproved$TSSvalue_bestModel~statResultsSDMimproved$sampleSize, ylim=c(0,1), xlim=c(0,170), cex=1.5, pch=20, col=rgb(0,0,1,0.5))
 tendenciaSDMimprovedTSS = lm(statResultsSDMimproved$TSSvalue_bestModel~statResultsSDMimproved$sampleSize)
 abline(tendenciaSDMimprovedTSS, col='blue')
-legend('bottomleft',legend=c('SDM normal','SDM improved'), pch=c(19,20), col=c(rgb(0,0,0,0.5),rgb(0,0,1,0.5)))
+legend('bottomleft',legend=c('SDM normal','SDM improved'), pch=c(19,20), col=c(rgb(0,0,0,0.5),rgb(0,0,1,0.5)),bg='white')
 dev.off()
 
 
 ##teste de significancia
 
-aucTest =  wilcox.test(statResultsSDMimproved$AUCvalue_bestModel,statResultsSDMnormal$AUCvalue_bestModel)
-aucTest
+wilcox.test(statResultsSDMimproved$AUCvalue_bestModel,statResultsSDMnormal$AUCvalue_bestModel) #resultado: p<0.05
 
-tssTest =  wilcox.test(statResultsSDMimproved$TSSvalue_bestModel,statResultsSDMnormal$TSSvalue_bestModel)
-tssTest
-
-##comparacao em termos de porcentagem
-
-set.seed(8354)
-r <-raster(matrix(ncol=5,nrow=5,abs(round(rnorm(25,5,5),0))))
-e <- extent(c(0,5,0,5))
-extent(r) <- e
-plot(r)
-pts = data.frame(2.5,2.5)
-points(pts,cex=3,pch=19)
-
-buf = adjacent(r,cellFromXY(r,pts),8)[,'to']
+wilcox.test(statResultsSDMimproved$TSSvalue_bestModel,statResultsSDMnormal$TSSvalue_bestModel)  #resultado:p<<0.05
 
 
-xx=xyFromCell(r,buf)
-xx=data.frame(xx)
-coordinates(xx) = ~x+y
-gridded(xx) = TRUE
+## TSS e AUC por algoritmo
 
-plot(r)
-plot(xx,add=T)
+jpeg(filename='TSS_por_algoritmo.jpeg', width=800)
+par(mfrow=c(1,2), las=2, mar=c(8,5,5,1))
+boxplot(statResultsSDMnormal$TSSvalue_bestModel ~ statResultsSDMnormal$model, ylim=c(0,1), ylab='TSS', main='SDM normal')
+boxplot(statResultsSDMimproved$TSSvalue_bestModel ~ statResultsSDMimproved$model, ylim=c(0,1), ylab='TSS', main='SDM improved')
+dev.off()
+
+jpeg(filename='AUC_por_algoritmo.jpeg', width=800)
+par(mfrow=c(1,2), las=2, mar=c(8,5,5,1))
+boxplot(statResultsSDMnormal$AUCvalue_bestModel ~ statResultsSDMnormal$model, ylim=c(0,1), ylab='AUC', main='SDM normal')
+boxplot(statResultsSDMimproved$AUCvalue_bestModel ~ statResultsSDMimproved$model, ylim=c(0,1), ylab='AUC', main='SDM improved')
+dev.off()
+
+##teste TSS
+kruskal.test(TSSvalue_bestModel ~ model, data=statResultsSDMnormal) #resultado: p>0.05
+kruskal.test(TSSvalue_bestModel ~ model, data=statResultsSDMimproved) #resultado: p<<0.05
+
+##teste AUC
+kruskal.test(AUCvalue_bestModel ~ model, data=statResultsSDMnormal) #resultado: p<0.05
+kruskal.test(AUCvalue_bestModel ~ model, data=statResultsSDMimproved) #resultado: p<<0.05
+
+
+## especificidade (escolha do melhor modelo)
+
+jpeg(filename='especificidade_por_algoritmo.jpeg', width=800)
+par(mfrow=c(1,2), las=2, mar=c(8,5,5,1))
+boxplot(statResultsSDMnormal$maxTSSspecificity ~ statResultsSDMnormal$model, ylab='Specificity', main='Maximization of TSS')
+boxplot(statResultsSDMnormal$maxAUCspecificity ~ statResultsSDMnormal$model, ylab='Specificity', main='Maximization of AUC')
+dev.off()
+
+#teste especificade
+kruskal.test(maxTSSspecificity ~ model, data=statResultsSDMnormal) #rsultado: p>0.05
+kruskal.test(maxAUCspecificity ~ model, data=statResultsSDMnormal) #resultado:p>0.05
+
 

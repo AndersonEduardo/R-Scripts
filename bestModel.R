@@ -15,7 +15,7 @@ bestModel = function(outputDataRaw, statResults, myBiomodModelOut){
 	outputRawTSSspec = evaluationScores['TSS','Specificity',,,]
 	outputRawTSSspec = outputRawTSSspec[complete.cases(outputRawTSSspec),]
 	outputRawAUCspec = evaluationScores['ROC','Specificity',,,]
-  	outputRawAUCspec = outputRawAUCspec[complete.cases(outputRawAUCspec),]
+  outputRawAUCspec = outputRawAUCspec[complete.cases(outputRawAUCspec),]
   
 	## maior valor de especificidade para cada modelo (pela maximizacao do TSS e pela maximizacao do AUC)	
   	TSSspec = as.numeric(apply(outputRawTSSspec, 1, max, na.rm=TRUE))
