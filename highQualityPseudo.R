@@ -19,8 +19,8 @@ AmSulShape = rgdal::readOGR("/home/anderson/PosDoc/shapefiles/Am_Sul/borders.shp
 maxentFolder = '/home/anderson/R/x86_64-pc-linux-gnu-library/3.3/dismo/java/maxent.jar' #pasta para resultados do maxent
 ## spsTypes = c('spHW', 'spHD', 'spCD') #nomes das especies
 ## sdmTypes = c('normal','optimized')
-sampleSizes = 100  #c(10,20,40,80,160)
-NumRep = 2 #10 #numero de replicas (de cada cenario amostral)
+sampleSizes = c(10,20,40,80,160)
+NumRep = 10 #numero de replicas (de cada cenario amostral)
 ##variaveis preditoras
 ## elevation = raster('/home/anderson/PosDoc/dados_ambientais/DEM/DEM.tif')
 predictors = stack(list.files(path=envVarPaths[1],full.names=TRUE, pattern='.asc')) #predictors com todas as variaveis (presente)
@@ -367,6 +367,13 @@ for(i in 1:Nsp){
       ##definindo variaveis e parametros locais
       betterPseudo = list()
       betterPseudoVar = list()
+
+      ##pontos de ocorrencia
+      SpDistAC = raster(paste(projectFolder,'/virtual species/sp',i,'.asc',sep=''))
+      values(SpDistAC)[values(SpDistAC)==0] = NA
+      occPoints = dismo::randomPoints(mask=SpDistAC, n=sampleSizes[j]) #sorteando pontos da distribuicao modelada
+      rm(SpDistAC) ##teste do bug persistente
+      occPoints = data.frame(lon=occPoints[,1],lat=occPoints[,2])
       
       ##projecoes de ausencias do SDM (rodado na etapa 2, acima)
       binTSS = raster(paste(projectFolder,'/SDMnormal/','sp',i,'.sample',sampleSizes[j],'.SDMnormal','/proj_sp',i,'_sample',sampleSizes[j],'_SDMnormal','/proj_sp',i,'_sample',sampleSizes[j],'_SDMnormal_sp',i,'.sample',sampleSizes[j],'.SDMnormal_ensemble_TSSbin.grd' ,sep=''))
@@ -642,16 +649,22 @@ jpeg(filename='boxplotAUC.jpeg')
 boxplot(statResultsSDMnormal$AUCvalue_bestModel, statResultsSDMimproved$AUCvalue_bestModel, ylim=c(0,1), names=c('SDM normal','SDM improved'), ylab='AUC')
 dev.off()
 
-plot(density(statResultsSDMnormal$AUCvalue_bestModel, ylim=c(0,1), names=c('SDM normal','SDM improved'), ylab='TSS'), ylim=c(0,20),col='blue')
-lines(density(statResultsSDMimproved$AUCvalue_bestModel, ylim=c(0,1), names=c('SDM normal','SDM improved'), ylab='TSS'),col='red')
+jpeg(filename='densidadeAUC.jpeg')
+plot(density(statResultsSDMnormal$AUCvalue_bestModel), ylim=c(0,40),col='blue', lwd=3, xlab='AUC values', main="")
+lines(density(statResultsSDMimproved$AUCvalue_bestModel),col='red', lwd=3)
+legend(x='topleft', legend=c('SDM normal', 'SDM improved'), lty=1, lwd=3, col=c('blue', 'red'))
+dev.off()
 
 ##boxplot TSS
 jpeg(filename='boxplotTSS.jpeg')
 boxplot(statResultsSDMnormal$TSSvalue_bestModel, statResultsSDMimproved$TSSvalue_bestModel, ylim=c(0,1), names=c('SDM normal','SDM improved'), ylab='TSS')
 dev.off()
 
-plot(density(statResultsSDMnormal$TSSvalue_bestModel, ylim=c(0,1), names=c('SDM normal','SDM improved'), ylab='TSS'), ylim=c(0,11),col='blue')
-lines(density(statResultsSDMimproved$TSSvalue_bestModel, ylim=c(0,1), names=c('SDM normal','SDM improved'), ylab='TSS'),col='red')
+jpeg(filename='densidadeTSS.jpeg')
+plot(density(statResultsSDMnormal$TSSvalue_bestModel), ylim=c(0,12), col='blue', lwd=3, xlab='TSS values', main="")
+lines(density(statResultsSDMimproved$TSSvalue_bestModel),col='red', lwd=3)
+legend(x='topleft', legend=c('SDM normal', 'SDM improved'), lty=1, lwd=3, col=c('blue', 'red'))
+dev.off()
 
 ##AUC x sample size
 jpeg(filename='AUC_&_sampleSize.jpeg')
