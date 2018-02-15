@@ -8,7 +8,7 @@ library(raster)
 
 ## parametros e variaveis globais
 projectFolder = '/home/anderson/Área de Trabalho/bioinvasao_AmSul'
-sampleFolder = '/home/anderson/Área de Trabalho/bioinvasao_AmSul/occ_data'
+sampleFolder = '/home/anderson/Área de Trabalho/bioinvasao_AmSul/occ_data/todasSp'
 envVarFolder = '/home/anderson/Área de Trabalho/bioinvasao_AmSul/env_data'
 maxentFolder = '/home/anderson/R/x86_64-pc-linux-gnu-library/3.3/dismo/java/maxent.jar' #pasta para resultados do maxent'
 
@@ -35,6 +35,12 @@ amerSulVars = crop(globalVars, extAmSul)
 tempMedAmNorte = crop(globalVars[['bio1']], extAm)
 tempMedEurasia = crop(globalVars[['bio1']], extEuro)
 tempMedAmSul = crop(globalVars[['bio1']], extAmSul)
+
+## salvando variaveis temperatura
+writeRaster(x=tempMedAmNorte, filename=paste(envVarFolder,'/tempMedAmNorte.grd',sep=''), overwrite=TRUE)
+writeRaster(x=tempMedEurasia, filename=paste(envVarFolder,'/tempMedEurasia.grd',sep=''), overwrite=TRUE)
+writeRaster(x=tempMedAmSul, filename=paste(envVarFolder,'/tempMedAmSul.grd',sep=''), overwrite=TRUE)
+
 
 ## testando correcaloes
 ## eurasia
@@ -63,14 +69,14 @@ corMatrixClean = corMatrix[,!apply(corMatrixTri,2,function(x) any(abs(x) > 0.7))
 sort(names(corMatrixClean))
 
 ## construcao das variaveis preditoras
-euroVars = euroVars[[c("bio7", "bio8", "bio9", "bio18", "bio19" )]]
-amerVars = amerVars[[c("bio7", "bio8", "bio9", "bio18", "bio19" )]]
-amerSulVars = amerSulVars[[c("bio7", "bio8", "bio9", "bio18", "bio19" )]]
+euroVars = euroVars[[c("bio1", "bio7", "bio15", "bio16", "bio17" )]]
+amerVars = amerVars[[c("bio1", "bio7", "bio15", "bio16", "bio17" )]]
+amerSulVars = amerSulVars[[c("bio1", "bio7", "bio15", "bio16", "bio17" )]]
 
 ## salvando variaveis preditoras
 writeRaster(x=euroVars, filename=paste(envVarFolder,'/euroVars.grd',sep=''), format='raster', bylayer=TRUE, suffix=names(euroVars), overwrite=TRUE)
-writeRaster(x=amerVars, filename=paste(envVarFolder,'/amerVars.grd',sep=''), bylayer=TRUE, suffix=names(amerVars), overwrite=TRUE)
-writeRaster(x=amerSulVars, filename=paste(envVarFolder,'/amerSulVars.grd',sep=''), bylayer=TRUE, suffix=names(amerSulVars), overwrite=TRUE)
+writeRaster(x=amerVars, filename=paste(envVarFolder,'/amerVars.grd',sep=''), format='raster', bylayer=TRUE, suffix=names(amerVars), overwrite=TRUE)
+writeRaster(x=amerSulVars, filename=paste(envVarFolder,'/amerSulVars.grd',sep=''), format='raster', bylayer=TRUE, suffix=names(amerSulVars), overwrite=TRUE)
 
 #######################################################################
 ############# densidade da variavel temporetatura #####################
@@ -80,6 +86,12 @@ writeRaster(x=amerSulVars, filename=paste(envVarFolder,'/amerSulVars.grd',sep=''
 ##abrindo variaveis ambientais
 euroVars = stack(grep(pattern='*.euroVars.*grd', x=list.files(path=envVarFolder, full.names=TRUE), value=TRUE))
 amerVars = stack(grep(pattern='*.amerVars.*grd', x=list.files(path=envVarFolder, full.names=TRUE), value=TRUE))
+amerSulVars = stack(grep(pattern='*.amerSulVars.*grd', x=list.files(path=envVarFolder, full.names=TRUE), value=TRUE))
+
+##abrindo variaveis temperatura
+tempMedAmNorte = raster(paste(envVarFolder,'/tempMedAmNorte.grd',sep=''))
+tempMedEurasia = raster(paste(envVarFolder,'/tempMedEurasia.grd',sep=''))
+tempMedAmSul = raster(paste(envVarFolder,'/tempMedAmSul.grd',sep=''))
 
 ##vetor com o nome dos arquivos
 spsNames = list.files(paste(sampleFolder,sep=''), full.names=FALSE )
@@ -134,7 +146,7 @@ for(sp_i in vecNames){
     lines(density(tempInvadido),
           lwd=2,
           col='red')
-    abline(v=termNeut[termNeut$sps==sp_i,][,c('min','max')], lty=2, lwd=1.5)
+    #abline(v=termNeut[termNeut$sps==sp_i,][,c('min','max')], lty=2, lwd=1.5)
     legend(x='topright', legend=c('Native area', 'Invaded area', 'Thermal neutral zone'), lty=c(1,1,2), lwd=2, col=c('blue','red','black'), cex=0.8, bg='white')
     dev.off()
 }
@@ -163,13 +175,17 @@ euroVars = stack(grep(pattern='*.euroVars.*grd', x=list.files(path=envVarFolder,
 amerVars = stack(grep(pattern='*.amerVars.*grd', x=list.files(path=envVarFolder, full.names=TRUE), value=TRUE))
 amerSulVars = stack(grep(pattern='*.amerSulVars.*grd', x=list.files(path=envVarFolder, full.names=TRUE), value=TRUE))
 
+##abrindo variaveis temperatura
+tempMedAmNorte = raster(paste(envVarFolder,'/tempMedAmNorte.grd',sep=''))
+tempMedEurasia = raster(paste(envVarFolder,'/tempMedEurasia.grd',sep=''))
+tempMedAmSul = raster(paste(envVarFolder,'/tempMedAmSul.grd',sep=''))
+
 ##vetor com o nome dos arquivos
 spsNames = list.files(paste(sampleFolder,sep=''), full.names=FALSE )
 vecNames = gsub(pattern='_invadido.csv',replacement='',x=spsNames)
 vecNames = gsub(pattern='_nativo.csv',replacement='',x=vecNames)
 vecNames = unique(vecNames)
 vecNames = vecNames[which(vecNames != "Mus_musculus")] #retirando Mus musculus
-
 
 ## loop sobre a lista de especies
 
@@ -318,4 +334,136 @@ for(sp_i in vecNames){
     grid()
     dev.off()
     
+}
+
+#######################################################
+### teste de significancia da comparacao dos nichos ###
+#######################################################
+
+library(ecospat)
+
+##variaveis globais
+outputData = data.frame()
+
+##abrindo variaveis ambientais
+euroVars = stack(grep(pattern='*.euroVars.*grd', x=list.files(path=envVarFolder, full.names=TRUE), value=TRUE))
+amerVars = stack(grep(pattern='*.amerVars.*grd', x=list.files(path=envVarFolder, full.names=TRUE), value=TRUE))
+amerSulVars = stack(grep(pattern='*.amerSulVars.*grd', x=list.files(path=envVarFolder, full.names=TRUE), value=TRUE))
+
+##abrindo variaveis temperatura
+tempMedAmNorte = raster(paste(envVarFolder,'/tempMedAmNorte.grd',sep=''))
+tempMedEurasia = raster(paste(envVarFolder,'/tempMedEurasia.grd',sep=''))
+tempMedAmSul = raster(paste(envVarFolder,'/tempMedAmSul.grd',sep=''))
+
+##vetor com o nome dos arquivos
+spsNames = list.files(paste(sampleFolder,sep=''), full.names=FALSE )
+vecNames = gsub(pattern='_invadido.csv',replacement='',x=spsNames)
+vecNames = gsub(pattern='_nativo.csv',replacement='',x=vecNames)
+vecNames = unique(vecNames)
+vecNames = vecNames[which(vecNames != "Mus_musculus")] #retirando Mus musculus
+
+## loop sobre a lista de especies
+
+for(sp_i in vecNames){
+    
+    ##vetor de nomes de arquivo
+    spsFiles = list.files(paste(sampleFolder,sep=''), pattern=sp_i, full.names=TRUE)
+
+    ##pts area nativa
+    nativoData = read.csv(spsFiles[grep(pattern='nativo',x=spsFiles)], header=TRUE)
+    names(nativoData) = c('sp','lon','lat')
+    nativoData = data.frame(nativoData, occ=1)
+
+    ##pts area invadida
+    invadidoData = read.csv(spsFiles[grep(pattern='invadido',x=spsFiles)], header=TRUE)
+    names(invadidoData) = c('sp','lon','lat')
+    invadidoData = data.frame(invadidoData, occ=1)
+
+    ##variaveis ambientais
+    if(sp_i == "Castor_canadensis"){
+        nativVars = amerVars
+    }else{
+        nativVars = euroVars}
+
+    ##pontos de 'ausencia'
+    nativAbs = dismo::randomPoints(nativVars, 1000)
+    nativAbs = data.frame(sp=sp_i, nativAbs, occ=0); names(nativAbs) = c('sp','lon','lat','occ')
+    invadAbs = dismo::randomPoints(amerSulVars, 1000)
+    invadAbs = data.frame(sp=sp_i, invadAbs, occ=0); names(invadAbs) = c('sp','lon','lat','occ')
+    
+    ##agrupando pts de presencas e ausencias
+    nativoData = rbind(nativoData, nativAbs)
+    invadidoData = rbind(invadidoData, invadAbs)
+
+    ##extraindo variaveis ambientais
+    nativoData = data.frame( nativoData, extract(x=nativVars,y=nativoData[,c('lon','lat')]) )
+    nativoData = nativoData[complete.cases(nativoData),]
+
+    invadidoData = data.frame( invadidoData, extract(x=amerSulVars,y=invadidoData[,c('lon','lat')]) )
+    invadidoData = invadidoData[complete.cases(invadidoData),]
+    
+    ##The PCA is calibrated on all the sites of the study area
+    pca.env <- dudi.pca(rbind(nativoData, invadidoData)[,c('bio1','bio7','bio15','bio16','bio17')],scannf=F,nf=2)
+    ##ecospat.plot.contrib(contrib=pca.env$co, eigen=pca.env$eig) #grafico
+    
+    ##PCA scores for the whole study area
+    scores.globclim <- pca.env$li
+    ##PCA scores for the species native distribution
+    scores.sp.realNiche <- suprow(pca.env,nativoData[which(nativoData[,'occ']==1),c('bio1','bio7','bio15','bio16','bio17')])$li
+
+    ##PCA scores for the species invasive distribution
+    scores.sp.SDMniche <- suprow(pca.env,invadidoData[which(invadidoData[,'occ']==1),c('bio1','bio7','bio15','bio16','bio17')])$li
+
+    ##PCA scores for the whole native study area
+    scores.clim.realNiche <-suprow(pca.env,nativoData[,c('bio1','bio7','bio15','bio16','bio17')])$li
+
+    ##PCA scores for the whole invaded study area
+    scores.clim.SDMniche <- suprow(pca.env,invadidoData[,c('bio1','bio7','bio15','bio16','bio17')])$li
+
+    ##gridding the native niche
+    grid.clim.realNiche <-ecospat.grid.clim.dyn(glob=scores.globclim,glob1=scores.clim.realNiche,sp=scores.sp.realNiche, R=100,th.sp=0)
+
+    ##gridding the invasive niche
+    grid.clim.SDMniche <- ecospat.grid.clim.dyn(glob=scores.globclim,glob1=scores.clim.SDMniche,sp=scores.sp.SDMniche, R=100,th.sp=0)
+
+    ##equivalencia de nicho
+    ##OBS: Compares the observed niche overlap between z1 and z2 to overlaps between random niches z1.sim
+    ## and z2.sim, which are built from random reallocations of occurences of z1 and z2.
+    ##'alternative' argument specifies if you want to test for niche conservatism (alternative = "greater", i.e.  the
+    ## niche overlap is more equivalent/similar than random) or for niche divergence (alternative = "lower",
+    ## i.e. the niche overlap is less equivalent/similar than random).
+    eq.test <- ecospat.niche.equivalency.test(grid.clim.realNiche, grid.clim.SDMniche,rep=100, alternative = "greater")
+
+    ##similaridade de nicho
+    ##OBS: Compares the observed niche overlap between z1 and z2 to overlaps between z1 and random niches
+    ## (z2.sim) as available in the range of z2 (z2$Z). z2.sim has the same pattern as z2 but the center is
+    ## randomly translatated in the availabe z2$Z space and weighted by z2$Z densities. If rand.type = 1,
+    ## both z1 and z2 are randomly shifted, if rand.type =2, only z2 is randomly shifted.
+    ## 'alternative' specifies if you want to test for niche conservatism (alternative = "greater", i.e.  the
+    ## niche overlap is more equivalent/similar than random) or for niche divergence (alternative = "lower",
+    ## i.e. the niche overlap is less equivalent/similar than random)
+    sim.test <- ecospat.niche.similarity.test(grid.clim.realNiche, grid.clim.SDMniche, rep=100, alternative = "greater")
+    
+    Dobs_equiv = eq.test$obs$D #indice D observado no teste de equivalencia de nicho
+    Iobs_equiv = eq.test$obs$I #indice I observado no teste de equivalencia de nicho
+    DpValue_equiv = eq.test$p.D #p-valor indice D no teste de equivalencia de nicho
+    IpValue_equiv = eq.test$p.I #p-valor indice I no teste de equivalencia de nicho
+    ##
+    Dobs_simi = sim.test$obs$D #indice D observado no teste de similaridade de nicho
+    Iobs_simi = sim.test$obs$I #indice I observado no teste de similaridade de nicho
+    DpValue_simi = sim.test$p.D #p-valor indice D no teste de similaridade de nicho
+    IpValue_simi = sim.test$p.I #p-valor indice I no teste de similaridade de nicho
+
+    outputData = rbind(outputData,data.frame(sp = sp_i,
+                                             Schoeners_D_equiv = Dobs_equiv,
+                                             p_value_equiv = DpValue_equiv,
+                                             Hellinger_I_equiv = Iobs_equiv,
+                                             p_value_equiv = IpValue_equiv,
+                                             Schoeners_D_simi = Dobs_simi,
+                                             p_value_simi = DpValue_simi,
+                                             Hellinger_I_simi = Iobs_simi,
+                                             p_value_simi = IpValue_simi))
+    
+    write.csv(outputData, file=paste(projectFolder,'/output.csv',sep=''),row.names=FALSE) #salvando os dados do cenario
+
 }
