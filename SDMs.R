@@ -14,15 +14,11 @@ Sys.setenv(JAVA_HOME='/usr/lib/jvm/java-7-openjdk-amd64') # for 64-bit version
 library(rJava)
 
 ##DEFININDO PASTAS DE TRABALHO##
-envVarFolder = "/home/anderson/PosDoc/dados_ambientais/"
-spOccFolder = "/home/anderson/PosDoc/dados_ocorrencia/PO_unique/"
-projectFolder = "/home/anderson/PosDoc/teste/"
+projectFolder = "/home/anderson/PosDoc/teste/SuitabTest"
+envVarFolder = "/home/anderson/PosDoc/dados_ambientais"
+spOccFolder = "/home/anderson/PosDoc/dados_ocorrencia/PO_unique"
+AmSulShape = rgdal::readOGR("J:/Anderson_Eduardo/shapefiles/Am_Sul/borders.shp") #shape da America do Sul
 
-####ABRINDO AS VARIAVEIS CLIMATICAS#####
-#abrindo shape da America do Sul
-AmSulShape = rgdal::readOGR("/home/anderson/PosDoc/shapefiles/Am_Sul/borders.shp")
-
-#abrindo e cortando camads de variaveis ambientais para o presente
 filesRaw <- stack(list.files(path=paste(envVarFolder,"dados_projeto/000",sep=''), pattern='asc', full.names=T)) ### stack all rasters in Bioclim folder
 #files <- stack(list.files(path = "/home/anderson/R/PosDoc/dados_ambientais/bcmidbi_2-5m _asc/dados_ambientais_para_projeto", pattern='asc', full.names=T))
 files = mask(filesRaw,AmSulShape) #cortando para Am. do Sul
