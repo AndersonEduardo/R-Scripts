@@ -5,8 +5,9 @@ library(biomod2)
 library(raster)
 
 ##parametros e variaveis globais
+rm(list=ls()) #limpando area de trabalho
 maxentFolder = '/home/anderson/R/x86_64-pc-linux-gnu-library/3.3/dismo/java' #pasta para resultados do maxent
-projectFolder = "/home/anderson/PosDoc/teste"
+projectFolder = "/home/anderson/PosDoc/teste/biomod2"
 spOccFolder = "/home/anderson/PosDoc/dados_ocorrencia/PO_unique"
 envVarFolder = "/home/anderson/PosDoc/dados_ambientais/dados_projeto"
 AmSulShape = rgdal::readOGR("/home/anderson/PosDoc/shapefiles/Am_Sul/borders.shp") #shape da America do Sul
@@ -20,72 +21,72 @@ splist = gsub(pattern='.csv', replacement='', x=splist)
 occ.sps.fosseis = read.csv(paste(spOccFolder,'/fosseis/',"fosseis.csv",sep=''),header=T)
 ##data.frame para registrar e salvar output teste de significancia para todas as especies
 outputFossilPoints = data.frame()
-
+evaluationScoresOutput = data.frame()
 
 ### Funcao para teste de significancia ###
 
-fossilSuitabTestFunc = function(dataSet, varNames, spId, biomodOption, SDMmodel, predictorsProjection, fossilCoords, numbIter){
+fossilSuitabTestFunc = function(dataSet, varNames, spId, biomodOptions, SDMmodel, predictorsProjection, fossilCoords, numbIter){
     ##(dataSet, sps, varNames, SDMmodel, biomodOptions, fossilCoords, numbIter){
     
     ##dados de entrada
-    dataSetForTest = dataSet
-    spId = spId
+    dataSetForTest = as.data.frame(dataSet)
+    spId = as.character(spId)
     coords = as.character(varNames[1:2])
-    occ = varNames[3]
+    occ = as.character(varNames[3])
     envVars = varNames[4:length(varNames)]
-    myBiomodOption = biomodOption
-    SDMmodel = SDMmodel
-    predictorsProjection = predictorsProjection
+    myBiomodOptionTest = biomodOptions
+    SDMmodel = as.character(SDMmodel)
+    predictorsProjectionTest = stack(predictorsProjection)
     fossilPoints = fossilCoords[,c('longitude','latitude')]
-    numbIter = numbIter
+    numbIter = as.numeric(numbIter)
     suitNullDist = vector()
-    
 
+    ##iteracoes
     for (iter in 1:numbIter){
         
         ##aleatorizando presencas e pseudo-ausencias
-        occRandom = sample(dataSetForTest$occ)
-        dataSetForTest$occ = occRandom
+        occRandom = sample(dataSetForTest[,occ])
+        dataSetForTest[,occ] = occRandom
         
         ##variaveis e parametros locais especificos para o biomod2
-        myRespName <- spId # nome do cenario atual (para biomod2)
-        myResp <- dataSetForTest[,occ] # variavel resposta (para biomod2)
-        myRespXY <- dataSetForTest[,coords] # coordenadas associadas a variavel resposta (para biomod2)
-        myExpl = dataSetForTest[,envVars]  #variavel preditora (para biomod2)
+        myRespNameTest <- spId # nome do cenario atual (para biomod2)
+        myRespTest <- dataSetForTest[,occ] # variavel resposta (para biomod2)
+        myRespXYTest <- dataSetForTest[,coords] # coordenadas associadas a variavel resposta (para biomod2)
+        myExplTest = dataSetForTest[,envVars]  #variavel preditora (para biomod2)
         
-    ##ajuste de dados de entrada para biomod2
-    myBiomodData <- BIOMOD_FormatingData(resp.var = myResp,
-                                         expl.var = myExpl,
-                                         resp.xy = myRespXY,
-                                         resp.name = myRespName)
+        ##ajuste de dados de entrada para biomod2
+        myBiomodDataTest <- BIOMOD_FormatingData(resp.var = myRespTest,
+                                                 expl.var = myExplTest,
+                                                 resp.xy = myRespXYTest,
+                                                 resp.name = myRespNameTest)
         
-    ##rodando o(s) algoritmo(s) (i.e. SDMs)
-    myBiomodModelOut <- BIOMOD_Modeling(
-        data = myBiomodData,
-        models = SDMmodel,
-        models.options = myBiomodOption,
-        NbRunEval = 1,
-        DataSplit = 100,
-        VarImport = 0,
-        models.eval.meth = c('TSS','ROC'),
-        SaveObj = FALSE,
-        rescal.all.models = TRUE,
-        do.full.models = TRUE,
-        modeling.id = myRespName)
+        ##rodando o(s) algoritmo(s) (i.e. SDMs)
+        myBiomodModelOutTest <- BIOMOD_Modeling(
+            data = myBiomodDataTest,
+            models = SDMmodel,
+            models.options = myBiomodOptionTest,
+            NbRunEval = 1,
+            DataSplit = 100,
+            VarImport = 0,
+            models.eval.meth = c('TSS','ROC'),
+            SaveObj = FALSE,
+            rescal.all.models = TRUE,
+            do.full.models = TRUE,
+            modeling.id = myRespNameTest)
         
         ##rodando algortmo de projecao (i.e. rodando a projecao)
-        myBiomodProj <- BIOMOD_Projection(
-            modeling.output = myBiomodModelOut,
-            new.env = stack(predictorsProjection),
+        myBiomodProjTest <- BIOMOD_Projection(
+            modeling.output = myBiomodModelOutTest,
+            new.env = stack(predictorsProjectionTest),
             proj.name = paste('iteraction',iter,sep=''),
             compress = 'FALSE',
             build.clamping.mask = FALSE,
             output.format = '.grd')
         
-        projStack = get_predictions(myBiomodProj) #extrai as projecoes
+        projStackTest = get_predictions(myBiomodProjTest) #extrai as projecoes
 
         ##suitability observado no ponto fossil
-        suitability_i= extract(x=projStack,fossilPoints)
+        suitability_i= extract(x=projStackTest,fossilPoints, na.rm=TRUE)
 
         ##adicionando ao vetor de valores observados
         suitNullDist = append(suitNullDist , as.numeric(suitability_i))
@@ -105,37 +106,48 @@ for (sp_i in splist){
     ##tabela de dados fosseis da especie da iteracao atual
     sp.fossil.data = occ.sps.fosseis[occ.sps.fosseis$species==sp_i,]
     
+    ## ##presencas
+    ## spFile <- read.csv(paste(spOccFolder,'/',sp_i,".csv",sep=""), h=TRUE) ### read sp occurrence
+    ## occPts <- spFile[,2:3]
+    ## names(occPts) = c('lon','lat')
+
+    ## ##background/pseudo-ausencias
+    ## bgPts = as.data.frame(
+    ##     dismo::randomPoints(mask=predictors[[1]], n=1000, p=occPts)
+    ## )
+    ## names(bgPts) =  c('lon','lat')
+
+    ## ##variaveis ambientais
+    ## ##(presencas)
+    ## occPtsEnvVars = as.data.frame(extract(x=predictors, y=occPts, na.rm=TRUE))
+    ## ##(ausecias)
+    ## bgPtsEnvVars = as.data.frame(extract(x=predictors, y=bgPts, na.rm=TRUE))
+
+    ## ##consolidando dataset
+    ## dataSet = data.frame(lon=c(occPts$lon,bgPts$lon), lat=c(occPts$lat,bgPts$lat), occ=c(rep(1,nrow(occPts)), rep(0,nrow(bgPts))), rbind(occPtsEnvVars, bgPtsEnvVars))
+    
     ##presencas
-    spFile <- read.csv(paste(spOccFolder,sp_i,".csv",sep=""), h=TRUE) ### read sp occurrence
-    occPts <- sp.file[,2:3]
+    spFile <- read.csv(paste(spOccFolder,'/',sp_i,".csv",sep=""), h=TRUE) ### read sp occurrence
+    occPts <- spFile[,2:3]
     names(occPts) = c('lon','lat')
-
-    ##background/pseudo-ausencias
-    bgPts = as.data.frame(
-        dismo::randomPoints(mask=predictors[[1]], n=1000, p=sp.occ)
-    )
-    names(bgPts) =  c('lon','lat')
-
-    ##variaveis ambientais
-    ##(presencas)
-    occPtsEnvVars = as.data.frame(extract(x=predictors, y=occPts, na.rm=TRUE))
-    ##(ausecias)
-    bgPtsEnvVars = as.data.frame(extract(x=predictors, y=bgPts, na.rm=TRUE))
-
-    ##consolidando dataset
-    dataSet = data.frame(lon=c(occPts$lon,bgPts$lon), lat=c(occPts$lat,bgPts$lat), occ=c(rep(1,nrow(occPts)), rep(0,nrow(bgPts))), rbind(occPtsEnvVars, bgPtsEnvVars))
+    coordinates(occPts) = ~lon+lat
+    crs(occPts) = CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0')
 
     ##variaveis e parametros locais especificos para o biomod2
     myRespName <- sp_i # nome do cenario atual (para biomod2)
-    myResp <- dataSet[,c('occ')] # variavel resposta (para biomod2)
-    myRespXY <- dataSet[,c('lon','lat')] # coordenadas associadas a variavel resposta (para biomod2)
-    myExpl = dataSet[,c('bioclim_10','bioclim_11','bioclim_16','bioclim_17')]  #variavel preditora (para biomod2)
+    myResp <- occPts# variavel resposta (para biomod2)
+    ##myRespXY <- dataSet[,c('lon','lat')] # coordenadas associadas a variavel resposta (para biomod2)
+                                        #myExpl = dataSet[,c('bioclim_10','bioclim_11','bioclim_16','bioclim_17')]  #variavel preditora (para biomod2)
+    myExpl = stack(predictors)  #variavel preditora (para biomod2)
+    
+    ##definindo o ambiente de trabalho (importante, pq o biomod2 vai salvando uma serie de coisas)
+    setwd(projectFolder)
     
     ##ajuste de dados de entrada para biomod2
-    myBiomodData <- BIOMOD_FormatingData(resp.var = myResp,
+    myBiomodData <- BIOMOD_FormatingData(resp.var = occPts,
                                          expl.var = myExpl,
-                                         resp.xy = myRespXY,
-                                         resp.name = myRespName)
+                                         resp.name = myRespName,
+                                         PA.nb.rep = 1)
     
     ##parametrizando os modelos
     myBiomodOption <- BIOMOD_ModelingOptions(
@@ -152,7 +164,36 @@ for (sp_i in splist){
             threads=2))
     
     ##rodando o(s) algoritmo(s) (i.e. SDMs)
-    myBiomodModelOut <- BIOMOD_Modeling(
+    myBiomodModelOutSp_i <- BIOMOD_Modeling(
+        data = myBiomodData,
+        models = c('MAXENT.Phillips'),
+        models.options = myBiomodOption,
+        NbRunEval = 100,
+        DataSplit = 70,
+        VarImport = 5,
+        models.eval.meth = c('TSS','ROC'),
+        SaveObj = TRUE,
+        rescal.all.models = TRUE,
+        do.full.models = FALSE,
+        modeling.id = myRespName)
+
+    ##acuracia do modelo
+    evaluationScores = get_evaluations(myBiomodModelOutSp_i)
+
+    evaluationScoresOutput = rbind(evaluationScoresOutput,
+                                   data.frame(sp = sp_i,
+                                              meanAUC = mean(evaluationScores['ROC','Testing.data',,,]),
+                                              minAUC = min(evaluationScores['ROC','Testing.data',,,]),
+                                              maxAUC = max(evaluationScores['ROC','Testing.data',,,]),
+                                              meanTSS = mean(evaluationScores['TSS','Testing.data',,,]),
+                                              minTSS = min(evaluationScores['TSS','Testing.data',,,]),
+                                              maxTSS = max(evaluationScores['TSS','Testing.data',,,]))
+                                   )
+    
+    write.csv(evaluationScoresOutput, paste(projectFolder,'/evaluationScoresOutput.csv',sep=''), row.names=TRUE)
+    
+    ##consruindo modelo de dados completos para projecao
+    myBiomodModelOut_forProjection <- BIOMOD_Modeling(
         data = myBiomodData,
         models = c('MAXENT.Phillips'),
         models.options = myBiomodOption,
@@ -163,71 +204,158 @@ for (sp_i in splist){
         SaveObj = FALSE,
         rescal.all.models = TRUE,
         do.full.models = TRUE,
-        modeling.id = paste(myRespName))
+        modeling.id = paste(myRespName,'_for_projection',sep=''))
+
+    ##rodando algortmo de projecao (TEMPO PRESENTE)
+    myBiomodProj_presente <- BIOMOD_Projection(
+        modeling.output = myBiomodModelOut_forProjection,
+        new.env = stack(predictors),
+        proj.name = paste(sp_i,'_0kyr',sep=''),
+        binary.meth = 'TSS',
+        build.clamping.mask = TRUE,
+        compress = 'FALSE',
+        output.format = '.grd',
+        silent = TRUE)
+    
+    ##iterando sobre cada idade e/ou registro fossil da especie atual
+    for(l in 1:nrow(sp.fossil.data)){
+
+        ##dados para o registro fossil
+        fossilPoint = sp.fossil.data[l,]
+
+        if(fossilPoint$kyr == 120){
+            ageId = '120'
+        }else{
+            ageId = paste('0',fossilPoint$kyr,sep='')
+        }
+        
+        ##abrindo as variaveis ambientais do tempo do fossil
+        predictorsProjection = stack(list.files(path=paste(envVarFolder,'/',ageId,sep=""),
+                                                pattern='.asc',
+                                                full.names=TRUE))[[c('bioclim_10','bioclim_11','bioclim_16','bioclim_17')]]
+
+        ##rodando algortmo de projecao (TEMPO PRESENTE)
+        myBiomodProj_passado <- BIOMOD_Projection(
+            modeling.output = myBiomodModelOut_forProjection,
+            new.env = stack(predictorsProjection),
+            proj.name = paste(sp_i,'_',fossilPoint$kyr,'kyr',sep=''),
+            binary.meth = 'TSS',
+            build.clamping.mask = TRUE,
+            compress = 'FALSE',
+            output.format = '.grd',
+            silent = TRUE)
+
+        ##extrai as projecoes
+        projStack = get_predictions(myBiomodProj_passado)
+
+        ##suitability observado no ponto fossil 
+        obsSuitability = extract(x=projStack, fossilPoint[,c('longitude','latitude')], na.rm=TRUE)
+
+        ##threshold (minimo suitability nos dados de ocorrencia para o presente)
+        suitVals = extract(x=get_predictions(myBiomodProj_presente), y=myResp, na.rm=TRUE)
+        thres = min(suitVals[complete.cases(suitVals)])
+        
+        outputFossilPoints =  rbind(outputFossilPoints,
+                                    data.frame(sp = sp_i,
+                                               kyr = as.numeric(fossilPoint$kyr),
+                                               suitab_observado = as.numeric(obsSuitability)/1000,
+                                               threshold = as.numeric(thres)/1000
+                                               )
+                                    )
+        ##
+        rm(list=c('myBiomodProj_passado','projStack','thres','obsSuitability','predictorsProjection','ageId','fossilPoint'))
+    }
+    ##
+    rm('myBiomodProj_presente', 'myBiomodModelOut_forProjection', 'myBiomodModelOutSp_i', 'myBiomodOption', 'myBiomodData', 'spFile', 'occPts', 'myRespName', 'myResp', 'myExpl', 'sp.fossil.data')
+}
+
+write.csv(outputFossilPoints, paste(projectFolder,'/outputFossilPoints.csv', sep=''),row.names=FALSE)
+
+
+
+
+############
+
+valsVector = vector()
+
+for (sp_i in splist){
+
+    print(paste('Rodando Maxent para a especie', sp_i))
+
+    ##tabela de dados fosseis da especie da iteracao atual
+    sp.fossil.data = occ.sps.fosseis[occ.sps.fosseis$species==sp_i,]
 
     ##iterando sobre cada idade e/ou registro fossil da especie atual
     for(l in 1:nrow(sp.fossil.data)){
 
         ##dados para o registro fossil
         fossilPoint = sp.fossil.data[l,]
+
+        if(fossilPoint$kyr == 120){
+            ageId = '120'
+        }else{
+            ageId = paste('0',fossilPoint$kyr,sep='')
+        }
         
-        ##abrindo as variaveis ambientais do tempo do fossil
-        predictorsProjection = stack(list.files(path=paste(envVarFolder,'/0',sp.fossil$kyr,sep=""),
-                                                pattern='.asc',
-                                                full.names=TRUE))[[c('bioclim_10','bioclim_11','bioclim_16','bioclim_17')]]
+        ##mapa 
+        suitMap = raster(paste(projectFolder,'/', gsub(' ','.',sp_i), '/proj_',sp_i,'_0kyr/proj_',sp_i,'_0kyr_',gsub(' ','.',sp_i),'.grd',sep=''))
 
-        ##rodando algortmo de projecao (i.e. rodando a projecao)
-        myBiomodProj <- BIOMOD_Projection(
-            modeling.output = myBiomodModelOut,
-            new.env = stack(predictorsProjection),
-            proj.name = paste(sp_i,'_',fossilPoints$kyr,'kyr',sep=''),
-            build.clamping.mask = FALSE,            
-            compress = 'FALSE',
-            output.format = '.grd')
-
-        ##extrai as projecoes
-        projStack = get_predictions(myBiomodProj)
-
-        ##suitability observado no pontos fossil
-        obsSuitability = extract(x=projStack,fossilPoints[,c('longitude','latitude')])/1000
+        ##pts
+        spFile <- read.csv(paste(spOccFolder,'/',sp_i,".csv",sep=""), h=TRUE) ### read sp occurrence
+        occPts <- spFile[,2:3]
+        names(occPts) = c('lon','lat')
         
-        ##teste de significancia##
-        rm(nullDistOutput)
-        nullDistOutput = fossilSuitabTestFunc(dataSet=dataSet,
-                                              varNames=names(dataSet),
-                                              spId=sp_i,
-                                              biomodOption=myBiomodOption,
-                                              SDMmodel='MAXENT.Phillips',
-                                              predictorsProjection=predictorsProjection,
-                                              fossilCoords=fossilPoint,
-                                              numbIter=30)
+        ##threshold (minimo suitability nos dados de ocorrencia para o presente)
+        suitVals = extract(x=suitMap, y=occPts, na.rm=TRUE)
+        thres = min(suitVals[complete.cases(suitVals)])/1000
 
-        ##ajustando valores para variar entre 0 e 1
-        nullDistOutput = nullDistOutput/1000
-
-        ##salvando histograma
-        jpeg(paste(projectFolder,'/teste distribuicao nula/',sp_i,as.numeric(fossilPoint$kyr),'kyr.jpeg',sep=''))
-        par(cex=1.5)
-        plot(density(nullDistOutput),xlim=c(0,1), main=paste(sp_i,', ', as.numeric(fossilPoint$kyr),'kyr BP', sep=''), xlab='Suitability', lwd=2, col='red')
-        hist(nullDistOutput,add=TRUE)
-        abline(v=obsSuitability, lty=2)
-        grid()
-        dev.off()
-
-        ##'probabilidade' de ser MAIOR do que o esperado ao acaso (testa se deve ser uma area de ocorrencia)
-        p_valor_ocorrencia = length(nullDistOutput[which(nullDistOutput >= as.numeric(obsSuitability))])/length(nullDistOutput)
-
-        ##'probabilidade' de ser MENOR do que o esperado ao acaso (testa se deve ser uma area de ausencia)
-        p_valor_ausencia = length(nullDistOutput[which(nullDistOutput <= as.numeric(obsSuitability))])/length(nullDistOutput) 
-        
-        outputFossilPoints =  rbind(outputFossilPoints,
-                                    data.frame(sp = sp_i,
-                                               kyr = as.numeric(fossilPoint$kyr),
-                                               suitab_observado = as.numeric(obsSuitability),
-                                               p_valor_ocorrencia = as.numeric(p_valor_ocorrencia),
-                                               p_valor_ausencia = as.numeric(p_valor_ausencia))
-                                    )
+        valsVector = append(valsVector,thres)
     }
 }
 
-write.csv(outputFossilPoints, paste(projectFolder,'/teste distribuicao nula/outputFossilPoints.csv', sep=''),row.names=FALSE)
+
+#############
+
+projectFolder = '/home/anderson/PosDoc/teste/Maxent'
+
+valsVector = vector()
+
+for (sp_i in splist){
+
+    print(paste('Rodando Maxent para a especie', sp_i))
+
+    ##tabela de dados fosseis da especie da iteracao atual
+    sp.fossil.data = occ.sps.fosseis[occ.sps.fosseis$species==sp_i,]
+
+    ##iterando sobre cada idade e/ou registro fossil da especie atual
+    for(l in 1:nrow(sp.fossil.data)){
+
+        ##dados para o registro fossil
+        fossilPoint = sp.fossil.data[l,]
+
+        if(fossilPoint$kyr == 120){
+            ageId = '120'
+        }else{
+            ageId = paste('0',fossilPoint$kyr,sep='')
+        }
+        
+        ##mapa 
+        suitMap = raster(paste(projectFolder,'/', sp_i,'/',sp_i,'.asc',sep=''))
+
+        ##pts
+        spFile <- read.csv(paste(spOccFolder,'/',sp_i,".csv",sep=""), h=TRUE) ### read sp occurrence
+        occPts <- spFile[,2:3]
+        names(occPts) = c('lon','lat')
+        
+        ##threshold (minimo suitability nos dados de ocorrencia para o presente)
+        suitVals = extract(x=suitMap, y=occPts, na.rm=TRUE)
+        thres = min(suitVals[complete.cases(suitVals)])
+
+        valsVector = append(valsVector,thres)
+    }
+}
+
+outputFossilPoints$suitOldMaps = outputFossilPoints$newSuit
+outputFossilPoints$newSuit = NULL
+names(outputFossilPoints)[5] = 'threshOldMaps'
+edit(outputFossilPoints)
