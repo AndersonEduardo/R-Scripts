@@ -244,7 +244,8 @@ for(i in 1:Nsp){
 
 ##ambiente para salvar os graficos
 setwd("/home/anderson/Documentos/Projetos/Improved pseudo-absences/Resultados completos - versao final/graficos")
-# statResultsSDMnormal = read.csv(paste(projectFolder,'/normal','.csv',sep=''), header=TRUE)
+## statResultsSDMnormal = read.csv(paste(projectFolder,'/normal','.csv',sep=''), header=TRUE)
+projectFolder = '/home/anderson/Documentos/Projetos/Improved pseudo-absences/Resultados completos - versao final'
 
 ##planilhas de dados
 statResultsSDMimproved = read.csv(paste(projectFolder,'/StatisticalResults_SDMimproved','.csv',sep=''), header=TRUE)
@@ -447,6 +448,8 @@ dev.off()
 
 
 ##teste AUC x sample size
+
+
 ##sample size 20
 kruskal.test(AUCvalue_bestModel ~ SDM, data=dados[which(dados$sampleSize==20),]) #resultado: p<0.05
 FSA::dunnTest(AUCvalue_bestModel ~ SDM, data=dados[which(dados$sampleSize==20),]) #diferenca sig entre todos os pares
@@ -594,7 +597,7 @@ FSA::dunnTest(TSSvalue_bestModel ~ SDM, data=dados[which(dados$sampleSize==160),
 ## TSS e AUC por algoritmo
 
 
-##AUC
+##AUC boxplot
 jpeg(filename='AUC_por_algoritmo_boxplot.jpeg', width=800)
 par(mfrow=c(1,3), cex=1.3, las=2, mar=c(8,4,4,1))
 ## SDM normal
@@ -816,7 +819,58 @@ abline(tendency, col='red', lty=2, lwd=2.5)
 dev.off()
 
 
-##teste TSS
+
+## ranking dos modelos - com AUC
+
+
+BeforeAfterData = merge(statResultsSDMnormal, statResultsSDMimproved, by=c('sampleSize','sp','model'))[,c('sampleSize','sp','model', 'AUCvalue_bestModel.x','AUCvalue_bestModel.y')]
+names(BeforeAfterData) = c("sampleSize", "sp", "model","SDMnormal", "SDMimproved")
+
+rankingAUC = data.frame(
+    SDM = c('normal', 'improved'),
+    CTA = c(median(BeforeAfterData[BeforeAfterData$model=='CTA',]$SDMnormal),
+            median(BeforeAfterData[BeforeAfterData$model=='CTA',]$SDMimproved)),
+    MARS = c(median(BeforeAfterData[BeforeAfterData$model=='MARS',]$SDMnormal),
+             median(BeforeAfterData[BeforeAfterData$model=='MARS',]$SDMimproved)),
+    GAM = c(median(BeforeAfterData[BeforeAfterData$model=='GAM',]$SDMnormal),
+            median(BeforeAfterData[BeforeAfterData$model=='GAM',]$SDMimproved)),
+    Maxent = c(median(BeforeAfterData[BeforeAfterData$model=='MAXENT.Phillips',]$SDMnormal),
+               median(BeforeAfterData[BeforeAfterData$model=='MAXENT.Phillips',]$SDMimproved)),
+    GBM = c(median(BeforeAfterData[BeforeAfterData$model=='GBM',]$SDMnormal),
+            median(BeforeAfterData[BeforeAfterData$model=='GBM',]$SDMimproved)),
+    RF = c(median(BeforeAfterData[BeforeAfterData$model=='RF',]$SDMnormal),
+           median(BeforeAfterData[BeforeAfterData$model=='RF',]$SDMimproved)),
+    GLM = c(median(BeforeAfterData[BeforeAfterData$model=='GLM',]$SDMnormal),
+            median(BeforeAfterData[BeforeAfterData$model=='GLM',]$SDMimproved))
+)
+
+
+## ranking dos modelos - com TSS
+
+
+BeforeAfterData = merge(statResultsSDMnormal, statResultsSDMimproved, by=c('sampleSize','sp','model'))[,c('sampleSize','sp','model', 'TSSvalue_bestModel.x','TSSvalue_bestModel.y')]
+names(BeforeAfterData) = c("sampleSize", "sp", "model","SDMnormal", "SDMimproved")
+
+rankingTSS = data.frame(
+    SDM = c('normal', 'improved'),
+    CTA = c(median(BeforeAfterData[BeforeAfterData$model=='CTA',]$SDMnormal),
+            median(BeforeAfterData[BeforeAfterData$model=='CTA',]$SDMimproved)),
+    MARS = c(median(BeforeAfterData[BeforeAfterData$model=='MARS',]$SDMnormal),
+             median(BeforeAfterData[BeforeAfterData$model=='MARS',]$SDMimproved)),
+    GAM = c(median(BeforeAfterData[BeforeAfterData$model=='GAM',]$SDMnormal),
+            median(BeforeAfterData[BeforeAfterData$model=='GAM',]$SDMimproved)),
+    Maxent = c(median(BeforeAfterData[BeforeAfterData$model=='MAXENT.Phillips',]$SDMnormal),
+               median(BeforeAfterData[BeforeAfterData$model=='MAXENT.Phillips',]$SDMimproved)),
+    GBM = c(median(BeforeAfterData[BeforeAfterData$model=='GBM',]$SDMnormal),
+            median(BeforeAfterData[BeforeAfterData$model=='GBM',]$SDMimproved)),
+    RF = c(median(BeforeAfterData[BeforeAfterData$model=='RF',]$SDMnormal),
+           median(BeforeAfterData[BeforeAfterData$model=='RF',]$SDMimproved)),
+    GLM = c(median(BeforeAfterData[BeforeAfterData$model=='GLM',]$SDMnormal),
+            median(BeforeAfterData[BeforeAfterData$model=='GLM',]$SDMimproved))
+)
+
+
+##teste TSS entre modelos
 
 
 kruskal.test(TSSvalue_bestModel ~ model, data=statResultsSDMnormal) #resultado: p>0.05
@@ -826,7 +880,12 @@ kruskal.test(TSSvalue_bestModel ~ model, data=statResultsSDMimproved) #resultado
 ##analise post-hoc - teste de Dunn (par a par)
 FSA::dunnTest(TSSvalue_bestModel ~ model, data=statResultsSDMimproved, method="bh")
 
-##before-after (com TSS)
+
+##teste before-after (com TSS)
+
+BeforeAfterData = merge(statResultsSDMnormal, statResultsSDMimproved, by=c('sampleSize','sp','model'))[,c('sampleSize','sp','model', 'TSSvalue_bestModel.x','TSSvalue_bestModel.y')]
+names(BeforeAfterData) = c("sampleSize", "sp", "model","SDMnormal", "SDMimproved")
+
 ##cta
 wilcox.test(BeforeAfterData[BeforeAfterData$model=='CTA',]$SDMnormal,
             BeforeAfterData[BeforeAfterData$model=='CTA',]$SDMimproved, paired=TRUE) # where y1 and y2 are numeric
@@ -862,7 +921,36 @@ kruskal.test(AUCvalue_bestModel ~ model, data=statResultsSDMimproved) #resultado
 FSA::dunnTest(AUCvalue_bestModel ~ model, data=statResultsSDMimproved, method="bh") 
 
 
+##teste before-after (com AUC)
+
+BeforeAfterData = merge(statResultsSDMnormal, statResultsSDMimproved, by=c('sampleSize','sp','model'))[,c('sampleSize','sp','model', 'AUCvalue_bestModel.x','AUCvalue_bestModel.y')]
+names(BeforeAfterData) = c("sampleSize", "sp", "model","SDMnormal", "SDMimproved")
+
+##cta
+wilcox.test(BeforeAfterData[BeforeAfterData$model=='CTA',]$SDMnormal,
+            BeforeAfterData[BeforeAfterData$model=='CTA',]$SDMimproved, paired=TRUE) # where y1 and y2 are numeric
+##mars
+wilcox.test(BeforeAfterData[BeforeAfterData$model=='MARS',]$SDMnormal,
+            BeforeAfterData[BeforeAfterData$model=='MARS',]$SDMimproved, paired=TRUE) # where y1 and y2 are numeric
+##gam
+wilcox.test(BeforeAfterData[BeforeAfterData$model=='GAM',]$SDMnormal,
+            BeforeAfterData[BeforeAfterData$model=='GAM',]$SDMimproved, paired=TRUE) # where y1 and y2 are numeric
+##maxent
+wilcox.test(BeforeAfterData[BeforeAfterData$model=='MAXENT.Phillips',]$SDMnormal,
+            BeforeAfterData[BeforeAfterData$model=='MAXENT.Phillips',]$SDMimproved, paired=TRUE) # where y1 and y2 are numeric 
+##gbm
+wilcox.test(BeforeAfterData[BeforeAfterData$model=='GBM',]$SDMnormal,
+            BeforeAfterData[BeforeAfterData$model=='GBM',]$SDMimproved, paired=TRUE) # where y1 and y2 are numeric 
+##rf
+wilcox.test(BeforeAfterData[BeforeAfterData$model=='RF',]$SDMnormal,
+            BeforeAfterData[BeforeAfterData$model=='RF',]$SDMimproved, paired=TRUE) # where y1 and y2 are numeric 
+##GLM
+wilcox.test(BeforeAfterData[BeforeAfterData$model=='GLM',]$SDMnormal,
+            BeforeAfterData[BeforeAfterData$model=='GLM',]$SDMimproved, paired=TRUE) # where y1 and y2 are numeric 
+
+
 ## especificidade (escolha do melhor modelo)
+
 
 jpeg(filename='especificidade_por_algoritmo.jpeg', width=800)
 par(mfrow=c(1,2), las=2, mar=c(8,5,5,1))
@@ -870,6 +958,54 @@ boxplot(statResultsSDMnormal$maxTSSspecificity ~ statResultsSDMnormal$model, yla
 boxplot(statResultsSDMnormal$maxAUCspecificity ~ statResultsSDMnormal$model, ylab='Specificity', main='Maximization of AUC')
 dev.off()
 
-#teste especificade
+
+## ranking por AUC
+
+rankingSpecAUC = data.frame(
+    SDM = c('normal', 'improved'),
+    CTA = c(median(statResultsSDMnormal[statResultsSDMnormal$model=='CTA',]$maxAUCspecificity),
+            median(statResultsSDMimproved[statResultsSDMimproved$model=='CTA',]$maxAUCspecificity)),
+    MARS = c(median(statResultsSDMnormal[statResultsSDMnormal$model=='MARS',]$maxAUCspecificity),
+            median(statResultsSDMimproved[statResultsSDMimproved$model=='MARS',]$maxAUCspecificity)),
+    GAM = c(median(statResultsSDMnormal[statResultsSDMnormal$model=='GAM',]$maxAUCspecificity),
+            median(statResultsSDMimproved[statResultsSDMimproved$model=='GAM',]$maxAUCspecificity)),
+    Maxent = c(median(statResultsSDMnormal[statResultsSDMnormal$model=='MAXENT.Phillips',]$maxAUCspecificity),
+            median(statResultsSDMimproved[statResultsSDMimproved$model=='MAXENT.Phillips',]$maxAUCspecificity)),
+    GBM = c(median(statResultsSDMnormal[statResultsSDMnormal$model=='GBM',]$maxAUCspecificity),
+            median(statResultsSDMimproved[statResultsSDMimproved$model=='GBM',]$maxAUCspecificity)),
+    RF = c(median(statResultsSDMnormal[statResultsSDMnormal$model=='RF',]$maxAUCspecificity),
+            median(statResultsSDMimproved[statResultsSDMimproved$model=='RF',]$maxAUCspecificity)),
+    GLM = c(median(statResultsSDMnormal[statResultsSDMnormal$model=='GLM',]$maxAUCspecificity),
+            median(statResultsSDMimproved[statResultsSDMimproved$model=='GLM',]$maxAUCspecificity))
+)
+
+
+## ranking por TSS
+
+
+rankingSpecTSS= data.frame(
+    SDM = c('normal', 'improved'),
+    CTA = c(median(statResultsSDMnormal[statResultsSDMnormal$model=='CTA',]$maxTSSspecificity),
+            median(statResultsSDMimproved[statResultsSDMimproved$model=='CTA',]$maxTSSspecificity)),
+    MARS = c(median(statResultsSDMnormal[statResultsSDMnormal$model=='MARS',]$maxTSSspecificity),
+            median(statResultsSDMimproved[statResultsSDMimproved$model=='MARS',]$maxTSSspecificity)),
+    GAM = c(median(statResultsSDMnormal[statResultsSDMnormal$model=='GAM',]$maxTSSspecificity),
+            median(statResultsSDMimproved[statResultsSDMimproved$model=='GAM',]$maxTSSspecificity)),
+    Maxent = c(median(statResultsSDMnormal[statResultsSDMnormal$model=='MAXENT.Phillips',]$maxTSSspecificity),
+            median(statResultsSDMimproved[statResultsSDMimproved$model=='MAXENT.Phillips',]$maxTSSspecificity)),
+    GBM = c(median(statResultsSDMnormal[statResultsSDMnormal$model=='GBM',]$maxTSSspecificity),
+            median(statResultsSDMimproved[statResultsSDMimproved$model=='GBM',]$maxTSSspecificity)),
+    RF = c(median(statResultsSDMnormal[statResultsSDMnormal$model=='RF',]$maxTSSspecificity),
+            median(statResultsSDMimproved[statResultsSDMimproved$model=='RF',]$maxTSSspecificity)),
+    GLM = c(median(statResultsSDMnormal[statResultsSDMnormal$model=='GLM',]$maxTSSspecificity),
+            median(statResultsSDMimproved[statResultsSDMimproved$model=='GLM',]$maxTSSspecificity))
+)
+
+
+#teste especificade - SDM normal
 kruskal.test(maxTSSspecificity ~ model, data=statResultsSDMnormal) #rsultado: p>0.05
+FSA::dunnTest(maxTSSspecificity ~ model, data=statResultsSDMnormal, method="bh") 
 kruskal.test(maxAUCspecificity ~ model, data=statResultsSDMnormal) #resultado:p>0.05
+FSA::dunnTest(maxAUCspecificity ~ model, data=statResultsSDMnormal, method="bh")
+
+
