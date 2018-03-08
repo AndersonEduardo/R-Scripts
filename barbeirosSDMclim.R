@@ -2,18 +2,18 @@
 
 library(raster)
 library(maptools)
-library(dismo)
+library(usdm)
+##library(dismo)
+library(biomod2)
 #Sys.setenv(JAVA_HOME='C:/Program Files/Java/jre1.8.0_131/bin') # for 64-bit version
 #Windows#Sys.setenv(JAVA_HOME='C:\\Program Files\\Java\\jre1.8.0_91') # for 64-bit version
 library(rJava)
 #source("J:/Anderson_Eduardo/TSSmaxent.R") #sempre verificar aqui o caminho para o arquivo TSSmaxent.R
-source("/home/anderson/R/R-Scripts/TSSmaxent.R")
+Sys.setenv(JAVA_HOME = "/usr/lib/jvm/java-7-openjdk-amd64")
+options(java.parameters = "Xmx7g")
 
 
-###PRIMEIRA PARTE: planilha de presencas, backgrownd e variaveis ambientais###
-
-
-##definindo as pastas de trabalho
+## Definindo parametros e variaveis globais
 ## envVarFolder = "J:/Lucas/Modelagem barbeiros/Variaveis Climaticas"
 ## spOccFolder = "J:/Lucas/Modelagem barbeiros/Ocorrencias"
 ## projectFolder = "J:/Lucas/Modelagem barbeiros/"
@@ -21,10 +21,97 @@ source("/home/anderson/R/R-Scripts/TSSmaxent.R")
 envVarFolder = "/home/anderson/Documentos/Projetos/Distribuicao de barbeiros com interacao com humanos/Variaveis Climaticas"
 spOccFolder = "/home/anderson/Documentos/Projetos/Distribuicao de barbeiros com interacao com humanos/Ocorrencias/"
 projectFolder = "/home/anderson/Documentos/Projetos/Distribuicao de barbeiros com interacao com humanos/resultados nicho climatico/"
+AmSulShape = rgdal::readOGR("/home/anderson/PosDoc/shapefiles/Am_Sul/borders.shp") #abrindo shape da America do Sul
+
+
+###PRIMEIRA PARTE: limpando dados de occorrencia
+
+
+##GBIF para Reduviidae##
+
+occDataGBIF = read.csv('/home/anderson/Documentos/Projetos/Distribuicao de barbeiros com interacao com humanos/Ocorrencias/GBIF_mar-2018/Reduviidae_CSV/reduviidae_GBIF_occData.csv', header=TRUE, sep=',', dec='.', stringsAsFactors=FALSE, na.strings="") #abrindo dados do computador
+occDataGBIFClean = subset(occDataGBIF, coordinateuncertaintyinmeters < 5000 | is.na(coordinateuncertaintyinmeters)) # 377 retirados, com erro > 5 km
+occDataGBIFclean[,c('decimallongitude','decimallatitude')] = round(x=occDataGBIFclean[,c('decimallongitude','decimallatitude')], digits=2) #coords com duas casas decimais
+occDataGBIFclean = occDataGBIFclean[!duplicated(occDataGBIFclean[,c('decimallongitude','decimallatitude')]),] #retirando pontos duplicados
+##definindo dataset limpo para o GBIF
+occDataGBIF = occDataGBIFclean
+write.csv(occDataGBIF,'/home/anderson/Documentos/Projetos/Distribuicao de barbeiros com interacao com humanos/Ocorrencias/GBIF_mar-2018/Reduviidae_CSV/reduviidae_GBIF_occDataClean.csv',row.names=FALSE)
+
+
+##SpsLink  para Reduviidae##
+
+
+occDataSpsLink = read.csv('/home/anderson/Documentos/Projetos/Distribuicao de barbeiros com interacao com humanos/Ocorrencias/SpsLink_mar-2018/reduviidae_GBIF_occData.csv', header=TRUE, sep=',', dec='.', stringsAsFactors=FALSE, na.strings="NA") #abrindo dados
+occDataSpsLinkClean = subset(occDataSpsLink, coordinateprecision < 5000 | is.na(coordinateprecision)) #407 retirados, com erro > 5 km 
+occDataSpsLinkClean = occDataSpsLinkClean[complete.cases(occDataSpsLinkClean[,c('longitude','latitude')]),] #eliminando dados sem coords
+occDataSpsLinkClean[,c('longitude','latitude')] = round(x=occDataSpsLinkClean[,c('longitude','latitude')], digits=2) #coords com duas casas decimais
+occDataSpsLinkClean = occDataSpsLinkClean[!duplicated(occDataSpsLinkClean[,c('longitude','latitude')]),]
+##definindo dataset limpo para o SpsLink
+occDataSpsLink = occDataSpsLinkClean
+write.csv(occDataSpsLink, '/home/anderson/Documentos/Projetos/Distribuicao de barbeiros com interacao com humanos/Ocorrencias/SpsLink_mar-2018/reduviidae_SpsLink_occDataClean.csv', row.names=FALSE)
+
+
+##conjunto de dados consolidado para Reduviidae (GBIF + SpsLink)##
+
+
+occDataGBIF = read.csv('/home/anderson/Documentos/Projetos/Distribuicao de barbeiros com interacao com humanos/Ocorrencias/GBIF_mar-2018/Reduviidae_CSV/reduviidae_GBIF_occDataClean.csv', header=TRUE, sep=',', dec='.', stringsAsFactors=FALSE, na.strings="")
+
+occDataSpsLink = read.csv('/home/anderson/Documentos/Projetos/Distribuicao de barbeiros com interacao com humanos/Ocorrencias/SpsLink_mar-2018/reduviidae_SpsLink_occDataClean.csv', header=TRUE, sep=',', dec='.', stringsAsFactors=FALSE, na.strings="NA")
+
+
+reduviidaeDataset = data.frame(sps = c(occDataGBIF$species, occDataSpsLink$scientificname),
+                               lon = c(occDataGBIF$decimallongitude, occDataSpsLink$longitude),
+                               lat = c(occDataGBIF$decimallatitude, occDataSpsLink$latitude))
+
+write.csv(reduviidaeDataset, '/home/anderson/Documentos/Projetos/Distribuicao de barbeiros com interacao com humanos/Ocorrencias/reduviidaeDataset.csv', row.names=FALSE, na="NA")
+
+
+##KDE para vies amostral a partir do banco de dados de Reduviide##
+
+
+##abrindo arquivo salvo
+reduviidaeDataset = read.csv(file='/home/anderson/Documentos/Projetos/Distribuicao de barbeiros com interacao com humanos/Ocorrencias/reduviidaeDataset.csv', header=TRUE, sep=',', dec='.', stringsAsFactors=FALSE, na.strings="")
+reduviidaeOcc = reduviidaeDataset[,c('lon','lat')]
+
+##convertendo de data.frame para staialPointsDataFrame
+coordinates(reduviidaeOcc) <- ~lon+lat
+proj4string(reduviidaeOcc) <- CRS('+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs +towgs84=0,0,0')
+
+##abrindo o shapefile que 'cortara' os pontos
+AmSulShape = rgdal::readOGR("/home/anderson/PosDoc/shapefiles/Am_Sul/borders.shp",p4s=proj4string(reduviidaeOcc))
+
+##ajustando o sistema de coordenadas geograficas entre pontos e shapefile
+reduviidaeOcc <- spTransform(reduviidaeOcc, CRS(proj4string(AmSulShape)))
+reduviidaeOcc <- reduviidaeOcc[AmSulShape, ]
+
+##extent para o grid file final
+#SOAextent = extent(-81.57551,-34.03384,-57.13385,12.99115)
+
+##inspecionando pontos fosseis
+plot(reduviidaeOcc)
+plot(AmSulShape, add=TRUE)
+
+##convertendo spatialPoints em data.frame para o KDE2D
+reduviidaeOcc = as.data.frame(reduviidaeOcc)
+
+##kernel density estimation com o pacote MASS
+dens = MASS::kde2d(x=reduviidaeOcc$lon, y=reduviidaeOcc$lat, n=100)
+densRas = raster(dens)
+densRas = mask(x=densRas, mask=AmSulShape)
+
+##salvado raster
+writeRaster(x=densRas, file='/home/anderson/Documentos/Projetos/Distribuicao de barbeiros com interacao com humanos/Ocorrencias/reduviidaeBiasLayer.grd', overwrite=TRUE)
+
+##inspecionando
+plot(AmSulShape)
+plot(densRas, add=TRUE)
+points(reduviidaeOcc[,c('lon','lat')],cex=0.5)
+
+
+
+
 
 ##abrindo as variaveis climaticas
-##abrindo shape da America do Sul
-AmSulShape = rgdal::readOGR("/home/anderson/PosDoc/shapefiles/Am_Sul/borders.shp")
 
 ##abrindo e cortando camadas de variaveis ambientais para o presente
 filesRaw <- stack(list.files(path=envVarFolder, pattern='.asc', full.names=TRUE)) #modificar a extensao .bil de acordo com os arquivos

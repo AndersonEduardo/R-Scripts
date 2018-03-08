@@ -311,7 +311,11 @@ for(i in c('MAXENT.Phillips','CTA',  'GAM',  'GBM',  'GLM',  'MARS', 'RF')){
 }
 
 
-##boxplot AUC
+
+##  boxplot AUC - dados totais  ##
+
+
+
 jpeg(filename='boxplotAUC.jpeg')
 boxplot(statResultsSDMreal$AUCvalue_bestModel,statResultsSDMnormal$AUCvalue_bestModel, statResultsSDMimproved$AUCvalue_bestModel, ylim=c(0,1), names=c('SDM real','SDM normal','SDM improved'), ylab='AUC')
 dev.off()
@@ -323,7 +327,12 @@ lines(density(statResultsSDMreal$AUCvalue_bestModel),col='black', lwd=3)
 legend(x='topleft', legend=c('SDM normal', 'SDM improved', 'SDM real'), lty=1, lwd=3, col=c('blue', 'red', 'black'))
 dev.off()
 
-##boxplot TSS
+
+
+##  boxplot TSS -  dados totais  ##
+
+
+
 jpeg(filename='boxplotTSS.jpeg')
 boxplot(statResultsSDMreal$TSSvalue_bestModel,statResultsSDMnormal$TSSvalue_bestModel, statResultsSDMimproved$TSSvalue_bestModel, ylim=c(0,1), names=c('SDM real','SDM normal','SDM improved'), ylab='TSS')
 dev.off()
@@ -335,7 +344,12 @@ lines(density(statResultsSDMreal$TSSvalue_bestModel),col='black', lwd=3)
 legend(x='topleft', legend=c('SDM normal', 'SDM improved', 'SDM real'), lty=1, lwd=3, col=c('blue', 'red', 'black'))
 dev.off()
 
-##teste de significancia
+
+
+##  teste de significancia - dados totais  ##
+
+
+
 dados = rbind(statResultsSDMreal, statResultsSDMnormal, statResultsSDMimproved)
 
 kruskal.test(AUCvalue_bestModel~SDM,data=dados) #p << 0.05
@@ -346,7 +360,11 @@ FSA::dunnTest(AUCvalue_bestModel~SDM,data=dados[,]) ##diferencas signif entre to
 FSA::dunnTest(TSSvalue_bestModel~SDM,data=dados[,]) ##diferencas signif entre todos os pares
 
 
-##AUC x sample size
+
+##  AUC x sample size  ##
+
+
+
 dados = rbind(statResultsSDMreal, statResultsSDMnormal, statResultsSDMimproved)
 
 jpeg(filename='AUC_&_sampleSize.jpeg')
@@ -358,7 +376,11 @@ legend('bottomright',legend=c('SDM real','SDM normal','SDM improved'),pch=15,col
 dev.off()
 
 
-##por algoritmo
+
+##  por algoritmo  ##
+
+
+
 jpeg(filename='AUC_&_sampleSize_por_algoritmo.jpeg', width=600, height=800)
 par(mfrow=c(4,3), cex=1, mar=c(3,4,2,0.2))
 ##CTA
@@ -407,7 +429,10 @@ dev.off()
 
 
 
-##AUC x sample size - flavour 2
+##  AUC x sample size - flavour 2  ##
+
+
+
 jpeg(filename='AUC_&_sampleSize_boxplot2.jpeg', width=1200)
 par(mfrow=c(1,3), cex=1.5, mar=c(4,4,3,0.5), lwd=2)
 #SDM normal
@@ -421,7 +446,12 @@ stripchart( dados[dados$SDM=='improved',]$AUCvalue_bestModel ~ as.factor(dados[d
 boxplot( dados[dados$SDM=='improved',]$AUCvalue_bestModel ~ dados[dados$SDM=='improved',]$sampleSize, col=rgb(1,1,1,0), border='black', pch=19, cex=0.5, lwd=1, outpch=NA, notch=FALSE, boxlwd=2, add=TRUE)
 dev.off()
 
-##graficos de densidade
+
+
+##  graficos de densidade  ##
+
+
+
 jpeg(filename='AUC_&_sampleSize_densityPlot.jpeg', width=600, height=600)
 par(mfrow=c(2,2), cex=1.1, mar=c(4,4,3,0.5), lwd=2)
 #samplesize 20
@@ -447,7 +477,9 @@ legend('topleft',legend=c('SDM real','SDM normal','SDM improved'),pch=15,col=c('
 dev.off()
 
 
+
 ##teste AUC x sample size
+
 
 
 ##sample size 20
@@ -627,7 +659,9 @@ boxplot( dados[dados$SDM=='improved',]$TSSvalue_bestModel ~ as.factor(dados[dado
 dev.off()
 
 
+
 ##AUC antes e depois do HCPA
+
 
 
 BeforeAfterData = merge(statResultsSDMnormal, statResultsSDMimproved, by=c('sampleSize','sp','model'))[,c('sampleSize','sp','model', 'AUCvalue_bestModel.x','AUCvalue_bestModel.y')]
@@ -644,9 +678,9 @@ arrows(rep(1, nrow(BeforeAfterData[BeforeAfterData$model=='CTA',])), log(BeforeA
        rep(2, nrow(BeforeAfterData[BeforeAfterData$model=='CTA',])), log(BeforeAfterData[BeforeAfterData$model=='CTA',]$SDMimproved),
        angle=15, length=0.2)
 ##
-tendency = lm(log(c(BeforeAfterData[BeforeAfterData$model=='CTA',]$SDMnormal, BeforeAfterData[BeforeAfterData$model=='CTA',]$SDMimproved))
+tendencyCTA = lm(log(c(BeforeAfterData[BeforeAfterData$model=='CTA',]$SDMnormal, BeforeAfterData[BeforeAfterData$model=='CTA',]$SDMimproved))
               ~c( rep(1, nrow(BeforeAfterData[BeforeAfterData$model=='CTA',])), rep(2, nrow(BeforeAfterData[BeforeAfterData$model=='CTA',])) ) )
-abline(tendency, col='red', lty=2, lwd=2.5)
+abline(tendencyCTA, col='red', lty=2, lwd=2.5)
 ## MARS ##
 stripchart( log(c(BeforeAfterData[BeforeAfterData$model=='MARS',]$SDMnormal, BeforeAfterData[BeforeAfterData$model=='MARS',]$SDMimproved)) ~
           c( rep(1, nrow(BeforeAfterData[BeforeAfterData$model=='MARS',])), rep(2, nrow(BeforeAfterData[BeforeAfterData$model=='MARS',])) ),
@@ -656,9 +690,9 @@ arrows(rep(1, nrow(BeforeAfterData[BeforeAfterData$model=='MARS',])), log(Before
        rep(2, nrow(BeforeAfterData[BeforeAfterData$model=='MARS',])), log(BeforeAfterData[BeforeAfterData$model=='MARS',]$SDMimproved),
        angle=15, length=0.2)
 ##
-tendency = lm(log(c(BeforeAfterData[BeforeAfterData$model=='MARS',]$SDMnormal, BeforeAfterData[BeforeAfterData$model=='MARS',]$SDMimproved))
+tendencyMARS = lm(log(c(BeforeAfterData[BeforeAfterData$model=='MARS',]$SDMnormal, BeforeAfterData[BeforeAfterData$model=='MARS',]$SDMimproved))
               ~c( rep(1, nrow(BeforeAfterData[BeforeAfterData$model=='MARS',])), rep(2, nrow(BeforeAfterData[BeforeAfterData$model=='MARS',])) ) )
-abline(tendency, col='red', lty=2, lwd=2.5)
+abline(tendencyMARS, col='red', lty=2, lwd=2.5)
 ## GAM ##
 stripchart( log(c(BeforeAfterData[BeforeAfterData$model=='GAM',]$SDMnormal, BeforeAfterData[BeforeAfterData$model=='GAM',]$SDMimproved)) ~
           c( rep(1, nrow(BeforeAfterData[BeforeAfterData$model=='GAM',])), rep(2, nrow(BeforeAfterData[BeforeAfterData$model=='GAM',])) ),
@@ -668,9 +702,9 @@ arrows(rep(1, nrow(BeforeAfterData[BeforeAfterData$model=='GAM',])), log(BeforeA
        rep(2, nrow(BeforeAfterData[BeforeAfterData$model=='GAM',])), log(BeforeAfterData[BeforeAfterData$model=='GAM',]$SDMimproved),
        angle=15, length=0.2)
 ##
-tendency = lm(log(c(BeforeAfterData[BeforeAfterData$model=='GAM',]$SDMnormal, BeforeAfterData[BeforeAfterData$model=='GAM',]$SDMimproved))
+tendencyGAM = lm(log(c(BeforeAfterData[BeforeAfterData$model=='GAM',]$SDMnormal, BeforeAfterData[BeforeAfterData$model=='GAM',]$SDMimproved))
               ~c( rep(1, nrow(BeforeAfterData[BeforeAfterData$model=='GAM',])), rep(2, nrow(BeforeAfterData[BeforeAfterData$model=='GAM',])) ) )
-abline(tendency, col='red', lty=2, lwd=2.5)
+abline(tendencyGAM, col='red', lty=2, lwd=2.5)
 ## MAXENT ##
 stripchart( log(c(BeforeAfterData[BeforeAfterData$model=='MAXENT.Phillips',]$SDMnormal, BeforeAfterData[BeforeAfterData$model=='MAXENT.Phillips',]$SDMimproved)) ~
           c( rep(1, nrow(BeforeAfterData[BeforeAfterData$model=='MAXENT.Phillips',])), rep(2, nrow(BeforeAfterData[BeforeAfterData$model=='MAXENT.Phillips',])) ),
@@ -680,9 +714,9 @@ arrows(rep(1, nrow(BeforeAfterData[BeforeAfterData$model=='MAXENT.Phillips',])),
        rep(2, nrow(BeforeAfterData[BeforeAfterData$model=='MAXENT.Phillips',])), log(BeforeAfterData[BeforeAfterData$model=='MAXENT.Phillips',]$SDMimproved),
        angle=15, length=0.2)
 ##
-tendency = lm(log(c(BeforeAfterData[BeforeAfterData$model=='MAXENT.Phillips',]$SDMnormal, BeforeAfterData[BeforeAfterData$model=='MAXENT.Phillips',]$SDMimproved))
+tendencyMAX = lm(log(c(BeforeAfterData[BeforeAfterData$model=='MAXENT.Phillips',]$SDMnormal, BeforeAfterData[BeforeAfterData$model=='MAXENT.Phillips',]$SDMimproved))
               ~c( rep(1, nrow(BeforeAfterData[BeforeAfterData$model=='MAXENT.Phillips',])), rep(2, nrow(BeforeAfterData[BeforeAfterData$model=='MAXENT.Phillips',])) ) )
-abline(tendency, col='red', lty=2, lwd=2.5)
+abline(tendencyMAX, col='red', lty=2, lwd=2.5)
 ## GBM ##
 stripchart( log(c(BeforeAfterData[BeforeAfterData$model=='GBM',]$SDMnormal, BeforeAfterData[BeforeAfterData$model=='GBM',]$SDMimproved)) ~
           c( rep(1, nrow(BeforeAfterData[BeforeAfterData$model=='GBM',])), rep(2, nrow(BeforeAfterData[BeforeAfterData$model=='GBM',])) ),
@@ -692,9 +726,9 @@ arrows(rep(1, nrow(BeforeAfterData[BeforeAfterData$model=='GBM',])), log(BeforeA
        rep(2, nrow(BeforeAfterData[BeforeAfterData$model=='GBM',])), log(BeforeAfterData[BeforeAfterData$model=='GBM',]$SDMimproved),
        angle=15, length=0.2)
 ##
-tendency = lm(log(c(BeforeAfterData[BeforeAfterData$model=='GBM',]$SDMnormal, BeforeAfterData[BeforeAfterData$model=='GBM',]$SDMimproved))
+tendencyGBM = lm(log(c(BeforeAfterData[BeforeAfterData$model=='GBM',]$SDMnormal, BeforeAfterData[BeforeAfterData$model=='GBM',]$SDMimproved))
               ~c( rep(1, nrow(BeforeAfterData[BeforeAfterData$model=='GBM',])), rep(2, nrow(BeforeAfterData[BeforeAfterData$model=='GBM',])) ) )
-abline(tendency, col='red', lty=2, lwd=2.5)
+abline(tendencyGBM, col='red', lty=2, lwd=2.5)
 ## RF ##
 stripchart( log(c(BeforeAfterData[BeforeAfterData$model=='RF',]$SDMnormal, BeforeAfterData[BeforeAfterData$model=='RF',]$SDMimproved)) ~
           c( rep(1, nrow(BeforeAfterData[BeforeAfterData$model=='RF',])), rep(2, nrow(BeforeAfterData[BeforeAfterData$model=='RF',])) ),
@@ -704,9 +738,9 @@ arrows(rep(1, nrow(BeforeAfterData[BeforeAfterData$model=='RF',])), log(BeforeAf
        rep(2, nrow(BeforeAfterData[BeforeAfterData$model=='RF',])), log(BeforeAfterData[BeforeAfterData$model=='RF',]$SDMimproved),
        angle=15, length=0.2)
 ##
-tendency = lm(log(c(BeforeAfterData[BeforeAfterData$model=='RF',]$SDMnormal, BeforeAfterData[BeforeAfterData$model=='RF',]$SDMimproved))
+tendencyRF = lm(log(c(BeforeAfterData[BeforeAfterData$model=='RF',]$SDMnormal, BeforeAfterData[BeforeAfterData$model=='RF',]$SDMimproved))
               ~c( rep(1, nrow(BeforeAfterData[BeforeAfterData$model=='RF',])), rep(2, nrow(BeforeAfterData[BeforeAfterData$model=='RF',])) ) )
-abline(tendency, col='red', lty=2, lwd=2.5)
+abline(tendencyRF, col='red', lty=2, lwd=2.5)
 ## GLM ##
 stripchart( log(c(BeforeAfterData[BeforeAfterData$model=='GLM',]$SDMnormal, BeforeAfterData[BeforeAfterData$model=='GLM',]$SDMimproved)) ~
           c( rep(1, nrow(BeforeAfterData[BeforeAfterData$model=='GLM',])), rep(2, nrow(BeforeAfterData[BeforeAfterData$model=='GLM',])) ),
@@ -716,14 +750,36 @@ arrows(rep(1, nrow(BeforeAfterData[BeforeAfterData$model=='GLM',])), log(BeforeA
        rep(2, nrow(BeforeAfterData[BeforeAfterData$model=='GLM',])), log(BeforeAfterData[BeforeAfterData$model=='GLM',]$SDMimproved),
        angle=15, length=0.2)
 ##
-tendency = lm(log(c(BeforeAfterData[BeforeAfterData$model=='GLM',]$SDMnormal, BeforeAfterData[BeforeAfterData$model=='GLM',]$SDMimproved))
+tendencyGLM = lm(log(c(BeforeAfterData[BeforeAfterData$model=='GLM',]$SDMnormal, BeforeAfterData[BeforeAfterData$model=='GLM',]$SDMimproved))
               ~c( rep(1, nrow(BeforeAfterData[BeforeAfterData$model=='GLM',])), rep(2, nrow(BeforeAfterData[BeforeAfterData$model=='GLM',])) ) )
-abline(tendency, col='red', lty=2, lwd=2.5)
+abline(tendencyGLM, col='red', lty=2, lwd=2.5)
 ##
 dev.off()
 
 
+
+
+## tabela com a 'forca' do HCPA para cada algoritmo
+
+
+
+tabBetaHCPA = data.frame(
+    Algorithm = c('CTA','MARS','Maxent','GAM','GBM','RF','GLM'),
+    HCPA_effect = as.numeric(c( coef(tendencyCTA)[2],coef(tendencyMARS)[2],coef(tendencyMAX)[2],coef(tendencyGAM)[2],coef(tendencyGBM)[2], coef(tendencyRF)[2], coef(tendencyGLM)[2]))
+)
+write.csv(tabBetaHCPA, paste(projectFolder,'/tabBetaHCPA.csv',row.names=FALSE,sep=''))
+
+
+tabBetaHCPA = tabBetaHCPA[order(tabBetaHCPA$HCPA_effect),]
+
+jpeg(filename='HCPAeffects.jpeg')
+barplot(tabBetaHCPA$HCPA_effect, names=tabBetaHCPA$Algorithm, xlab='Algorithm', ylab='HCPA effect')
+dev.off()
+
+
+
 ##TSS antes e depois do HCPA
+
 
 
 BeforeAfterData = merge(statResultsSDMnormal, statResultsSDMimproved, by=c('sampleSize','sp','model'))[,c('sampleSize','sp','model', 'TSSvalue_bestModel.x','TSSvalue_bestModel.y')]
@@ -870,7 +926,9 @@ rankingTSS = data.frame(
 )
 
 
-##teste TSS entre modelos
+
+##  teste TSS entre modelos  ##
+
 
 
 kruskal.test(TSSvalue_bestModel ~ model, data=statResultsSDMnormal) #resultado: p>0.05
@@ -881,7 +939,10 @@ kruskal.test(TSSvalue_bestModel ~ model, data=statResultsSDMimproved) #resultado
 FSA::dunnTest(TSSvalue_bestModel ~ model, data=statResultsSDMimproved, method="bh")
 
 
-##teste before-after (com TSS)
+
+##  teste before-after (com TSS)  ##
+
+
 
 BeforeAfterData = merge(statResultsSDMnormal, statResultsSDMimproved, by=c('sampleSize','sp','model'))[,c('sampleSize','sp','model', 'TSSvalue_bestModel.x','TSSvalue_bestModel.y')]
 names(BeforeAfterData) = c("sampleSize", "sp", "model","SDMnormal", "SDMimproved")
@@ -909,7 +970,9 @@ wilcox.test(BeforeAfterData[BeforeAfterData$model=='GLM',]$SDMnormal,
             BeforeAfterData[BeforeAfterData$model=='GLM',]$SDMimproved, paired=TRUE) # where y1 and y2 are numeric 
 
 
-##teste AUC
+
+##  teste AUC entre modleos  ##
+
 
 
 kruskal.test(AUCvalue_bestModel ~ model, data=statResultsSDMnormal) #resultado: p<0.05
@@ -921,7 +984,10 @@ kruskal.test(AUCvalue_bestModel ~ model, data=statResultsSDMimproved) #resultado
 FSA::dunnTest(AUCvalue_bestModel ~ model, data=statResultsSDMimproved, method="bh") 
 
 
-##teste before-after (com AUC)
+
+##  teste before-after (com AUC)  ##
+
+
 
 BeforeAfterData = merge(statResultsSDMnormal, statResultsSDMimproved, by=c('sampleSize','sp','model'))[,c('sampleSize','sp','model', 'AUCvalue_bestModel.x','AUCvalue_bestModel.y')]
 names(BeforeAfterData) = c("sampleSize", "sp", "model","SDMnormal", "SDMimproved")
