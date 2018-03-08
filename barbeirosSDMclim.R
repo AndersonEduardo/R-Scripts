@@ -19,12 +19,15 @@ options(java.parameters = "Xmx7g")
 ## projectFolder = "J:/Lucas/Modelagem barbeiros/"
 #anderson
 envVarFolder = "/home/anderson/Documentos/Projetos/Distribuicao de barbeiros com interacao com humanos/Variaveis Climaticas"
-spOccFolder = "/home/anderson/Documentos/Projetos/Distribuicao de barbeiros com interacao com humanos/Ocorrencias/"
-projectFolder = "/home/anderson/Documentos/Projetos/Distribuicao de barbeiros com interacao com humanos/resultados nicho climatico/"
+spOccFolder = "/home/anderson/Documentos/Projetos/Distribuicao de barbeiros com interacao com humanos/Ocorrencias"
+projectFolder = "/home/anderson/Documentos/Projetos/Distribuicao de barbeiros com interacao com humanos"
 AmSulShape = rgdal::readOGR("/home/anderson/PosDoc/shapefiles/Am_Sul/borders.shp") #abrindo shape da America do Sul
+SOAextent = extent(-81.57551,-34.03384,-57.13385,12.99115)
+biasLayer = raster('/home/anderson/Documentos/Projetos/Distribuicao de barbeiros com interacao com humanos/Ocorrencias/reduviidaeBiasLayer.grd')
 
 
 ###PRIMEIRA PARTE: limpando dados de occorrencia
+
 
 
 ##GBIF para Reduviidae##
@@ -41,8 +44,10 @@ write.csv(occDataGBIF,'/home/anderson/Documentos/Projetos/Distribuicao de barbei
 ##SpsLink  para Reduviidae##
 
 
-occDataSpsLink = read.csv('/home/anderson/Documentos/Projetos/Distribuicao de barbeiros com interacao com humanos/Ocorrencias/SpsLink_mar-2018/reduviidae_GBIF_occData.csv', header=TRUE, sep=',', dec='.', stringsAsFactors=FALSE, na.strings="NA") #abrindo dados
-occDataSpsLinkClean = subset(occDataSpsLink, coordinateprecision < 5000 | is.na(coordinateprecision)) #407 retirados, com erro > 5 km 
+occDataSpsLink = read.csv('/home/anderson/Documentos/Projetos/Distribuicao de barbeiros com interacao com humanos/Ocorrencias/SpsLink_mar-2018/occ_reduviidae-triatominae_speciesLink.csv', header=TRUE, sep=',', dec='.', stringsAsFactors=FALSE, na.strings="", colClasses=c('character',rep('numeric',5))) #abrindo dados
+occDataSpsLink[is.na(occDataSpsLink$longitude),'longitude'] = occDataSpsLink[is.na(occDataSpsLink$longitude),'longitude_mun']
+occDataSpsLink[is.na(occDataSpsLink$latitude),'latitude'] = occDataSpsLink[is.na(occDataSpsLink$latitude),'latitude_mun']
+occDataSpsLinkClean = subset(occDataSpsLink, coordinateprecision < 5000 | is.na(coordinateprecision)) #407 retirados, com erro > 5 km
 occDataSpsLinkClean = occDataSpsLinkClean[complete.cases(occDataSpsLinkClean[,c('longitude','latitude')]),] #eliminando dados sem coords
 occDataSpsLinkClean[,c('longitude','latitude')] = round(x=occDataSpsLinkClean[,c('longitude','latitude')], digits=2) #coords com duas casas decimais
 occDataSpsLinkClean = occDataSpsLinkClean[!duplicated(occDataSpsLinkClean[,c('longitude','latitude')]),]
@@ -108,38 +113,84 @@ plot(densRas, add=TRUE)
 points(reduviidaeOcc[,c('lon','lat')],cex=0.5)
 
 
+##Formando o conjunto de dados de cada especie a ser modelada##
+
+
+##abrindo conjunto de dados
+reduviidaeDataset = read.csv(file='/home/anderson/Documentos/Projetos/Distribuicao de barbeiros com interacao com humanos/Ocorrencias/reduviidaeDataset.csv', header=TRUE, sep=',', dec='.', stringsAsFactors=FALSE, na.strings="")
+
+##lista com o nome das especies
+spsNames = c("Panstrongylus_geniculatus",
+             "Panstrongylus_lutzi",
+             "Panstrongylus_megistus",
+             "Rhodnius_nasutus",
+             "Rhodnius_neglectus",
+             "Rhodnius_pictipes",
+             "Rhodnius_robustus",
+             "Triatoma_brasiliensis",
+             "Triatoma_infestans",
+             "Triatoma_maculata",
+             "Triatoma_pseudomaculata",
+             "Triatoma_rubrovaria",
+             "Triatoma_sordida",
+             "Triatoma_vitticeps")
+
+##garantindo ajuste de nomes
+reduviidaeDataset$sps =  gsub(pattern=' ', replacement='_', x=reduviidaeDataset$sps)
+
+##salvando dados por especie
+for(sp_i in spsNames){
+    spLines = agrep(pattern=sp_i, x=reduviidaeDataset$sps, value=FALSE)
+    spDataset = reduviidaeDataset[spLines,]
+    write.csv(spDataset, paste(spOccFolder,'/sps_occ/',sp_i,'.csv',sep=''), row.names=FALSE)
+}
 
 
 
-##abrindo as variaveis climaticas
+###SEGUNDA PARTE: trabalhando as variaveis climaticas
+
+
 
 ##abrindo e cortando camadas de variaveis ambientais para o presente
-filesRaw <- stack(list.files(path=envVarFolder, pattern='.asc', full.names=TRUE)) #modificar a extensao .bil de acordo com os arquivos
-#files = mask(filesRaw,AmSulShape) #cortando para Am. do Sul
+predictorsRaw <- stack(list.files(path=paste(envVarFolder,'/presente/bio_2-5m_bil',sep=''), pattern='.bil', full.names=TRUE)) #modificar a extensao .bil de acordo com os arquivos
+predictors = crop(x=predictorsRaw, y=SOAextent)
+predictors = mask(predictors, AmSulShape) #cortando para Am. do Sul
 
 ##abrindo e cortando camadas de variaveis ambientais para projecao
 filesProjectionOtimistaRaw <- stack(list.files(path=paste(envVarFolder,"/futuro/cenario_otimista",sep=''), pattern='.asc', full.names=TRUE))
 filesProjectionPessimistaRaw <- stack(list.files(path=paste(envVarFolder,"/futuro/cenario_pessimista",sep=''), pattern='.asc', full.names=TRUE)) 
-##filesProjection = mask(filesProjectionRaw,AmSulShape) #cortando para Am. do Sul
-
-##remove highly correlated variables Bio1,Bio3,Bio9,Bio13,Bio14
-#Lucas
-## files.crop.sub = filesRaw[[c('bio7','bio15','bio11','bio16','bio17')]] #choose selected layers
-## files.crop.sub.projection.otimista = filesProjectionOtimistaRaw[[c('bio7','bio15','bio11','bio16','bio17')]] #choose selected layers
-## files.crop.sub.projection.pessimista = filesProjectionPessimistaRaw[[c('bio7','bio15','bio11','bio16','bio17')]] #choose selected layers
-#Anderson
-files.crop.sub = filesRaw[[c('bio7','bio15','bio11','bio16','bio17')]] #choose selected layers
-files.crop.sub.projection.otimista = filesProjectionOtimistaRaw[[c('bio7','bio15','bio11','bio16','bio17')]] #choose selected layers
-files.crop.sub.projection.pessimista = filesProjectionPessimistaRaw[[c('bio7','bio15','bio11','bio16','bio17')]] #choose selected layers
+filesProjection = mask(filesProjectionRaw,AmSulShape) #cortando para Am. do Sul
 
 
-##definindo os objetos para as variaveis preditoras (SEM IMPACTO HUMANO)
-predictors <- stack(files.crop.sub)
-predictorsProjectionOtimista = files.crop.sub.projection.otimista 
-predictorsProjectionPessimista = files.crop.sub.projection.pessimista
+##analisando correlacao das variaveis##
 
-##Criando objeto com a lista de especies
-occ.sps <- list.files(paste(spOccFolder,sep=''),pattern="csv")
+
+predictorsForVif = predictors
+
+vif(predictorsForVif)
+predictorsVif1 = vifcor(predictorsForVif, th=0.7)
+predictorsVif1
+
+predictorsVif2 <- vifstep(predictorsForVif, th=10) # identify collinear variables that should be excluded
+predictorsVif2
+
+##comparando
+predictorsVif1@results$Variables
+predictorsVif2@results$Variables
+
+##definindo variaveis preditoras a serem usadas nos modelos
+predictors = predictorsForVif[[ predictorsVif1@results$Variables ]]
+
+writeRaster(x=predictors, filename=paste(envVarFolder,'/presente/usadas/predictors.asc',sep=''), overwrite=TRUE, bylayer=TRUE, suffix=names(predictors))
+
+
+
+###TERCEIRA PARTE: rodando SDMs para as especies (e fazendo projecoes)###
+
+
+
+##Criando objeto com a lista dos nomes das especies
+occ.sps <- list.files(paste(spOccFolder,'/sps_occ_Lucas',sep=''),pattern="csv")
 splist <-unlist(lapply(occ.sps, FUN = strsplit, split=("\\.csv")))
 splist
 
@@ -147,11 +198,59 @@ splist
 tabRes = data.frame(c(sp=character(),auc=numeric(),tss=numeric(),threshold=numeric()))
 
 
-###SEGUNDA PARTE: rodando SDMs para as especies (e fazendo projecoes)###
+##loop para SDM com cada uma das especies##
 
 
-for (i in 1:length(splist)){
+for (sp_i in 1:length(splist)){
+    
+    ##diretorio para o biomod2 salvar resultados para SDMnormal
+    setwd(file.path(projectFolder,'SDM outputs'))
+    
+    ##dados de ocorrencia
+    occPoints = read.csv(paste(spOccFolder,'/sps_occ_Lucas/',sp_i,'.csv',sep=''), header=FALSE, sep=',', dec='.', na.strings='',colClasses=c('character','numeric','numeric')) #abrindo pontos de ocorrencia
+    names(occPoints) =  c('sp','lon','lat')
+    occPoints = occPoints[,c('lon','lat')]
 
+    ##pseudo-ausencia com o mesmo vies dos dados de ocorrencia
+    
+    bgPoints = dismo::randomPoints(mask=biasLayer, n=10000, p=occPoints, prob=TRUE)
+
+    
+    myResp <- data.frame(lon=occPoints$lon, lat=occPoints$lat)
+    coordinates(myResp) <- ~ lon + lat #transformando em spatialPoints
+    crs(myResp) = CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0') #transformando em spatialPoints
+
+    ##variaveis e parametros locais especificos para o biomod2
+    myRespName <- sp_i # nome do cenario atual (para biomod2)
+    myExpl = predictors  #variavel preditora (para biomod2)
+ 
+    ##ajuste de dados de entrada para biomod2
+    myBiomodData <- BIOMOD_FormatingData(resp.var = myResp,
+                                         expl.var = myExpl,
+                                         resp.name = paste(myRespName,'_sample',sampleSizes[j],'_SDMnormal',sep=''),
+                                         PA.nb.rep = 1,
+                                         PA.nb.absences = 10000,
+                                         )
+      
+      ## ##inspecionando o objeto gerado pela funcao do biomod2
+      ## myBiomodData
+      ## plot(myBiomodData)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
     especie = splist[i] #selecting the species
     sp.file <- read.csv(paste(spOccFolder,"/",especie,".csv",sep=""),header=TRUE) ### read sp occurrence
     sp.occ <- sp.file[,2:3] ## select long-lat
@@ -205,6 +304,7 @@ for (i in 1:length(splist)){
 
 ##gravando a tabela de resultados completa
 write.csv(tabRes,file=paste(projectFolder,'tabela_resultados.csv',sep=''))
+
 
 
 ###TERCEIRA PARTE: gerando mapas de sobreposicao (i.e. mapa de riqueza) - SEM impacto humano###
