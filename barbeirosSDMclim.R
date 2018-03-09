@@ -4,7 +4,9 @@ library(raster)
 library(maptools)
 library(usdm)
 ##library(dismo)
+library(ENMeval)
 library(biomod2)
+library(pROC)
 #Sys.setenv(JAVA_HOME='C:/Program Files/Java/jre1.8.0_131/bin') # for 64-bit version
 #Windows#Sys.setenv(JAVA_HOME='C:\\Program Files\\Java\\jre1.8.0_91') # for 64-bit version
 library(rJava)
@@ -22,8 +24,13 @@ envVarFolder = "/home/anderson/Documentos/Projetos/Distribuicao de barbeiros com
 spOccFolder = "/home/anderson/Documentos/Projetos/Distribuicao de barbeiros com interacao com humanos/Ocorrencias"
 projectFolder = "/home/anderson/Documentos/Projetos/Distribuicao de barbeiros com interacao com humanos"
 AmSulShape = rgdal::readOGR("/home/anderson/PosDoc/shapefiles/Am_Sul/borders.shp") #abrindo shape da America do Sul
+SAborders = rgdal::readOGR('/home/anderson/PosDoc/shapefiles/continents/continent.shp') #bordas de continentes
 SOAextent = extent(-81.57551,-34.03384,-57.13385,12.99115)
+SAborders = crop(SAborders,SOAextent)
 biasLayer = raster('/home/anderson/Documentos/Projetos/Distribuicao de barbeiros com interacao com humanos/Ocorrencias/reduviidaeBiasLayer.grd')
+
+crop(SAborders,c(-81.58333,-34.04167,-57.125,13))
+
 
 
 ###PRIMEIRA PARTE: limpando dados de occorrencia
@@ -89,10 +96,13 @@ AmSulShape = rgdal::readOGR("/home/anderson/PosDoc/shapefiles/Am_Sul/borders.shp
 reduviidaeOcc <- spTransform(reduviidaeOcc, CRS(proj4string(AmSulShape)))
 reduviidaeOcc <- reduviidaeOcc[AmSulShape, ]
 
-##extent para o grid file final
+##sjuatando para toda a area da america do sul e grid file final
 #SOAextent = extent(-81.57551,-34.03384,-57.13385,12.99115)
 
-##inspecionando pontos fosseis
+SAbg = predictors[[1]]*0 ##America do Sul como 'pano de fundo'
+crs(SAbg) = crs(raster())
+
+##inspecionando pontos
 plot(reduviidaeOcc)
 plot(AmSulShape, add=TRUE)
 
@@ -103,6 +113,10 @@ reduviidaeOcc = as.data.frame(reduviidaeOcc)
 dens = MASS::kde2d(x=reduviidaeOcc$lon, y=reduviidaeOcc$lat, n=100)
 densRas = raster(dens)
 densRas = mask(x=densRas, mask=AmSulShape)
+
+##ajustando projecao e fundindo com pano de fundo
+densRas = projectRaster(densRas, crs=proj4string(SAbg), res=res(SAbg), method="bilinear")
+densRas = merge(densRas, SAbg, tolerance=0.5)
 
 ##salvado raster
 writeRaster(x=densRas, file='/home/anderson/Documentos/Projetos/Distribuicao de barbeiros com interacao com humanos/Ocorrencias/reduviidaeBiasLayer.grd', overwrite=TRUE)
@@ -189,47 +203,208 @@ writeRaster(x=predictors, filename=paste(envVarFolder,'/presente/usadas/predicto
 
 
 
+##variaveis preditoras
+predictors = stack(list.files(paste(envVarFolder,'/presente/usadas',sep=''), pattern='.asc', full.names=TRUE))
+crs(predictors) = '+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0'
+
 ##Criando objeto com a lista dos nomes das especies
 occ.sps <- list.files(paste(spOccFolder,'/sps_occ_Lucas',sep=''),pattern="csv")
 splist <-unlist(lapply(occ.sps, FUN = strsplit, split=("\\.csv")))
-splist
 
 ##criando uma tabela vazia para salvador alguns dados
-tabRes = data.frame(c(sp=character(),auc=numeric(),tss=numeric(),threshold=numeric()))
+tabRes = data.frame()
 
 
 ##loop para SDM com cada uma das especies##
 
 
-for (sp_i in 1:length(splist)){
-    
-    ##diretorio para o biomod2 salvar resultados para SDMnormal
-    setwd(file.path(projectFolder,'SDM outputs'))
+#for (sp_i in 1:length(splist)){
+
+for (sp_i in 1:5){
+
+
+    ##diretorio base de trabalho
+    setwd(paste(projectFolder,'/SDM outputs',sep=''))
+
+    ##verifica e cria diretorio para salvar resultados da especie atual
+    if (file.exists(sp_i)){
+        setwd(sp_i)
+    } else {
+        dir.create(sp_i)
+        setwd(sp_i)
+    }
     
     ##dados de ocorrencia
     occPoints = read.csv(paste(spOccFolder,'/sps_occ_Lucas/',sp_i,'.csv',sep=''), header=FALSE, sep=',', dec='.', na.strings='',colClasses=c('character','numeric','numeric')) #abrindo pontos de ocorrencia
     names(occPoints) =  c('sp','lon','lat')
     occPoints = occPoints[,c('lon','lat')]
 
-    ##pseudo-ausencia com o mesmo vies dos dados de ocorrencia
-    
+    ##pseudo-ausencia com o mesmo vies dos dados de ocorrencia    
     bgPoints = dismo::randomPoints(mask=biasLayer, n=10000, p=occPoints, prob=TRUE)
+    bgPoints = data.frame(lon=bgPoints[,1], lat=bgPoints[,2])
 
     
-    myResp <- data.frame(lon=occPoints$lon, lat=occPoints$lat)
-    coordinates(myResp) <- ~ lon + lat #transformando em spatialPoints
-    crs(myResp) = CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0') #transformando em spatialPoints
+    ##consolindando dados de presenca e background
+    dataSet = data.frame(lon=c(occPoints$lon, bgPoints$lon),
+                         lat=c(occPoints$lat, bgPoints$lat),
+                         occ=c(rep(1,nrow(occPoints)),rep(0,nrow(bgPoints))))
+    ##variaveis ambientais
+    dataSetVars = extract(x=predictors, y=dataSet[,c('lon','lat')], method='bilinear', na.rm=TRUE)
+    ##consolindando
+    dataSet = data.frame(dataSet, dataSetVars)
+    ##limpando pra garantir
+    dataSet = dataSet[complete.cases(dataSet[,c('lon','lat')]),]
+    dataSet[,c('lon','lat')] = round(dataSet[,c('lon','lat')], 2)
+    dataSet = dataSet[!duplicated(dataSet[,c('lon','lat')]),]
 
-    ##variaveis e parametros locais especificos para o biomod2
+
+    ##ENMeval##
+
+    
+    SDMeval <- ENMevaluate(occ=occPoints,
+                           env=predictors,
+                           bg.coords=bgPoints,
+                           method='block',
+                           RMvalues=c(0.5:5),
+                           fc=c("L", "LQ", "H", "LQH", "LQHP", "LQHPT"))
+
+    ##modelo modelo
+    bestModel = SDMeval@results[SDMeval@results$AICc==min(SDMeval@results$AICc),]
+
+    
+    ##calculo do threshold##
+
+    
+    pred =  extract(x=SDMeval@predictions[[bestModel$settings]],
+                    y=dataSet[,c('lon','lat')],
+                    method='bilinear',
+                    na.rm=TRUE) #valores preditos pelo SDM em cada ponto do dataset
+    threshDF = data.frame(occ=dataSet$occ, pred=pred) #juntando tudo em um data.frame
+    threshDF = threshDF[complete.cases(threshDF),] #retirando possiveis NAs
+
+    ##OBS.: omissao -> falso negativo -> false negative rate (FNR) = 1 - TPR (True Positive Rate)
+    ##TPR = sensitividade
+
+    myRoc = roc(predictor=threshDF$pred, response=threshDF$occ, positive=1) #curva ROC
+    rocDF = data.frame( FNR = 1-myRoc$sensitivities, thresholds = myRoc$thresholds ) #data.frame com omissao e thresholds
+    thre = max(rocDF[which(rocDF$FNR == max(rocDF[rocDF$FNR <= 0.05 ,]$FNR)),]$thresholds) #thresold de 5% omissao
+
+
+    ##calculo do TSS para com o threshold -- OBS: TSS = sensitivity + specificity - 1
+
+    
+    TSSvalue = myRoc$sensitivities[which(myRoc$thresholds == thre)] + myRoc$specificities[which(myRoc$thresholds == thre)] - 1
+
+
+    ##mapas com a distribuicao dos pontos##
+
+    
+    jpeg(paste(sp_i,'_mapsOfPoints.jpg'), width=1000, height=600)
+    par(mfrow=c(1,2), cex=1.3)
+    ##occ e background
+    plot(predictors[[1]]*0, main=paste(gsub('_',' ',sp_i)), legend=FALSE)
+    plot(SAborders, cex=1.3, add=TRUE, col='white')
+    points(bgPoints, pch=19, cex=0.4, col=rgb(0.4,0.4,0.4,0.3))
+    points(occPoints, pch=20, cex=1.1, col=rgb(1,0,0,0.6))
+    box()
+    grid()
+    legend('topright', legend=c('occurrences', 'background points'), fill=c('red','grey'), bg='white')
+    ##blocks
+    plot(predictors[[1]]*0, main=paste(gsub('_',' ',sp_i)), legend=FALSE)
+    plot(SAborders, cex=1.3, add=TRUE, col='white')
+    points(SDMeval@occ.pts, pch=21, bg=SDMeval@occ.grp)
+    box()
+    grid()
+    dev.off()
+    
+    
+    ##mapa de distribuicao e suitability##
+
+    
+    jpeg(paste(sp_i,'_maps.jpg'), width=1000, height=500)
+    par(mfrow=c(1,2), mar=c(3,3,4,8))
+    ##binario
+    plot(SDMeval@predictions[[bestModel$settings]] > thre, main=gsub('_', ' ', sp_i), cex=1.3, legend=FALSE)
+    plot(SAborders, add=T)
+    grid()
+    legend('topright',legend=c('non-habitat','habitat'), pch='', cex=1.3, fill=c('lightgrey','darkgreen'), bg='white')
+    ##continuo
+    plot(SDMeval@predictions[[bestModel$settings]],main=gsub('_', ' ', sp_i), cex=1.3)
+    plot(SAborders, add=T)
+    grid()
+    dev.off()
+
+    ##salvando um gridfile
+    writeRaster(SDMeval@predictions[[bestModel$settings]], paste(sp_i,'Suitability.asc',sep=''))
+
+    
+    ##salvando output do ENMeval
+
+    
+    SDMevalOutput = as.data.frame(SDMeval@results)
+    write.csv(SDMevalOutput, paste(sp_i,'_SDMeval.csv',sep=''), row.names=FALSE)
+
+    
+    ##salvando graficos do ENMeval
+
+    
+    jpeg(paste(sp_i,'_SDMeval.jpg',sep=''), width=800)
+    par(mfrow=c(1,2), mar=c(5,5,10,5))
+    eval.plot(SDMeval@results); title(paste(sp_i))
+    eval.plot(SDMeval@results, 'Mean.AUC', var='Var.AUC'); title(paste(sp_i))
+    dev.off()
+
+    
+    ##importancia das variaveis
+
+    
+    modelPars = SDMeval@models[[bestModel$settings]]
+    write.csv(var.importance(modelPars), paste(sp_i, '_variablesImportance.csv',sep=''), row.names=FALSE)
+
+    
+    ##salvando tabela de outputs##
+
+    
+    tabRes = rbind(tabRes,
+                   data.frame(
+                       sps = sp_i,
+                       ENMsettings = bestModel$settings,
+                       threshold = thre,
+                       meanAUC = bestModel$Mean.AUC,
+                       TSS = TSSvalue,
+                       AICc = bestModel$AICc
+                   ))
+
+    write.csv(tabRes, paste(projectFolder,'/SDM outputs/tabOutputs.csv',sep=''), row.names=FALSE)
+
+}
+
+
+
+
+
+
+
+
+    
+    
+    ##paramerizando biomod2##
+
+    
     myRespName <- sp_i # nome do cenario atual (para biomod2)
+    myResp <- dataSet[,'occ']
+    myRespXY <- dataSet[,c('lon','lat')] # coordenadas associadas a variavel resposta (para biomod2)
+    myExpl = dataSet[,grep(pattern='bio', x=names(predictors), value=TRUE)]  #variavel preditora (para biomod2)
     myExpl = predictors  #variavel preditora (para biomod2)
+
+
+    
  
     ##ajuste de dados de entrada para biomod2
     myBiomodData <- BIOMOD_FormatingData(resp.var = myResp,
                                          expl.var = myExpl,
-                                         resp.name = paste(myRespName,'_sample',sampleSizes[j],'_SDMnormal',sep=''),
-                                         PA.nb.rep = 1,
-                                         PA.nb.absences = 10000,
+                                         resp.xy = myRespXY,
+                                         resp.name = myRespName
                                          )
       
       ## ##inspecionando o objeto gerado pela funcao do biomod2
