@@ -218,7 +218,67 @@ for (sp_i in splist){
         
         
         TSSvalue = myRoc$sensitivities[which(myRoc$thresholds == thre)] + myRoc$specificities[which(myRoc$thresholds == thre)] - 1
+
+
+        ##minimo poligono convexo##
+
+
+        for (sp_i in splist){
+
+            ##diretorio base de trabalho
+            setwd(paste(projectFolder,'/SDM outputs/resultados SDM com humanos/',sp_i,sep=''))
+            
+            ##dados de occ
+            occPoints = read.csv(paste(spOccFolder,'/sps_occ_Lucas/',sp_i,'.csv',sep=''), header=TRUE, sep=',', dec='.', na.strings='',colClasses=c('character','numeric','numeric')) #abrindo pontos de ocorrencia
+            names(occPoints) =  c('sp','lon','lat')
+            occPoints = occPoints[,c('lon','lat')]
+            occMat = as.matrix(occPoints[,c('lon','lat')]) #sps occ matrix
+            SDMpred = raster(paste(projectFolder,'/SDM outputs/resultados SDM com humanos/',sp_i,'/',sp_i,'Suitability.asc',sep=''))
+            crs(SDMpred) = '+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0'
+            tabOutputsSdm = read.csv('/home/anderson/Documentos/Projetos/Distribuicao de barbeiros com interacao com humanos/SDM outputs/resultados SDM com humanos/tabOutputs.csv', header=TRUE)
+            thre = tabOutputsSdm[tabOutputsSdm$sps == sp_i, 'threshold']
+            SDMpredBIN = SDMpred > thre
+            crs(SDMpredBIN) = '+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0'
+
+            ##espacializacao dos pontos
+            coordinates(occPoints) = ~lon+lat
+            projection(occPoints) = '+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0'
+
+            ##centroide da distribuicao espacial
+            SpsCentroid = kmeans(occMat, 1)
+            SpsCentroid = SpsCentroid$centers
+
+            ##convex hull
+            cHull = dismo::convHull(occPoints)
+
+            ##distancia entre pontos e centroide
+            euc.dist <- function(x1) sqrt(sum((x1 - SpsCentroid) ^ 2))
+            meanDistCentroid = mean( apply(occMat, 1, euc.dist) )
+
+            ##buffer - hipotese para area de alcance da especie
+            SpsBuffer = raster::buffer(polygons(cHull), width=meanDistCentroid)
+            
+            ##aplicando bufffer no mapa de suitability
+            ##suitability continuo
+            SAbg = sdmPred*0
+            SDMpredRaw = mask(x=SDMpred, mask=SpsBuffer)
+            SDMpred = merge(SDMpredRaw, SAbg)
+            writeRaster(SDMpred, paste(sp_i,'SuitabilityNOVO.asc',sep=''), overwrite=TRUE)
+            ##binario
+            SAbg = sdmPredBIN*0
+            SDMpredBINRaw = mask(x=SDMpredBIN, mask=SpsBuffer)
+            SDMpredBIN = merge(SDMpredBINRaw, SAbg)
+            writeRaster(SDMpredBIN, paste(sp_i,'SuitabilityBINNOVO.asc',sep=''), overwrite=TRUE)
+
+               
         
+        
+        ##mapas com a distribuicao dos pontos##
+
+####hlper
+        ENMblock = get.block(occ=occMat,bg.coords=bgPoints[,c('lon','lat')]) #dividindo em blocos
+###
+
         
         ##mapas com a distribuicao dos pontos##
         
@@ -226,17 +286,19 @@ for (sp_i in splist){
         jpeg(paste(sp_i,'_mapsOfPoints.jpg'), width=1000, height=600)
         par(mfrow=c(1,2), cex=1.3)
         ##occ e background
-        plot(predictors[[1]]*0, main=paste(gsub('_',' ',sp_i)), legend=FALSE)
-        plot(SAborders, cex=1.3, add=TRUE, col='white')
-        points(bgPoints, pch=19, cex=0.4, col=rgb(0.4,0.4,0.4,0.3))
-        points(occPoints, pch=20, cex=1.1, col=rgb(1,0,0,0.6))
+        plot(SAbg, main=paste(gsub('_',' ',sp_i)), legend=FALSE)
+            plot(SAborders, cex=1.3, add=TRUE, col='white')
+            points(bgPoints, pch=19, cex=0.4, col=rgb(0.4,0.4,0.4,0.3))
+            points(occPoints, pch=20, cex=1.1, col=rgb(1,0,0,0.6))
+            plot(cHull, add=TRUE)
+            plot(SpsBuffer, ad=TRUE, lty=2)
         box()
         grid()
         legend('topright', legend=c('occurrences', 'background points'), fill=c('red','grey'), bg='white')
         ##blocks
-        plot(predictors[[1]]*0, main=paste(gsub('_',' ',sp_i)), legend=FALSE)
+        plot(SAbg*0, main=paste(gsub('_',' ',sp_i)), legend=FALSE)
         plot(SAborders, cex=1.3, add=TRUE, col='white')
-        points(SDMeval@occ.pts, pch=21, bg=SDMeval@occ.grp)
+        points(occPoints, pch=21, bg=ENMblock$occ.grp)
         box()
         grid()
         dev.off()
@@ -258,9 +320,12 @@ for (sp_i in splist){
         grid()
         dev.off()
 
-        ##salvando um gridfile
-        writeRaster(SDMpred, paste(sp_i,'Suitability.asc',sep=''))
 
+
+
+            }
+
+            
         
         ##salvando output do ENMeval
 
@@ -312,6 +377,7 @@ for (sp_i in splist){
 
 
 source('/home/anderson/R/R-Scripts/PartialROC.R')
+library(sqldf)
 
 ##Criando objeto com a lista dos nomes das especies
 occ.sps <- list.files(paste(spOccFolder,'/sps_occ_Lucas',sep=''),pattern="csv")
@@ -332,7 +398,7 @@ for (sp_i in splist){
         
         ##camimhos dos arquivos
         occPointsPath = paste(spOccFolder,'/sps_occ_Lucas/',sp_i,'.csv',sep='') #pontos de ocorrencia
-        suitabMapPath = paste(projectFolder,'/SDM outputs/resultados SDM com humanos/', sp_i, '/', sp_i,'Suitability.asc',sep='')
+        suitabMapPath = paste(projectFolder,'/SDM outputs/resultados SDM com humanos/', sp_i, '/', sp_i,'SuitabilityNOVO.asc',sep='')
         
         
         ##PartialROC (PresenceFile, PredictionFile, OmissionVal, RandomPercent, NoOfIteration, OutputFile)
@@ -351,6 +417,8 @@ for (sp_i in splist){
                                       AUC_at_0.5 = mean(pAUC$AUC_at_0.5[-1]),
                                       AUC_ratio = mean(pAUC$AUC_ratio[-1])) )
 
+    write.csv(pAUCoutput, 'pAUCoutputSDMhuman.csv', row.names=TRUE)
+
 }
 
 
@@ -364,11 +432,6 @@ for (sp_i in splist){
 ##tabela de resultados
 tabOutputsSdmH = read.csv('/home/anderson/Documentos/Projetos/Distribuicao de barbeiros com interacao com humanos/SDM outputs/resultados SDM com humanos/tabOutputs.csv', header=TRUE)
 tabOutputsSdm = read.csv('/home/anderson/Documentos/Projetos/Distribuicao de barbeiros com interacao com humanos/SDM outputs/resultados SDM sem humanos/tabOutputs.csv', header=TRUE)
-
-##thresholds
-threshSdm = tabOutputsSdm[tabOutputsSdm$sps == sp_i, 'threshold']
-threshSdmH = tabOutputsSdmH[tabOutputsSdmH$sps == sp_i, 'threshold']
-
 
 ##Criando objeto com a lista dos nomes das especies
 occ.sps <- list.files(paste(spOccFolder,'/sps_occ_Lucas',sep=''),pattern="csv")
@@ -386,10 +449,14 @@ for (sp_i in splist){
 
     ##diretorio base de trabalho
     setwd(paste(projectFolder,'/SDM outputs',sep=''))
+    
+    ##thresholds
+    threshSdm = tabOutputsSdm[tabOutputsSdm$sps == sp_i, 'threshold']
+    threshSdmH = tabOutputsSdmH[tabOutputsSdmH$sps == sp_i, 'threshold']
 
     ##mapa de projecao
-    sdmPred = raster(paste(projectFolder,'/SDM outputs/resultados SDM sem humanos/', sp_i, '/', sp_i,'Suitability.asc',sep=''))
-    sdmHPred = raster(paste(projectFolder,'/SDM outputs/resultados SDM com humanos/', sp_i, '/', sp_i,'Suitability.asc',sep=''))
+    sdmPred = raster(paste(projectFolder,'/SDM outputs/resultados SDM sem humanos/', sp_i, '/', sp_i,'SuitabilityNOVO.asc',sep=''))
+    sdmHPred = raster(paste(projectFolder,'/SDM outputs/resultados SDM com humanos/', sp_i, '/', sp_i,'SuitabilityNOVO.asc',sep=''))
 
     ##mapas binarios
     sdmPredBIN = sdmPred > threshSdm
@@ -398,50 +465,73 @@ for (sp_i in splist){
     
     ##plot da sobreposicao dos mapas binarios
 
-    jpeg( ...)
-    plot(sdmPredBIN + 2*sdmHPredBIN, col=c('white','blue','red','purple'), legend=FALSE)
+    jpeg(paste(projectFolder,'/SDM outputs/graficos/',sp_i,'mapBinSobrepos.jpeg',sep=''))
+    plot(sdmPredBIN + 2*sdmHPredBIN, col=c('white','blue','red','purple'), legend=FALSE, main=gsub('_',' ',sp_i))
     plot(SAborders, add=TRUE)
     grid()
     legend('topright', legend=c(expression(SDM[clim]), expression(SDM[human]), 'Overlapping'), pch=c(21,21,21), pt.bg=c('blue','red','purple'), bty='n', cex=1)
+    dev.off()
 
-
-    
 
     ##plot da diferenca entre mapas de suitability continuos
     
     sdmDiff = sdmHPred-sdmPred
+
+    minSuit =  sdmDiff@data@min
+    maxSuit = sdmDiff@data@max
+    maxSuitAbs = max(abs(c(minSuit,maxSuit)))
+    rangeSuit = 2*maxSuitAbs / 20
     
-    breaks <- seq(-0.1, 0.1, by=0.01)
+    breaks <- seq(-1*maxSuitAbs*1.1,maxSuitAbs*1.1, by=rangeSuit)
     cols <- colorRampPalette(c("blue", "white", "red"))(length(breaks)-1)
 
-    plot(sdmDiff, col=cols)
+    jpeg(paste(projectFolder,'/SDM outputs/graficos/',sp_i,'SDMdiff.jpeg',sep=''))
+    plot(sdmDiff, col=cols, breaks=breaks,
+         lab.breaks=c(round(min(breaks),3),rep('',length(breaks)-2),round(max(breaks),3)),
+         main=gsub('_',' ',sp_i), legend.mar=5)
     plot(SAborders, add=TRUE)
     grid()
+    dev.off()
 
 
     ##comparacoes a partir dos mapas binarios
+    
     MapBinJoin = sdmPredBIN + 2*sdmHPredBIN
-
     MapBinJoinTab = as.data.frame(freq(MapBinJoin))
 
     cells1 = MapBinJoinTab[MapBinJoinTab$value == 1 & !is.na(MapBinJoinTab$value), 'count'] ##SDMclim
     cells2 = MapBinJoinTab[MapBinJoinTab$value == 2 & !is.na(MapBinJoinTab$value), 'count'] ##SDMhuman
     cells3 = MapBinJoinTab[MapBinJoinTab$value == 3 & !is.na(MapBinJoinTab$value), 'count'] ##sobreposicao
 
-    sdmClim = cells1/(cells1+cells2+cells3)
-    sdmHuman = cells2/(cells1+cells2+cells3)
-    sdmOverlap = cells3/(cells1+cells2+cells3)
+    sdmClim = max(0, cells1/sum(c(cells1,cells2,cells3), na.rm=TRUE), na.rm=TRUE)
+    sdmHuman = max(0, cells2/sum(c(cells1,cells2,cells3), na.rm=TRUE), na.rm=TRUE)
+    sdmOverlap = max(0, cells3/sum(c(cells1,cells2,cells3), na.rm=TRUE), na.rm=TRUE)
 
     ##comparacoes a partir da diferencia dos mapas de suitability
 
-    rm(list=c(cells1,cells2,cells3))
-    sdmDiff freq(sdmDiff<0)
-    
+    sdmDiffMat = getValues(sdmDiff)
+    ##celulas em que SDMhuman > SDMclim
+    meanSuitSDMhumanGreater =  mean(sdmDiffMat[sdmDiffMat > 0 & !is.na(sdmDiffMat)], na.rm=TRUE)
+    medianSuitSDMhumanGreater = median(sdmDiffMat[sdmDiffMat > 0 & !is.na(sdmDiffMat)], na.rm=TRUE)
+    sdSuitSDMhumanGreater = var(sdmDiffMat[sdmDiffMat > 0 & !is.na(sdmDiffMat)], na.rm=TRUE)
+    ##celulas em que SDMhuman < SDMclim
+    meanSuitSDMclimGreater = mean(sdmDiffMat[sdmDiffMat < 0 & !is.na(sdmDiffMat)], na.rm=TRUE)
+    medianSuitSDMclimGreater = median(sdmDiffMat[sdmDiffMat < 0 & !is.na(sdmDiffMat)], na.rm=TRUE)
+    sdSuitSDMclimGreater = var(sdmDiffMat[sdmDiffMat < 0 & !is.na(sdmDiffMat)], na.rm=TRUE)
+
+    ##correlacao espacial
+    sdmPredStack = stack(sdmHPred, sdmPred)
+    sdmPredStackMat = getValues(sdmPredStack)
+    dimnames(sdmPredStackMat)[[2]] = c('SDMhuman','SDMclim')
+    SDMcor = cor(sdmPredStackMat, use="complete.obs", method='pearson')
+
+    ##proporcao de ceulas para diferenca nos mapas de suitabilidade
+    rm(list=c(cells1,cells2,cells3))    
     cells1 = as.numeric( freq(sdmDiff > 0)[2,2] )  ##area onde SDMhuman > SDMclim
     cells2 = as.numeric( freq(sdmDiff < 0)[2,2] ) ##area onde SDMhuman < SDMclim
 
-    sdmDiffHuman = cells1/(cells1 + cells2)
-    sdmDiffClim = cells2/(cells1 + cells2)
+    sdmDiffHuman = max(0, cells1/sum(c(cells1, cells2),na.rm=TRUE),na.rm=TRUE)
+    sdmDiffClim = max(0,cells2/sum(c(cells1, cells2),na.rm=TRUE),na.rm=TRUE)
 
 
     ##colocando na tabela
@@ -449,15 +539,113 @@ for (sp_i in splist){
 
     tabModelComparation = rbind(tabModelComparation,
                                 data.frame(sps = sp_i,
-                                           binary.proportion.SDMclim = sdmClim,
-                                           binary.proportion.SDMhuman = sdmHuman,
-                                           binary.proportion.Overlap = sdmOverlap,
-                                           proportion.SDMhuman.greater = sdmDiffHuman,
-                                           proportion.SDMclim.greater = sdmDiffClim))
+                                           binaryMaps.proportion.SDMclim = sdmClim,
+                                           binaryMaps.proportion.SDMhuman = sdmHuman,
+                                           binaryMaps.proportion.Overlap = sdmOverlap,
+                                           suitabilityDiff.proportion.SDMhuman.greater = sdmDiffHuman,
+                                           suitabilityDiff.proportion.SDMclim.greater = sdmDiffClim,
+                                           mean.suitability.SDMhuman.greater = meanSuitSDMhumanGreater,
+                                           median.suitability.SDMhuman.greater = medianSuitSDMhumanGreater,
+                                           sd.suitability.SDMhuman.greater = sdSuitSDMhumanGreater,
+                                           mean.suitability.SDMclim.greater = meanSuitSDMclimGreater,
+                                           median.suitability.SDMclim.greater = medianSuitSDMclimGreater,
+                                           sd.suitability.SDMclim.greater = sdSuitSDMclimGreater,
+                                           SDMcor = SDMcor[1,2]))
 
-    write.csv(paste(projectFolder,'/SDM outputs/tabModelComparation.csv',sep''), row.names=FALSE)
+    write.csv(tabModelComparation, paste(projectFolder,'/SDM outputs/tabModelComparation.csv',sep=''), row.names=FALSE)
     
 }
+
+
+
+###graficos da tabela tabModelComparation###
+
+
+
+##tabela
+tabModelComparation = read.csv(paste(projectFolder,'/SDM outputs/tabModelComparation.csv',sep=''), header=TRUE)
+
+
+##barplot da sobreposicao dos mapas binarios
+
+tabela = tabModelComparation[,c('binaryMaps.proportion.SDMclim', 'binaryMaps.proportion.SDMhuman', 'binaryMaps.proportion.Overlap')]
+tabela = tabela[order(tabela$binaryMaps.proportion.Overlap, decreasing=TRUE),]
+tabela = t(tabela)
+dimnames(tabela)[[2]] = tabModelComparation$sps
+
+jpeg(paste(projectFolder,'/SDM outputs/graficos/BoxplotBinMaps.jpg',sep=''),600,600)
+par(cex=1.3, mar=c(14,4,4,4))
+barplot(as.matrix(tabela), las=2, col=c('blue','red','purple'), names.arg=gsub('_',' ', colnames(tabela)))
+dev.off()
+
+
+##barplot das medias e variacias da diferenca entre SDmclim e SDMhuman
+
+tabelaMeans = tabModelComparation[,c('mean.suitability.SDMhuman.greater','mean.suitability.SDMclim.greater')]
+tabelaSd = tabModelComparation[,c('sd.suitability.SDMhuman.greater','sd.suitability.SDMclim.greater')]
+
+tabelaMeans = tabelaMeans[order(tabelaMeans$mean.suitability.SDMhuman.greater),]
+tabelaSd = tabelaSd[order(tabelaMeans$mean.suitability.SDMhuman.greater),]
+
+## rownames(tabelaMeans) = tabModelComparation$sps
+## tabelaMeans = as.matrix(tabelaMeans)
+## barplot(tabelaMeans, beside=TRUE, las=2)
+
+tabelaMeans = t(tabelaMeans)
+tabelaSd = t(tabelaSd)
+
+dimnames(tabelaMeans)[[2]] = tabModelComparation$sps
+dimnames(tabelaSd)[[2]] = dimnames(tabelaMeans)[[2]]
+
+
+jpeg(paste(projectFolder,'/SDM outputs/graficos/BoxplotSDMdiff.jpg',sep=''),600,600)
+par(cex=1.3, mar=c(14,4,4,4))
+
+foo = barplot(tabelaMeans, beside=TRUE, las=2)
+
+foo = barplot(tabelaMeans, beside=TRUE, las=2, col=c('red','blue'), names.arg=gsub('_',' ', tabModelComparation$sps))
+arrows(x0=foo,
+       y0=tabelaMeans$mean.suitability.SDMhuman.greater + sqrt(tabelaSd$sd.suitability.SDMhuman.greater),
+       y1=tabelaMeans$mean.suitability.SDMhuman.greater - sqrt(tabelaSd$sd.suitability.SDMhuman.greater),
+       angle=90,code=3,length=0.1)
+
+dev.off()
+
+
+##barplot da sobreposicao dos mapas de suitabiity continuos
+
+tabela = tabModelComparation[,c('suitabilityDiff.proportion.SDMhuman.greater', 'suitabilityDiff.proportion.SDMclim.greater')]
+tabela = tabela[order(tabela$suitabilityDiff.proportion.SDMhuman.greater),]
+
+tabela = t(tabela)
+dimnames(tabela)[[2]] = tabModelComparation$sps
+
+jpeg(paste(projectFolder,'/SDM outputs/graficos/BoxplotSDMdiff.jpg',sep=''),600,600)
+par(cex=1.3, mar=c(14,4,4,4))
+barplot(as.matrix(tabela), las=2, col=c('blue','red'), names.arg=gsub('_',' ', colnames(tabela)))
+dev.off()
+
+
+as.matrix(tabelaMeans)
+barplot(, beside=T)
+
+#Let's build a dataset : height of 10 sorgho and poacee sample in 3 environmental conditions (A, B, C)
+A=c(rep("sorgho" , 10) , rep("poacee" , 10) )
+B=rnorm(20,10,4)
+C=rnorm(20,8,3)
+D=rnorm(20,5,4)
+data=data.frame(A,B,C,D)
+colnames(data)=c("specie","cond_A","cond_B","cond_C")
+ 
+#Let's calculate the average value for each condition and each specie with the *aggregate* function
+bilan=aggregate(cbind(cond_A,cond_B,cond_C)~specie , data=data , mean)
+rownames(bilan)=bilan[,1]
+bilan=as.matrix(bilan[,-1])
+ 
+#Then it is easy to make a classical barplot :
+lim=1.2*max(bilan)
+ze_barplot = barplot(bilan , beside=T , legend.text=T , col=c("blue" , "skyblue") , ylim=c(0,lim))
+
 
 
 
