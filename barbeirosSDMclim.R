@@ -199,12 +199,12 @@ writeRaster(x=predictors, filename=paste(envVarFolder,'/presente/usadas/predicto
 
 
 
-###TERCEIRA PARTE: rodando SDMs para as especies (e fazendo projecoes)###
+###TERCEIRA PARTE: rodando SDMclim (sem interacao com humanos) para as especies (e fazendo projecoes)###
 
 
 
 ##variaveis preditoras
-predictors = stack(list.files(paste(envVarFolder,'/presente/usadas',sep=''), pattern='.asc', full.names=TRUE))
+predictors = stack(list.files(paste(envVarFolder,'/presente/usadas',sep=''), pattern='*bio.*.asc', full.names=TRUE))
 crs(predictors) = '+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0'
 
 ##Criando objeto com a lista dos nomes das especies
@@ -218,8 +218,8 @@ tabRes = data.frame()
 ##loop para SDM com cada uma das especies##
 
 
-for (sp_i in splist){
-##for (sp_i in splist[1:3]){
+for (sp_i in splist[-1]){
+    ##for (sp_i in splist[1:3]){
     tryCatch({
         
 
@@ -259,11 +259,9 @@ for (sp_i in splist){
 
         ##ENMeval##
 
-        ENMblock = get.block(occ=dataSet[dataSet$occ==1,c('lon','lat')],
-                             bg.coords=dataSet[dataSet$occ==0,c('lon','lat')]) #dividindo em blocos
+        ENMblock = get.block(occ=dataSet[dataSet$occ==1,c('lon','lat')], bg.coords=dataSet[dataSet$occ==0,c('lon','lat')]) #dividindo em blocos
 
-        ENMblockUser = get.user(occ.grp=ENMblock$occ.grp,
-                                bg.grp=ENMblock$bg.grp) #usuario, por causa dos dados proprios de bg-points gerados com vies
+        ENMblockUser = get.user(occ.grp=ENMblock$occ.grp, bg.grp=ENMblock$bg.grp) #usuario, por causa dos dados proprios de bg-points gerados com vies
         
 
         SDMeval <- ENMevaluate(occ = dataSet[dataSet$occ==1,c('lon','lat')],
@@ -294,6 +292,7 @@ for (sp_i in splist){
                            args = c(unlist(make.args(RMvalues=bestModel$rm, fc=bestModel$features, labels=FALSE)),'threads=2'))
 
         SDMpred = predict(predictors, SDMmaxent) #projecao espacial
+        crs(SDMpred) = '+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0'
 
         ##salvando um gridfile
         writeRaster(SDMpred, paste(sp_i,'Suitability.asc',sep=''))
@@ -309,7 +308,7 @@ for (sp_i in splist){
                         na.rm=TRUE)
         threshDF = data.frame(occ=dataSet$occ, pred=pred) #juntando predicoes e observacoes
         threshDF = threshDF[complete.cases(threshDF),] #retirando possiveis NAs
-                        
+        
         ##OBS.: omissao -> falso negativo -> false negative rate (FNR) = 1 - TPR (True Positive Rate)
         ##TPR = sensitividade
         
@@ -327,62 +326,39 @@ for (sp_i in splist){
         ##minimo poligono convexo##
 
 
-
-        for (sp_i in splist){
-
-            ##diretorio base de trabalho
-            setwd(paste(projectFolder,'/SDM outputs/resultados SDM sem humanos/',sp_i,sep=''))
-            
-            ##dados de occ
-            occPoints = read.csv(paste(spOccFolder,'/sps_occ_Lucas/',sp_i,'.csv',sep=''), header=TRUE, sep=',', dec='.', na.strings='',colClasses=c('character','numeric','numeric')) #abrindo pontos de ocorrencia
-            names(occPoints) =  c('sp','lon','lat')
-            occPoints = occPoints[,c('lon','lat')]
-            occMat = as.matrix(occPoints[,c('lon','lat')]) #sps occ matrix
-            SDMpred = raster(paste(projectFolder,'/SDM outputs/resultados SDM sem humanos/',sp_i,'/',sp_i,'Suitability.asc',sep=''))
-            crs(SDMpred) = '+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0'
-            tabOutputsSdm = read.csv('/home/anderson/Documentos/Projetos/Distribuicao de barbeiros com interacao com humanos/SDM outputs/resultados SDM sem humanos/tabOutputs.csv', header=TRUE)
-            thre = tabOutputsSdm[tabOutputsSdm$sps == sp_i, 'threshold']
-            SDMpredBIN = SDMpred > thre
-            crs(SDMpredBIN) = '+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0'
-
-            ##espacializacao dos pontos
-            coordinates(occPoints) = ~lon+lat
-            projection(occPoints) = '+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0'
-
-            ##centroide da distribuicao espacial
-            SpsCentroid = kmeans(occMat, 1)
-            SpsCentroid = SpsCentroid$centers
-
-            ##convex hull
-            cHull = dismo::convHull(occPoints)
-
-            ##distancia entre pontos e centroide
-            euc.dist <- function(x1) sqrt(sum((x1 - SpsCentroid) ^ 2))
-            meanDistCentroid = mean( apply(occMat, 1, euc.dist) )
-
-            ##buffer - hipotese para area de alcance da especie
-            SpsBuffer = raster::buffer(polygons(cHull), width=meanDistCentroid)
-            
-            ##aplicando bufffer no mapa de suitability
-            ##suitability continuo
-            SAbg = sdmPred*0
-            SDMpredRaw = mask(x=SDMpred, mask=SpsBuffer)
-            SDMpred = merge(SDMpredRaw, SAbg)
-            writeRaster(SDMpred, paste(sp_i,'SuitabilityNOVO.asc',sep=''), overwrite=TRUE)
-            ##binario
-            SAbg = sdmPredBIN*0
-            SDMpredBINRaw = mask(x=SDMpredBIN, mask=SpsBuffer)
-            SDMpredBIN = merge(SDMpredBINRaw, SAbg)
-            writeRaster(SDMpredBIN, paste(sp_i,'SuitabilityBINNOVO.asc',sep=''), overwrite=TRUE)
-
-               
+        occMat = as.matrix(occPoints[,c('lon','lat')]) #sps occ matrix
+        SDMpredBIN = SDMpred > thre
+        crs(SDMpredBIN) = '+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0'
         
-        
-        ##mapas com a distribuicao dos pontos##
+        ##espacializacao dos pontos
+        coordinates(occPoints) = ~lon+lat
+        projection(occPoints) = '+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0'
 
-####helper
-        ENMblock = get.block(occ=occMat,bg.coords=bgPoints[,c('lon','lat')]) #dividindo em blocos
-###
+        ##centroide da distribuicao espacial
+        SpsCentroid = kmeans(occMat, 1)
+        SpsCentroid = SpsCentroid$centers
+
+        ##convex hull
+        cHull = dismo::convHull(occPoints)
+
+        ##distancia entre pontos e centroide
+        euc.dist <- function(x1) sqrt(sum((x1 - SpsCentroid) ^ 2))
+        meanDistCentroid = mean( apply(occMat, 1, euc.dist) )
+
+        ##buffer - hipotese para area de alcance da especie
+        SpsBuffer = raster::buffer(polygons(cHull), width=meanDistCentroid)
+        
+        ##aplicando bufffer no mapa de suitability
+        ##suitability continuo
+        SAbg = SDMpred*0
+        SDMpredRaw = mask(x=SDMpred, mask=SpsBuffer)
+        SDMpred = merge(SDMpredRaw, SAbg)
+        writeRaster(SDMpred, paste(sp_i,'SuitabilityNOVO.asc',sep=''), overwrite=TRUE)
+        ##binario
+        SAbg = SDMpredBIN*0
+        SDMpredBINRaw = mask(x=SDMpredBIN, mask=SpsBuffer)
+        SDMpredBIN = merge(SDMpredBINRaw, SAbg)
+        writeRaster(SDMpredBIN, paste(sp_i,'SuitabilityBINNOVO.asc',sep=''), overwrite=TRUE)
         
         
         jpeg(paste(sp_i,'_mapsOfPoints.jpg'), width=1000, height=600)
@@ -422,12 +398,7 @@ for (sp_i in splist){
         grid()
         dev.off()
 
-            
-        }
         
-
-
-
         
         ##salvando output do ENMeval
 
@@ -466,7 +437,7 @@ for (sp_i in splist){
                            AICc = bestModel$AICc
                        ))
 
-        write.csv(tabRes, paste(projectFolder,'/SDM outputs/tabOutputs.csv',sep=''), row.names=FALSE)
+        write.csv(tabRes, paste(projectFolder,'/SDM outputs/tabOutputsSDMclim.csv',sep=''), row.names=FALSE)
 
     }, error=function(e){cat("ERROR :",conditionMessage(e), "\n")})
 }
@@ -494,29 +465,29 @@ pAUCoutput = data.frame()
 for (sp_i in splist){
     ##for (sp_i in splist[1:3]){
 
-        ##diretorio base de trabalho
-        setwd(paste(projectFolder,'/SDM outputs',sep=''))
-        
-        ##camimhos dos arquivos
-        occPointsPath = paste(spOccFolder,'/sps_occ_Lucas/',sp_i,'.csv',sep='') #pontos de ocorrencia
-        suitabMapPath = paste(projectFolder,'/SDM outputs/resultados SDM sem humanos/', sp_i, '/', sp_i,'SuitabilityNOVO.asc',sep='')
-        
-        
-        ##PartialROC (PresenceFile, PredictionFile, OmissionVal, RandomPercent, NoOfIteration, OutputFile)
-        pAUC = PartialROC(PresenceFile = occPointsPath,
-                          PredictionFile = suitabMapPath,
-                          OmissionVal = 0.05,
-                          RandomPercent = 50,
-                          NoOfIteration = 100,
-                          OutputFile = paste(sp_i,'pAUC.csv'))
+    ##diretorio base de trabalho
+    setwd(paste(projectFolder,'/SDM outputs',sep=''))
+    
+    ##camimhos dos arquivos
+    occPointsPath = paste(spOccFolder,'/sps_occ_Lucas/',sp_i,'.csv',sep='') #pontos de ocorrencia
+    suitabMapPath = paste(projectFolder,'/SDM outputs/resultados SDM sem humanos/', sp_i, '/', sp_i,'SuitabilityNOVO.asc',sep='')
+    
+    
+    ##PartialROC (PresenceFile, PredictionFile, OmissionVal, RandomPercent, NoOfIteration, OutputFile)
+    pAUC = PartialROC(PresenceFile = occPointsPath,
+                      PredictionFile = suitabMapPath,
+                      OmissionVal = 0.05,
+                      RandomPercent = 50,
+                      NoOfIteration = 100,
+                      OutputFile = paste(sp_i,'pAUC.csv'))
 
-        dev.off()
-        
-        pAUCoutput = rbind(pAUCoutput,
-                           data.frame(sps=sp_i,
-                                      AUC_at_Value_0.05 = mean(pAUC$AUC_at_Value_0.05[-1]),
-                                      AUC_at_0.5 = mean(pAUC$AUC_at_0.5[-1]),
-                                      AUC_ratio = mean(pAUC$AUC_ratio[-1])) )
+    dev.off()
+    
+    pAUCoutput = rbind(pAUCoutput,
+                       data.frame(sps=sp_i,
+                                  AUC_at_Value_0.05 = mean(pAUC$AUC_at_Value_0.05[-1]),
+                                  AUC_at_0.5 = mean(pAUC$AUC_at_0.5[-1]),
+                                  AUC_ratio = mean(pAUC$AUC_ratio[-1])) )
 
     write.csv(pAUCoutput, 'pAUCoutputSDMclim.csv', row.names=TRUE)
 
@@ -524,6 +495,9 @@ for (sp_i in splist){
 
 
 
+
+
+#################################################################################################
 
 
 
