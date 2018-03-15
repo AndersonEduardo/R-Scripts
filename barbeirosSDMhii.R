@@ -96,14 +96,14 @@ writeRaster(x=predictors, filename=paste(envVarFolder,'/presente/usadas/predicto
 predictors = stack(list.files(paste(envVarFolder,'/presente/usadas',sep=''), pattern='.asc', full.names=TRUE))
 crs(predictors) = '+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0'
 
-##densidade humana
-humDens = raster(paste(envVarFolder,'/presente/usadas/humDens.asc',sep=''))
-crs(humDens) = '+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0'
+## ##densidade humana
+## humDens = raster(paste(envVarFolder,'/presente/usadas/humDens.asc',sep=''))
+## crs(humDens) = '+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0'
 
-##adicionando humanos nos preditoras
-varNames = names(predictors)
-predictors = stack(predictors,humDens)
-names(predictors) = c(varNames,'humDens')
+## ##adicionando humanos nos preditoras
+## varNames = names(predictors)
+## predictors = stack(predictors,humDens)
+## names(predictors) = c(varNames,'humDens')
 
 
 ##Criando objeto com a lista dos nomes das especies
@@ -655,12 +655,116 @@ dev.off()
 
 
 
+########################teste regressao com residuos###########################
 
 
+humanInfluenceOutput = data.frame()
+
+for(sp_i in splist){
+
+    ##suitability
+    mapSDMclim_sp_i = raster(paste(projectFolder,'/SDM outputs/resultados SDM sem humanos/',sp_i,'/',sp_i,'SuitabilityNOVO.asc',sep=''))
+
+    ##dados de ocorrencia
+    occPoints = read.csv(paste(spOccFolder,'/sps_occ_Lucas/',sp_i,'.csv',sep=''), header=TRUE, sep=',', dec='.', na.strings='',colClasses=c('character','numeric','numeric')) #abrindo pontos de ocorrencia
+    names(occPoints) =  c('sp','lon','lat')
+    occPoints = occPoints[,c('lon','lat')]
+
+    ##pseudo-ausencia com o mesmo vies dos dados de ocorrencia    
+    bgPoints = dismo::randomPoints(mask=biasLayer, n=10000, p=occPoints, prob=TRUE)
+    bgPoints = data.frame(lon=bgPoints[,1], lat=bgPoints[,2])
+
+    ##consolindando dados de presenca e background
+    dataSet = data.frame(lon=c(occPoints$lon, bgPoints$lon),
+                         lat=c(occPoints$lat, bgPoints$lat),
+                         occ=c(rep(1,nrow(occPoints)),rep(0,nrow(bgPoints))))
+
+    dataSet[,c('lon','lat')] = round(dataSet[,c('lon','lat')], 2) #arredondando para garantir
+
+    ##tabela de ocorrencia e suitability
+    dataSuit = extract(x=mapSDMclim_sp_i, y=dataSet[,c('lon','lat')], method='bilinear', na.rm=TRUE)
+    dataSet = data.frame(dataSet, suitability=dataSuit)
+    
+    ##variaveis ambientais##
+    dataSetVars = extract(x=predictors[['humDens']], y=dataSet[,c('lon','lat')], method='bilinear', na.rm=TRUE) #extraindo variaeis ambientais
+    dataSet = data.frame(dataSet, dataSetVars) #juntando ao dataset
+    dataSet = dataSet[complete.cases(dataSet),] #retirando dados errados
+    dataSet = dataSet[!duplicated(dataSet[,c('lon','lat')]),] #retirando pontos numa mesma celula
+    names(dataSet) = c('lon','lat','occ','suitability','humDens')
+    
+
+    ##modelo
+
+    
+    glmModel = glm( occ ~ suitability + humDens, family='binomial', data=dataSet)
+
+    glmsuit = glm( occ ~ suitability, family='binomial', data=dataSet)
+    
+    xx = dismo::predict(preditoras , glmModel, type='response')
+
+    plot(xx)
+
+
+    
+    ##GLM do nicho
+    glmNiche = glm(occ ~ suitability, family='binomial', data=dataSuit)
+
+    plot(dataSuit$occ ~ dataSuit$suitability, xlim=c(0,1))
+    glmPred = predict(glmNiche, data.frame(suitability=dataSuit$suitability ), type='response')
+    points(glmPred ~ dataSuit$suitability, col='red')
+
+    
+    ##GLM dos residuos do GLMniche com a densidade humana
+    glmHumanDF = data.frame(residuo = as.numeric(log(resid(glmNiche)))[!is.nan(as.numeric(log(resid(glmNiche))))],
+                            humanDens = dataSet$humDens[!is.nan(as.numeric(log(resid(glmNiche))))] )
+
+    glmHumanDF = data.frame(residuo = log(abs(resid(glmNiche))),
+                            humanDens = dataSet$humDens)
+
+    
+    glmHuman = glm( residuo ~ humanDens, family=gaussian, data=glmHumanDF )
+    #glmHuman2 = glm(log(resid) ~ humanDens + I(humanDens^2) , family=gaussian, data=glmHumanDF)
+
+    plot( log(abs(glmHumanDF$residuo)) ~ log(glmHumanDF$humanDens)) 
+
+    glmPred = predict(glmHuman, data.frame(humanDens=glmHumanDF$humanDens), type='response')
+    points(glmPred ~ glmHumanDF$humanDens, col='red')
+    
+
+    ##tabela de outputs
+    humanInfluenceOutput = rbind(
+        humanInfluenceOutput,
+        data.frame(
+            Sps = sp_i,
+            ##glmNiche
+            Beta_GLMsuitability = as.numeric(glmNiche$coefficients['suitability']),
+            p_value = as.data.frame(coef(summary(glmNiche)))['suitability','Pr(>|z|)'],
+            AIC_GLMsuitability = glmNiche$aic,
+            Deviance_GLMsuitability = glmNiche$deviance,
+            Null_deviance_GLMsuitability = glmNiche$null.deviance,
+            ##glmHuman
+            Beta_GLMhuman = as.numeric(glmHuman$coefficients['humanDens']),
+            p_value = as.data.frame(coef(summary(glmHuman)))['humanDens','Pr(>|t|)'],
+            AIC_GLMhuman = glmNiche$aic,
+            Deviance_GLMhuman = glmNiche$deviance,
+            Null_deviance_GLMhuman = glmNiche$null.deviance))
+
+    write.csv(humanInfluenceOutput, paste(projectFolder,'/SDM outputs/humanInfluenceOutput.csv',sep=''), row.names=FALSE)
+
+}
+
+
+    
 
 ################################################################################
 ##################### FIM DA PARTE NOVA ########################################
 ################################################################################
+
+
+
+
+
+
 
 
 
