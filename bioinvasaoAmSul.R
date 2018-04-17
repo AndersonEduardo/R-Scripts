@@ -7,10 +7,10 @@ library(biomod2)
 library(raster)
 
 ## parametros e variaveis globais
-projectFolder = '/home/anderson/Área de Trabalho/bioinvasao_AmSul'
-sampleFolder = '/home/anderson/Área de Trabalho/bioinvasao_AmSul/occ_data/todasSp'
+projectFolder = '/home/anderson/Projetos/Bioinvasao_AmSul'
+sampleFolder = '/home/anderson/Projetos/Bioinvasao_AmSul/dados separados'
 envVarFolder = '/home/anderson/Área de Trabalho/bioinvasao_AmSul/env_data'
-maxentFolder = '/home/anderson/R/x86_64-pc-linux-gnu-library/3.3/dismo/java/maxent.jar' #pasta para resultados do maxent'
+maxentFolder = '/home/anderson/R/x86_64-pc-linux-gnu-library/3.4/dismo/java/maxent.jar' #pasta para resultados do maxent'
 
 ## variaveis ambientais
 globalVars = stack(list.files('/home/anderson/PosDoc/dados_ambientais/bio_2-5m_bil', pattern='.bil', full.names=TRUE))
@@ -79,7 +79,7 @@ writeRaster(x=amerVars, filename=paste(envVarFolder,'/amerVars.grd',sep=''), for
 writeRaster(x=amerSulVars, filename=paste(envVarFolder,'/amerSulVars.grd',sep=''), format='raster', bylayer=TRUE, suffix=names(amerSulVars), overwrite=TRUE)
 
 #######################################################################
-############# densidade da variavel temporetatura #####################
+############# densidade da variavel temperatura #######################
 ################ na area nativa e area invadida #######################
 #######################################################################
 
