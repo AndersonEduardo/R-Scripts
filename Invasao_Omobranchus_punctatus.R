@@ -29,8 +29,8 @@ options(java.parameters = "Xmx7g")
 
 ## definindo variaveis e parametros
 projectFolder = "/home/anderson/Projetos/Invasao_Omobranchus_punctatus" #pasta do projeto
-envVarFolder = "/home/anderson/gridfiles/MARSPEC_2o5m" #pasta com as variaveis ambientais
-predictors = stack(list.files(path=envVarFolder, full.names=TRUE, pattern='2o5m')) #predictors com todas as variaveis
+envVarFolder = "/home/anderson/gridfiles/Bio-ORACLE" #pasta com as variaveis ambientais
+predictors = stack(list.files(path=envVarFolder, full.names=TRUE, pattern='.asc')) #predictors com todas as variaveis
 spData = read.csv(file.path(projectFolder,'spOcc.csv'),header=TRUE) #dados de ocorrencia ambiente nativo
 names(spData) = c('lon','lat')
 wrld = readOGR('/home/anderson/shapefiles/ne_50m_ocean/ne_50m_ocean.shp') #mapa mundi
@@ -77,34 +77,13 @@ points(spNat, pch=20, col='red') #pontos da area nativa
 points(spInv, pch=20, col='blue') #pontos da area invadida
 
 
-##pseudo-ausencia na area nativa com o mesmo vies dos dados de ocorrencia
-bgPoints = dismo::randomPoints(mask=biasLayer, n=10000, p=spNat, prob=TRUE)
-bgPoints = data.frame(lon=bgPoints[,1], lat=bgPoints[,2])
-
-
-##consolindando dados de presenca e background para AREA NATIVA
-dataSet = data.frame(lon = c(spNat$lon, spInv$lon, bgPoints$lon),
-                     lat = c(spNat$lat, spInv$lat, bgPoints$lat),
-                     occ = c(rep(1,nrow(rbind(spNat,spInv))),rep(0,nrow(bgPoints))),
-                     area = c(rep('nat',nrow(spNat)), rep('inv',nrow(spInv)),rep('bg',nrow(bgPoints))))
-#arredondando para garantir
-dataSet[,c('lon','lat')] = round(dataSet[,c('lon','lat')], 2)
-##variaveis ambientais
-dataSetVars = extract(x=predictors, y=dataSet[,c('lon','lat')], method='bilinear', na.rm=TRUE) #extraindo variaeis ambientais
-dataSet = data.frame(dataSet, dataSetVars) #juntando ao dataset
-dataSet = dataSet[complete.cases(dataSet),] #retirando dados errados
-dataSet = dataSet[!duplicated(dataSet[,c('lon','lat')]),] #retirando pontos numa mesma celula
-##salvando dataset na memoria do HD
-write.csv(dataSet,paste(projectFolder,'/dataSet.csv',sep=''),row.names=FALSE)
-
-
-
 ##area acessivel para a especie na area nativa##
 
 ##minimo poligono convexo##
 occMat = as.matrix(spNat[,c('lon','lat')]) #sps occ matrix
 
 ##centroide da distribuicao espacial
+
 SpsCentroid = kmeans(occMat, 1)
 SpsCentroid = SpsCentroid$centers
 
@@ -160,7 +139,6 @@ points(spNat, pch=19)
 plot(SpsBufferNativ, add=T)
 points(spInv, pch=19)
 plot(SpsBufferInv, add=T)
-
 
 
 ##recortando as variaveis preditoras para a area acessivel para as especies##
@@ -244,6 +222,38 @@ densRas = merge(densRas, predAreaNatBG, tolerance=0.5)
 writeRaster(x=densRas, file='/home/anderson/Projetos/Invasao_Omobranchus_punctatus/omobranchusBiasLayer.grd', overwrite=TRUE)
 
 
+##pseudo-ausencia na area nativa com o mesmo vies dos dados de ocorrencia
+biasLayer = raster(paste(projectFolder,'/omobranchusBiasLayer.grd',sep=''))
+values(biasLayer)[values(biasLayer)<=0] = 0
+bgPoints = dismo::randomPoints(mask=biasLayer, n=10000, p=spNat, prob=TRUE)
+bgPoints = data.frame(lon=bgPoints[,1], lat=bgPoints[,2])
+
+
+##consolindando dados de presenca e background para AREA NATIVA
+dataSet = data.frame(lon = c(spNat$lon, spInv$lon, bgPoints$lon),
+                     lat = c(spNat$lat, spInv$lat, bgPoints$lat),
+                     occ = c(rep(1,nrow(rbind(spNat,spInv))),rep(0,nrow(bgPoints))),
+                     area = c(rep('nat',nrow(spNat)), rep('inv',nrow(spInv)),rep('bg',nrow(bgPoints))))
+#arredondando para garantir
+dataSet[,c('lon','lat')] = round(dataSet[,c('lon','lat')], 2)
+##variaveis ambientais
+dataSetVars = extract(x=predictors[[predictorsVif1@results$Variables]], y=dataSet[,c('lon','lat')], method='bilinear', na.rm=TRUE) #extraindo variaeis ambientais
+dataSet = data.frame(dataSet, dataSetVars) #juntando ao dataset
+dataSet = dataSet[complete.cases(dataSet),] #retirando dados errados
+dataSet = dataSet[!duplicated(dataSet[,c('lon','lat')]),] #retirando pontos numa mesma celula
+##salvando dataset na memoria do HD
+write.csv(dataSet,paste(projectFolder,'/dataSet.csv',sep=''),row.names=FALSE)
+
+
+##mapa dos pontos de ocorrencia de back ground
+jpeg(paste(projectFolder,'/mapaOccDataAreaNat.jpg',sep=''), width=600, height=600)
+par(oma=c(0,0,0.5,7), cex=0.5)
+plot(predAreaNat[[1]]*0, col='lightblue', legend=FALSE,  bty="n", box=FALSE)
+points(dataSet[dataSet$area=='bg',c('lon','lat')], pch=20, cex=0.5, col=rgb(0.5,0.5,0.5,0.3))
+points(dataSet[dataSet$area=='nat',c('lon','lat')], pch=20, cex=1, col=rgb(1,0,0,0.5))
+legend('bottomleft', legend=c('Occorrence points','Background points'), pch=20, col=c('red','gray'), bty='n', inset=c(1,0.7),xpd=NA)
+dev.off()
+
 
 
 ## PARTE 3: Analise de similaridade de equivalencia de nicho
@@ -252,12 +262,12 @@ writeRaster(x=densRas, file='/home/anderson/Projetos/Invasao_Omobranchus_punctat
 
 
 ##abrindo variaveis ambientais
-predAreaNat = stack(list.files(path=paste(projectFolder,'/variaveis_ambientais',sep=''),pattern='predictors',full.names=TRUE))
-predAreaInv = stack(list.files(path=envVarFolder, full.names=TRUE, pattern='2o5m')) #predAreaInv com todas as variaveis
-predAreaInv = predAreaInv[[gsub(pattern='predictors_',replacement='',x=names(predAreaNat))]]
+predAreaNat = stack(list.files(path=paste(projectFolder,'/variaveis_ambientais',sep=''),pattern='predAreaNat',full.names=TRUE))
+predAreaInv = stack(list.files(path=paste(projectFolder,'/variaveis_ambientais',sep=''),pattern='predAreaInv',full.names=TRUE))
+#predAreaInv = predAreaInv[[gsub(pattern='predictors_',replacement='',x=names(predAreaNat))]]
 
 ## criando pontos de background
-bgAreaNat = dismo::randomPoints(mask=predAreaNat[[1]], n=1000, p=spNat, prob=FALSE)
+bgAreaNat = randomPoints(mask=predAreaNat[[1]], n=1000, p=spNat, prob=FALSE)
 bgAreaNat = data.frame(bgAreaNat)
 names(bgAreaNat) = names(spNat)
 bgAreaInv = dismo::randomPoints(mask=predAreaInv[[1]], n=1000, p=spInv, prob=FALSE)
@@ -280,69 +290,28 @@ spInvData = data.frame(spInvData,spInvDataEnv)
 spNatData = spNatData[complete.cases(spNatData),]
 spInvData = spInvData[complete.cases(spInvData),]
 
+## deixando os nomes iguais (necessario para o metodo)
+names(spNatData) = gsub(pattern='predAreaNat_', replacement='', x=names(spNatData))
+names(spInvData) = gsub(pattern='predAreaInv_', replacement='', x=names(spInvData))
+
 ## The PCA is calibrated on all the sites of the study area
-pca.env <- dudi.pca(rbind(spNatData,spInvData)[,c('bathy_2o5m',
-                                                  'biogeo01_2o5m',
-                                                  'biogeo02_2o5m',
-                                                  'biogeo05_2o5m',
-                                                  'biogeo06_2o5m',
-                                                  'biogeo07_2o5m',
-                                                  'biogeo08_2o5m',
-                                                  'biogeo11_2o5m',
-                                                  'biogeo13_2o5m',
-                                                  'biogeo16_2o5m')],scannf=F,nf=2)
+pca.env <- dudi.pca(rbind(spNatData,spInvData)[,grep(pattern='2o5', x=names(spNatData), value=TRUE)],scannf=F,nf=2)
 ## ecospat.plot.contrib(contrib=pca.env$co, eigen=pca.env$eig) #grafico
 
 ## PCA scores for the whole study area
 scores.globclim <- pca.env$li
 
 ## PCA scores for the species native distribution
-scores.sp.nat <- suprow(pca.env,spNatData[which(spNatData[,'occ']==1),c('bathy_2o5m',
-                                                                         'biogeo01_2o5m',
-                                                                         'biogeo02_2o5m',
-                                                                         'biogeo05_2o5m',
-                                                                         'biogeo06_2o5m',
-                                                                         'biogeo07_2o5m',
-                                                                         'biogeo08_2o5m',
-                                                                         'biogeo11_2o5m',
-                                                                         'biogeo13_2o5m',
-                                                                         'biogeo16_2o5m')])$li
+scores.sp.nat <- suprow(pca.env,spNatData[which(spNatData[,'occ']==1),grep(pattern='2o5', x=names(spNatData), value=TRUE)])$li
 
 ## PCA scores for the species invasive distribution
-scores.sp.inv <- suprow(pca.env,spInvData[which(spInvData[,'occ']==1),c('bathy_2o5m',
-                                                                         'biogeo01_2o5m',
-                                                                         'biogeo02_2o5m',
-                                                                         'biogeo05_2o5m',
-                                                                         'biogeo06_2o5m',
-                                                                         'biogeo07_2o5m',
-                                                                         'biogeo08_2o5m',
-                                                                         'biogeo11_2o5m',
-                                                                         'biogeo13_2o5m',
-                                                                         'biogeo16_2o5m')])$li
+scores.sp.inv <- suprow(pca.env,spInvData[which(spInvData[,'occ']==1),grep(pattern='2o5', x=names(spInvData), value=TRUE)])$li
 
 ## PCA scores for the whole native study area
-scores.clim.nat <-suprow(pca.env,spNatData[,c('bathy_2o5m',
-                                              'biogeo01_2o5m',
-                                              'biogeo02_2o5m',
-                                              'biogeo05_2o5m',
-                                              'biogeo06_2o5m',
-                                              'biogeo07_2o5m',
-                                              'biogeo08_2o5m',
-                                              'biogeo11_2o5m',
-                                              'biogeo13_2o5m',
-                                              'biogeo16_2o5m')])$li
+scores.clim.nat <-suprow(pca.env,spNatData[,grep(pattern='2o5', x=names(spNatData), value=TRUE)])$li
 
 ## PCA scores for the whole invaded study area
-scores.clim.inv <- suprow(pca.env,spInvData[,c('bathy_2o5m',
-                                               'biogeo01_2o5m',
-                                              'biogeo02_2o5m',
-                                              'biogeo05_2o5m',
-                                              'biogeo06_2o5m',
-                                              'biogeo07_2o5m',
-                                              'biogeo08_2o5m',
-                                              'biogeo11_2o5m',
-                                              'biogeo13_2o5m',
-                                              'biogeo16_2o5m')])$li
+scores.clim.inv <- suprow(pca.env,spInvData[,grep(pattern='2o5', x=names(spInvData), value=TRUE)])$li
 
 ## gridding the native niche
 grid.clim.nat <-ecospat.grid.clim.dyn(glob=scores.globclim, glob1=scores.clim.nat, sp=scores.sp.nat, R=100, th.sp=0)
@@ -380,11 +349,6 @@ if(!file.exists(file.path(projectFolder,'maxent',sep=''))){
 setwd(file.path(projectFolder,'maxent'))
 
 
-##abrindo o gridfile do vies amostral para o genero Omobranchus
-biasLayer = raster(x='/home/anderson/Projetos/Invasao_Omobranchus_punctatus/omobranchusBiasLayer.grd')
-values(biasLayer)[values(biasLayer)<=0] = 0
-
-
 ##abrindo as variaveis ambientais
 predAreaNat = stack(list.files(path=paste(projectFolder,'/variaveis_ambientais',sep=''),pattern='predAreaNat',full.names=TRUE))
 predAreaInv = stack(list.files(path=paste(projectFolder,'/variaveis_ambientais',sep=''),pattern='predAreaInv',full.names=TRUE))
@@ -395,8 +359,8 @@ dataSet = read.csv(paste(projectFolder,'/dataSet.csv',sep=''), header=TRUE)
 
 
 ##abrindo poligonos das distribuicoes nativa e invadida
-load("SpsBufferInv.R")
-load("SpsBufferNativ.R")
+load(paste(projectFolder,"/SpsBufferInv.R",sep=''))
+load(paste(projectFolder,"/SpsBufferNativ.R",sep=''))
 
 
 
@@ -503,13 +467,18 @@ dev.off()
 mapInv = raster(paste(projectFolder,'/maxent/SDMpredInv_Suitability.asc',sep='')) #abrindo arquivo salvo
 
 jpeg(paste(projectFolder,'/mapInv.jpg',sep=''), width=900, height=900)
-plot(mapInv > thre)
+par(oma=c(0,0,0,8), cex=1)
+plot(mapInv > thre, legend=FALSE, bty="n", box=FALSE)
+points(dataSet[dataSet$area=='inv',c('lon','lat')], pch=20, cex=1, col='red')
+legend('bottomleft', legend=c('Suitable habitat','Non-suitable habitat', 'Occurrence points'), col=c('green','lightgrey', 'red'), pch=c(15,15,20), bty='n', inset=c(1,0.9),xpd=NA, cex=1.3)
 dev.off()
 
 mapNat = raster(paste(projectFolder,'/maxent/SDMpredNativ_Suitability.asc',sep='')) #abrindo arquivo salvo
-
 jpeg(paste(projectFolder,'/mapNat.jpg',sep=''), width=900, height=900)
-plot(mapNat > thre)
+par(oma=c(0,0,0,8), cex=1)
+plot(mapNat > thre, legend=FALSE, bty="n", box=FALSE)
+points(dataSet[dataSet$area=='nat',c('lon','lat')], pch=20, cex=1, col='red')
+legend('bottomleft', legend=c('Suitable habitat','Non-suitable habitat', 'Occurrence points'), col=c('green','lightgrey', 'red'), pch=c(15,15,20), bty='n', inset=c(1,0.9),xpd=NA, cex=1.3)
 dev.off()
 
 
