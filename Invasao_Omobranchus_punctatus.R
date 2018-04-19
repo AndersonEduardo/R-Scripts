@@ -11,7 +11,8 @@
 
 
 ## limpando a memória (qdo necessario)
-rm(list=ls())
+rm(list=ls(all=TRUE))
+gc()
 
 ## abrindo pacotes necessarios
 library(ecospat)
@@ -143,8 +144,8 @@ plot(SpsBufferInv, add=T)
 
 ##recortando as variaveis preditoras para a area acessivel para as especies##
 
-predAreaNat = crop(x=stack(predictors), y=extent(SpsBufferNativ)) #recortando area selecionada
-predAreaInv = crop(x=stack(predictors), y=extent(SpsBufferInv)) #recortando area selecionada
+predAreaNat = crop(x=stack(predictors), y=natAreaExtent) #recortando area selecionada
+predAreaInv = crop(x=stack(predictors), y=invAreaExtent) #recortando area selecionada
 
 
 ##analisando correlacao das variaveis na area nativa##
@@ -163,8 +164,8 @@ predictorsVif1@results$Variables
 predictorsVif2@results$Variables
 
 ##definindo variaveis preditoras a serem usadas nos modelos
-predAreaNat = predAreaNat[[ predictorsVif1@results$Variables ]]
-predAreaInv = predAreaInv[[ predictorsVif1@results$Variables ]]
+predAreaNat = predAreaNat[[ as.vector(predictorsVif1@results$Variables) ]]
+predAreaInv = predAreaInv[[ as.vector(predictorsVif1@results$Variables) ]]
 
 
 ##salvando no HD
@@ -209,11 +210,13 @@ omobranchusOcc = omobranchusOcc[complete.cases(omobranchusOcc),]
 dens = MASS::kde2d(x=omobranchusOcc$lon, y=omobranchusOcc$lat, n=100)
 densRas = raster(dens)
 densRas = mask(x=densRas, mask=wrld)
-densRas = crop(x=densRas, y=extent(predAreaNat))
+densRas = crop(x=densRas, y=natAreaExtent)
 
 
 ##ajustando projecao e fundindo com pano de fundo
-predAreaNatBG = predAreaNat[[1]]*0
+predAreaNatBG = raster('/home/anderson/gridfiles/MARSPEC_2o5m/biogeo03_2o5m.tif')
+predAreaNatBG = crop(x=predAreaNatBG, y=natAreaExtent)
+predAreaNatBG = predAreaNatBG*0
 densRas = projectRaster(densRas, crs=proj4string(predAreaNatBG), res=res(predAreaNatBG), method="bilinear")
 densRas = merge(densRas, predAreaNatBG, tolerance=0.5)
 
@@ -225,7 +228,7 @@ writeRaster(x=densRas, file='/home/anderson/Projetos/Invasao_Omobranchus_punctat
 ##pseudo-ausencia na area nativa com o mesmo vies dos dados de ocorrencia
 biasLayer = raster(paste(projectFolder,'/omobranchusBiasLayer.grd',sep=''))
 values(biasLayer)[values(biasLayer)<=0] = 0
-bgPoints = dismo::randomPoints(mask=biasLayer, n=10000, p=spNat, prob=TRUE)
+bgPoints = randomPoints(mask=biasLayer, n=10000, p=spNat, prob=TRUE)
 bgPoints = data.frame(lon=bgPoints[,1], lat=bgPoints[,2])
 
 
@@ -237,7 +240,7 @@ dataSet = data.frame(lon = c(spNat$lon, spInv$lon, bgPoints$lon),
 #arredondando para garantir
 dataSet[,c('lon','lat')] = round(dataSet[,c('lon','lat')], 2)
 ##variaveis ambientais
-dataSetVars = extract(x=predictors[[predictorsVif1@results$Variables]], y=dataSet[,c('lon','lat')], method='bilinear', na.rm=TRUE) #extraindo variaeis ambientais
+dataSetVars = extract(x=predictors[[as.vector(predictorsVif1@results$Variables)]], y=dataSet[,c('lon','lat')], method='bilinear', na.rm=TRUE) #extraindo variaeis ambientais
 dataSet = data.frame(dataSet, dataSetVars) #juntando ao dataset
 dataSet = dataSet[complete.cases(dataSet),] #retirando dados errados
 dataSet = dataSet[!duplicated(dataSet[,c('lon','lat')]),] #retirando pontos numa mesma celula
@@ -253,6 +256,7 @@ points(dataSet[dataSet$area=='bg',c('lon','lat')], pch=20, cex=0.5, col=rgb(0.5,
 points(dataSet[dataSet$area=='nat',c('lon','lat')], pch=20, cex=1, col=rgb(1,0,0,0.5))
 legend('bottomleft', legend=c('Occorrence points','Background points'), pch=20, col=c('red','gray'), bty='n', inset=c(1,0.7),xpd=NA)
 dev.off()
+
 
 
 
@@ -372,7 +376,6 @@ ENMblock = get.block(occ=dataSet[dataSet$occ==1 & dataSet$area=='nat',c('lon','l
 
 ENMblockUser = get.user(occ.grp=ENMblock$occ.grp, bg.grp=ENMblock$bg.grp) #usuario, por causa dos dados proprios de bg-points gerados com vies
 
-rm(list=c('predAreaInv','predictors','spData','spInv','spNat','wrld','bgPoints','invAreaExtent','natAreaExtent','dataSetVars','areaInv','areaNat'))
 gc()
 
 SDMeval <- ENMevaluate(occ = dataSet[dataSet$occ==1 & dataSet$area=='nat',c('lon','lat')],
@@ -381,13 +384,11 @@ SDMeval <- ENMevaluate(occ = dataSet[dataSet$occ==1 & dataSet$area=='nat',c('lon
                        occ.grp = ENMblockUser$occ.grp,
                        bg.grp = ENMblockUser$bg.grp,
                        method = 'user',
-                       RMvalues = c(1,2,4),
+                       RMvalues = c(0.5,1,2,4),
                        fc = c("L", "LQ", "LQH", "LQHPT"),
-                       clamp = FALSE,
-                       parallel = FALSE)
-                       
-                       ## parallel = TRUE,
-                       ## numCores = 2)
+                       clamp = FALSE,                       
+                       parallel = TRUE,
+                       numCores = 2)
 
 
 ##melhor modelo
@@ -399,27 +400,34 @@ bestModel = bestModel[1,]
 ##importancia das variaveis
 modelPars = SDMeval@models[[bestModel$settings]]
 write.csv(var.importance(modelPars), paste(projectFolder,'/maxent/omobranchus_variablesImportance.csv',sep=''), row.names=FALSE)
+varNames = as.vector(var.importance(modelPars)[which(var.importance(modelPars)$permutation.importance > 0),'variable'])
+varNames = gsub(pattern='predAreaNat_', replacement='', x=varNames)
 
 
 ##excluindo variaveis sem imporntacia para o modelo (ver importancia das variaveis do SDMeval)
-dataSet = dataSet[,c('lon','lat','occ','area','bathy_2o5m','biogeo01_2o5m','biogeo02_2o5m','biogeo05_2o5m','biogeo06_2o5m','biogeo08_2o5m')]
-predAreaNat = predAreaNat[[c('predAreaNat_bathy_2o5m','predAreaNat_biogeo01_2o5m','predAreaNat_biogeo02_2o5m','predAreaNat_biogeo05_2o5m','predAreaNat_biogeo06_2o5m','predAreaNat_biogeo08_2o5m')]]
-predAreaInv = predAreaInv[[c('predAreaInv_bathy_2o5m','predAreaInv_biogeo01_2o5m','predAreaInv_biogeo02_2o5m','predAreaInv_biogeo05_2o5m','predAreaInv_biogeo06_2o5m','predAreaInv_biogeo08_2o5m')]]
-
+dataSet = dataSet[,c('lon','lat','occ','area',grep(pattern=paste(varNames, collapse='|'), x=names(dataSet), value=TRUE))]
 
 
 ##MAXENT##
-SDMmaxent = maxent(x = dataSet[,grep(pattern='2o5m',x=names(dataSet),value=TRUE)],
-                   p = dataSet[,'occ'],
+SDMmaxent = maxent(x = dataSet[which(dataSet$area!='inv'),grep(pattern=paste(as.character(varNames),collapse="|"),x=names(dataSet),value=TRUE)],
+                   p = dataSet[which(dataSet$area!='inv'),'occ'],
                    args = c(unlist(make.args(RMvalues=bestModel$rm, fc=bestModel$features, labels=FALSE)),'threads=2'))
 
 
+##salvando modelo no HD
+save(SDMmaxent, file=paste(projectFolder,'/maxent/SDMmaxent.R',sep=''))
+
+
 ##predicao AREA NATIVA
+names(predAreaNat) = gsub( pattern='^predAreaNat_', replacement='', x=names(predAreaNat) ) #retirando parte do nome para adequar ao modelo
+predAreaNat = predAreaNat[[varNames]] #novo objeto, correto
 SDMpredNativ = predict(predAreaNat, SDMmaxent) #projecao espacial
 crs(SDMpredNativ) = '+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0'
 
 
 ##predicao AREA INVADIDA
+names(predAreaInv) = gsub( pattern='^predAreaInv_', replacement='', x=names(predAreaInv) ) #retirando parte do nome para adequar ao modelo
+predAreaInv = predAreaInv[[varNames]] #novo objeto, correto
 SDMpredInv = predict(predAreaInv, SDMmaxent) #projecao espacial
 crs(SDMpredInv) = '+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0'
 
@@ -466,19 +474,39 @@ dev.off()
 
 mapInv = raster(paste(projectFolder,'/maxent/SDMpredInv_Suitability.asc',sep='')) #abrindo arquivo salvo
 
-jpeg(paste(projectFolder,'/mapInv.jpg',sep=''), width=900, height=900)
+##binario
+jpeg(paste(projectFolder,'/mapInvBIN.jpg',sep=''), width=900, height=900)
 par(oma=c(0,0,0,8), cex=1)
 plot(mapInv > thre, legend=FALSE, bty="n", box=FALSE)
 points(dataSet[dataSet$area=='inv',c('lon','lat')], pch=20, cex=1, col='red')
+plot(wrld,lwd=0.1, add=TRUE)
 legend('bottomleft', legend=c('Suitable habitat','Non-suitable habitat', 'Occurrence points'), col=c('green','lightgrey', 'red'), pch=c(15,15,20), bty='n', inset=c(1,0.9),xpd=NA, cex=1.3)
 dev.off()
 
+##suitability
+jpeg(paste(projectFolder,'/mapInv.jpg',sep=''), width=900, height=900)
+plot(mapInv, legend=TRUE, bty="n", box=FALSE)
+points(dataSet[dataSet$area=='inv',c('lon','lat')], pch=20, cex=1, col='red')
+plot(wrld,lwd=0.1, add=TRUE)
+dev.off()
+
+
 mapNat = raster(paste(projectFolder,'/maxent/SDMpredNativ_Suitability.asc',sep='')) #abrindo arquivo salvo
-jpeg(paste(projectFolder,'/mapNat.jpg',sep=''), width=900, height=900)
+
+##binario
+jpeg(paste(projectFolder,'/mapNatBIN.jpg',sep=''), width=900, height=900)
 par(oma=c(0,0,0,8), cex=1)
 plot(mapNat > thre, legend=FALSE, bty="n", box=FALSE)
 points(dataSet[dataSet$area=='nat',c('lon','lat')], pch=20, cex=1, col='red')
+plot(wrld,lwd=0.1, add=TRUE)
 legend('bottomleft', legend=c('Suitable habitat','Non-suitable habitat', 'Occurrence points'), col=c('green','lightgrey', 'red'), pch=c(15,15,20), bty='n', inset=c(1,0.9),xpd=NA, cex=1.3)
+dev.off()
+
+##suitability
+jpeg(paste(projectFolder,'/mapNat.jpg',sep=''), width=900, height=900)
+plot(mapNat, legend=FALSE, bty="n", box=FALSE)
+points(dataSet[dataSet$area=='nat',c('lon','lat')], pch=20, cex=1, col='red')
+plot(wrld,lwd=0.1, add=TRUE)
 dev.off()
 
 
@@ -524,7 +552,7 @@ proj4string(occNat) = "+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"
 
 ##pDLA
 
-pobability = pDLA(occData=occInv,
+probability = pDLA(occData=occInv,
                   envData=envDataInv,
                   longlat=TRUE,
                   occNative=occNat,
