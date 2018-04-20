@@ -15,6 +15,9 @@ rm(list=ls(all=TRUE))
 gc()
 
 ## abrindo pacotes necessarios
+Sys.setenv(JAVA_HOME = "/usr/lib/jvm/java-7-openjdk-amd64")
+#Windows#Sys.setenv(JAVA_HOME='C:\\Program Files\\Java\\jre1.8.0_91') # for 64-bit version
+options(java.parameters = "Xmx7g")
 library(ecospat)
 library(rgdal)
 library(raster)
@@ -23,9 +26,7 @@ library(usdm)
 library(iSDM)
 library(pROC)
 library(rJava)
-Sys.setenv(JAVA_HOME = "/usr/lib/jvm/java-7-openjdk-amd64")
-#Windows#Sys.setenv(JAVA_HOME='C:\\Program Files\\Java\\jre1.8.0_91') # for 64-bit version
-options(java.parameters = "Xmx7g")
+
 
 
 ## definindo variaveis e parametros
@@ -164,8 +165,8 @@ predictorsVif1@results$Variables
 predictorsVif2@results$Variables
 
 ##definindo variaveis preditoras a serem usadas nos modelos
-predAreaNat = predAreaNat[[ as.vector(predictorsVif1@results$Variables) ]]
-predAreaInv = predAreaInv[[ as.vector(predictorsVif1@results$Variables) ]]
+predAreaNat = predAreaNat[[ grep(pattern=paste(predictorsVif1@results$Variables,collapse='|'), x=names(predAreaNat), value=TRUE) ]]
+predAreaInv = predAreaInv[[ grep(pattern=paste(predictorsVif1@results$Variables,collapse='|'), x=names(predAreaInv), value=TRUE) ]]
 
 
 ##salvando no HD
@@ -181,16 +182,16 @@ omobranchusOcc = omobranchusDataset[,c('decimallongitude','decimallatitude')]
 names(omobranchusOcc) = c('lon','lat')
 omobranchusOcc = omobranchusOcc[complete.cases(omobranchusOcc),]
 
-## ##convertendo de data.frame para staialPointsDataFrame
-## coordinates(omobranchusOcc) <- ~lon+lat
-## proj4string(omobranchusOcc) <- CRS('+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs +towgs84=0,0,0')
+##convertendo de data.frame para staialPointsDataFrame
+coordinates(omobranchusOcc) <- ~lon+lat
+proj4string(omobranchusOcc) <- CRS('+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs +towgs84=0,0,0')
 
 ## ##abrindo o shapefile que 'cortara' os pontos
 ## wrld = readOGR("/home/anderson/shapefiles/ne_50m_land/ne_50m_land.shp")
 
-## ##ajustando o sistema de coordenadas geograficas entre pontos e shapefile
-## omobranchusOcc <- spTransform(omobranchusOcc, CRS(proj4string(wrld)))
-## omobranchusOcc <- omobranchusOcc[wrld, ]
+##ajustando o sistema de coordenadas geograficas entre pontos e shapefile
+omobranchusOcc <- spTransform(omobranchusOcc, CRS(proj4string(wrld)))
+omobranchusOcc <- omobranchusOcc[wrld, ]
 
 ## ##sjuatando para toda a area da america do sul e grid file final
 ## #SOAextent = extent(-81.57551,-34.03384,-57.13385,12.99115)
@@ -209,25 +210,31 @@ omobranchusOcc = omobranchusOcc[complete.cases(omobranchusOcc),]
 ##kernel density estimation com o pacote MASS
 dens = MASS::kde2d(x=omobranchusOcc$lon, y=omobranchusOcc$lat, n=100)
 densRas = raster(dens)
+values(densRas)[values(densRas)<=0] = 0
 densRas = mask(x=densRas, mask=wrld)
 densRas = crop(x=densRas, y=natAreaExtent)
 
 
 ##ajustando projecao e fundindo com pano de fundo
-predAreaNatBG = raster('/home/anderson/gridfiles/MARSPEC_2o5m/biogeo03_2o5m.tif')
-predAreaNatBG = crop(x=predAreaNatBG, y=natAreaExtent)
+predAreaNatBG = raster('/home/anderson/Projetos/Invasao_Omobranchus_punctatus/variaveis_ambientais/predAreaNat_Present.Surface.pH.asc.asc')
+crs(predAreaNatBG) = '+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0'
+#predAreaNatBG = crop(x=predAreaNatBG, y=natAreaExtent)
 predAreaNatBG = predAreaNatBG*0
 densRas = projectRaster(densRas, crs=proj4string(predAreaNatBG), res=res(predAreaNatBG), method="bilinear")
-densRas = merge(densRas, predAreaNatBG, tolerance=0.5)
+densRas = merge(densRas, predAreaNatBG, tolerance=0.1)
+
+extent(densRas) = extent(predAreaNatBG)
+densRas = crop(x=densRas, y=predAreaNatBG)
+
+densRas = extend(x=densRas, y=extent(predAreaNatBG), value=NA)
 
 
 ##salvado raster
-writeRaster(x=densRas, file='/home/anderson/Projetos/Invasao_Omobranchus_punctatus/omobranchusBiasLayer.grd', overwrite=TRUE)
+writeRaster(x=densRas, file='/home/anderson/Projetos/Invasao_Omobranchus_punctatus/omobranchusBiasLayer.asc', overwrite=TRUE)
 
 
 ##pseudo-ausencia na area nativa com o mesmo vies dos dados de ocorrencia
-biasLayer = raster(paste(projectFolder,'/omobranchusBiasLayer.grd',sep=''))
-values(biasLayer)[values(biasLayer)<=0] = 0
+biasLayer = raster(paste(projectFolder,'/omobranchusBiasLayer.asc',sep=''))
 bgPoints = randomPoints(mask=biasLayer, n=10000, p=spNat, prob=TRUE)
 bgPoints = data.frame(lon=bgPoints[,1], lat=bgPoints[,2])
 
@@ -411,7 +418,16 @@ dataSet = dataSet[,c('lon','lat','occ','area',grep(pattern=paste(varNames, colla
 ##MAXENT##
 SDMmaxent = maxent(x = dataSet[which(dataSet$area!='inv'),grep(pattern=paste(as.character(varNames),collapse="|"),x=names(dataSet),value=TRUE)],
                    p = dataSet[which(dataSet$area!='inv'),'occ'],
-                   args = c(unlist(make.args(RMvalues=bestModel$rm, fc=bestModel$features, labels=FALSE)),'threads=2'))
+                   args = c(unlist(make.args(RMvalues=bestModel$rm, fc=bestModel$features, labels=FALSE)),
+                   			'replicates=1,'
+                            'responsecurves=TRUE',
+                            'writemess=TRUE',
+                            'pictures=TRUE',
+                            'extrapolate=FALSE',
+                            'doclamp=FALSE',
+                            'fadebyclamping=FALSE',
+                            'plots=TRUE',
+                            'threads=2'))
 
 
 ##salvando modelo no HD
@@ -420,14 +436,14 @@ save(SDMmaxent, file=paste(projectFolder,'/maxent/SDMmaxent.R',sep=''))
 
 ##predicao AREA NATIVA
 names(predAreaNat) = gsub( pattern='^predAreaNat_', replacement='', x=names(predAreaNat) ) #retirando parte do nome para adequar ao modelo
-predAreaNat = predAreaNat[[varNames]] #novo objeto, correto
+predAreaNat = predAreaNat[[ grep(pattern=paste(varNames,collapse='|'), x=names(predAreaNat), value=TRUE) ]] #novo objeto, correto
 SDMpredNativ = predict(predAreaNat, SDMmaxent) #projecao espacial
 crs(SDMpredNativ) = '+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0'
 
 
 ##predicao AREA INVADIDA
 names(predAreaInv) = gsub( pattern='^predAreaInv_', replacement='', x=names(predAreaInv) ) #retirando parte do nome para adequar ao modelo
-predAreaInv = predAreaInv[[varNames]] #novo objeto, correto
+predAreaInv = predAreaInv[[ grep(pattern=paste(varNames,collapse='|'), x=names(predAreaNat), value=TRUE) ]] #novo objeto, correto
 SDMpredInv = predict(predAreaInv, SDMmaxent) #projecao espacial
 crs(SDMpredInv) = '+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0'
 

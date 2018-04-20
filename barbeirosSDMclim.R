@@ -193,7 +193,7 @@ predictorsVif1@results$Variables
 predictorsVif2@results$Variables
 
 ##definindo variaveis preditoras a serem usadas nos modelos
-predictors = predictorsForVif[[ predictorsVif1@results$Variables ]]
+predictors = predictorsForVif[[ grep(pattern=paste(predictorsVif2@results$Variables,collapse='|'), x=names(predictors), value=TRUE)  ]]
 
 writeRaster(x=predictors, filename=paste(envVarFolder,'/presente/usadas/predictors.asc',sep=''), overwrite=TRUE, bylayer=TRUE, suffix=names(predictors))
 
