@@ -5,11 +5,11 @@
 timeOne = Sys.time()
 
 ##abrindo pacotes necessarios
-library(raster)
-library(rJava)
-library(biomod2)
 Sys.setenv(JAVA_HOME = "/usr/lib/jvm/java-7-openjdk-amd64")
 options(java.parameters = "Xmx7g")
+library(rJava)
+library(raster)
+library(biomod2)
 
 ##definindo prametros e variaveis globais (NOTEBOOK)
 projectFolder = "/home/anderson/Documentos/Projetos/Improved pseudo-absences" #pasta do projeto
@@ -131,7 +131,8 @@ for(i in 1:Nsp){
       myBiomodData <- BIOMOD_FormatingData(resp.var = myResp,
                                            expl.var = myExpl,
                                            resp.name = paste(myRespName,'_sample',sampleSizes[j],'_SDMnormal',sep=''),
-                                           PA.nb.rep = 1)
+                                           PA.nb.rep = 1
+                                           PA.nb.absences = 10000)
       
       ## ##inspecionando o objeto gerado pela funcao do biomod2
       ## myBiomodData
@@ -139,15 +140,18 @@ for(i in 1:Nsp){
       
       ##parametrizando os modelos
       myBiomodOption <- BIOMOD_ModelingOptions(
-        MAXENT.Phillips = list(path_to_maxent.jar= maxentFolder,
-                               linear=TRUE,
-                               quadratic=TRUE,
-                               product=FALSE,
-                               threshold=FALSE,
-                               hinge=FALSE,
-                               maximumiterations=1000,
-                               convergencethreshold=1.0E-5,
-                               threads=2),
+          MAXENT.Phillips = list(path_to_maxent.jar= maxentFolder,
+                                 replicates=100,
+                                 replicatetype='crossvalidate',
+                                 linear=TRUE,
+                                 quadratic=TRUE,
+                                 product=FALSE,
+                                 threshold=FALSE,
+                                 hinge=FALSE,
+                                 extrapolate=FALSE,
+                                 doclamp=FALSE,
+                                 fadebyclamping=FALSE,
+                                 threads=2),
         GLM = list( type = 'quadratic',
                     interaction.level = 0,
                     myFormula = NULL,
