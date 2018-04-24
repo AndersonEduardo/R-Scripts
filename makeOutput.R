@@ -6,40 +6,40 @@
 
 makeOutput = function(outputDataRaw, data_frame, i_index,j_index, sdm_type, sample_size){
 
-	  ## parametros locais  
-	  evaluationScores = outputDataRaw
-  	statResults = data_frame
-  	i = i_index
-  	j = j_index
-  	SDM = sdm_type
-  	sampleSize = sample_size
-  
-  	##especificidade
-  	outputRawTSSspec = evaluationScores['TSS','Specificity',,,]
-  	outputRawTSSspec = outputRawTSSspec[complete.cases(outputRawTSSspec),]
-  	outputRawAUCspec = evaluationScores['ROC','Specificity',,,]
-  	outputRawAUCspec = outputRawAUCspec[complete.cases(outputRawAUCspec),]
-  	##auc e tss
-  	outputRawTSSvalue = evaluationScores['TSS','Testing.data',,,]
-  	outputRawTSSvalue = outputRawTSSvalue[complete.cases(outputRawTSSvalue),]
-  	outputRawAUCvalue = evaluationScores['ROC','Testing.data',,,]
-  	outputRawAUCvalue = outputRawAUCvalue[complete.cases(outputRawAUCvalue),]
-  
-  	##maior valore de especificidade de cada algoritmo implementado (tanto para TSS qto para AUC)
-  	TSSspec = as.numeric(apply(outputRawTSSspec, 1, max, na.rm=TRUE))
-  	AUCspec = as.numeric(apply(outputRawAUCspec, 1, max, na.rm=TRUE))
-  
-  	##tabela auxiliar para obtencao das informacoes do melhor modelo
-  	tabBestScoresTSS = data.frame(outputRawTSSspec, bestvalue=TSSspec)
-  	tabBestScoresAUC = data.frame(outputRawAUCspec, bestvalue=AUCspec)
-  
-  	##vetores vazios (para os nomes dos melhores modelos)
-  	bestModelRunTSS = vector()
-  	bestModelRunAUC = vector()
-  	TSSvalues = vector()
-  	AUCvalues = vector()
-  
-  	for (l in 1:nrow(tabBestScoresTSS)){
+    ## parametros locais  
+    evaluationScores = outputDataRaw
+    statResults = data_frame
+    i = i_index
+    j = j_index
+    SDM = sdm_type
+    sampleSize = sample_size
+    
+    ##especificidade
+    outputRawTSSspec = evaluationScores['TSS','Specificity',,,]
+    outputRawTSSspec = outputRawTSSspec[complete.cases(outputRawTSSspec),]
+    outputRawAUCspec = evaluationScores['ROC','Specificity',,,]
+    outputRawAUCspec = outputRawAUCspec[complete.cases(outputRawAUCspec),]
+    ##auc e tss
+    outputRawTSSvalue = evaluationScores['TSS','Testing.data',,,]
+    outputRawTSSvalue = outputRawTSSvalue[complete.cases(outputRawTSSvalue),]
+    outputRawAUCvalue = evaluationScores['ROC','Testing.data',,,]
+    outputRawAUCvalue = outputRawAUCvalue[complete.cases(outputRawAUCvalue),]
+    
+    ##maior valor de especificidade de cada algoritmo implementado (tanto para TSS qto para AUC)
+    TSSspec = as.numeric(apply(outputRawTSSspec, 1, max, na.rm=TRUE))
+    AUCspec = as.numeric(apply(outputRawAUCspec, 1, max, na.rm=TRUE))
+    
+    ##tabela auxiliar para obtencao das informacoes do melhor modelo
+    tabBestScoresTSS = data.frame(outputRawTSSspec, bestvalue=TSSspec)
+    tabBestScoresAUC = data.frame(outputRawAUCspec, bestvalue=AUCspec)
+    
+    ##vetores vazios (para os nomes dos melhores modelos)
+    bestModelRunTSS = vector()
+    bestModelRunAUC = vector()
+    TSSvalues = vector()
+    AUCvalues = vector()
+    
+    for (l in 1:nrow(tabBestScoresTSS)){
     	bestRunNameTSS = names(tabBestScoresTSS)[match(tabBestScoresTSS$bestvalue[l], tabBestScoresTSS[l, 1:ncol(tabBestScoresTSS)-1])] #pegando o nome do melhor modelo (e.g. RUN2)
     	TSSvalueBestModel = outputRawTSSvalue[l,bestRunNameTSS] #pegando o TSS do melhor modelo
     	bestModelRunTSS = append(bestModelRunTSS, bestRunNameTSS) #empilhando os nomes dos melhores modelos
@@ -49,35 +49,35 @@ makeOutput = function(outputDataRaw, data_frame, i_index,j_index, sdm_type, samp
     	AUCvalueBestModel = outputRawAUCvalue[l,bestRunNameAUC] #pegando o AUC do melhor modelo
     	bestModelRunAUC = append(bestModelRunAUC, bestRunNameAUC)
     	AUCvalues = append(AUCvalues, AUCvalueBestModel)
-  	}
-  
-  	##medias
-  	meanTSSValue = as.numeric(apply(outputRawTSSvalue, 1, mean, na.rm=TRUE))
-  	meanTSSspecificity = as.numeric(apply(outputRawTSSspec, 1, mean, na.rm=TRUE))
- 	  meanAUCValue = as.numeric(apply(outputRawAUCvalue, 1, mean, na.rm=TRUE))
-  	meanAUCspecificity = as.numeric(apply(outputRawAUCspec, 1, mean, na.rm=TRUE))
-  
-  	##gravando estatisticas basicas do melhor modelo de cada algoritmo
-  	statResults = rbind(statResults,
-                               data.frame(SDM = paste(SDM),
-                                          sampleSize = sampleSize,
-                                          sp = i,
-                                          ##tss
-                                          model = rownames(tabBestScoresTSS),
-                                          meanTSSValue = meanTSSValue,
-                                          meanTSSspecificity = meanTSSspecificity,
-                                          maxTSSspecificity = TSSspec,
-                                          bestModelTSS = bestModelRunTSS,
-                                          TSSvalue_bestModel= TSSvalues,
-                                          ##auc
-                                          meanAUCValue = meanAUCValue,
-                                          meanAUCspecificity = meanAUCspecificity,
-                                          maxAUCspecificity = AUCspec,
-                                          bestModelAUC = bestModelRunAUC,
-                                          AUCvalue_bestModel= AUCvalues,
-                                          stringsAsFactors = FALSE)
-  	)
-  
-  	return(statResults)
-  
+    }
+    
+    ##medias
+    meanTSSValue = as.numeric(apply(outputRawTSSvalue, 1, mean, na.rm=TRUE))
+    meanTSSspecificity = as.numeric(apply(outputRawTSSspec, 1, mean, na.rm=TRUE))
+    meanAUCValue = as.numeric(apply(outputRawAUCvalue, 1, mean, na.rm=TRUE))
+    meanAUCspecificity = as.numeric(apply(outputRawAUCspec, 1, mean, na.rm=TRUE))
+    
+    ##gravando estatisticas basicas do melhor modelo de cada algoritmo
+    statResults = rbind(statResults,
+                        data.frame(SDM = paste(SDM),
+                                   sampleSize = sampleSize,
+                                   sp = i,
+                                   ##tss
+                                   model = rownames(tabBestScoresTSS),
+                                   meanTSSValue = meanTSSValue,
+                                   meanTSSspecificity = meanTSSspecificity,
+                                   maxTSSspecificity = TSSspec,
+                                   bestModelTSS = bestModelRunTSS,
+                                   TSSvalue_bestModel= TSSvalues,
+                                   ##auc
+                                   meanAUCValue = meanAUCValue,
+                                   meanAUCspecificity = meanAUCspecificity,
+                                   maxAUCspecificity = AUCspec,
+                                   bestModelAUC = bestModelRunAUC,
+                                   AUCvalue_bestModel= AUCvalues,
+                                   stringsAsFactors = FALSE)
+                        )
+    
+    return(statResults)
+    
 }
