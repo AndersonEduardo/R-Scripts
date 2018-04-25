@@ -251,7 +251,7 @@ for(i in 1:Nsp){
                 modeling.id = paste(myRespName,'_sample',sampleSizes[j],'_SDMnormal',sep=''))
             
             ##My output data
-            evaluationScores = get_evaluations(myBiomodModelOut)
+            evaluationScores = get_evaluations(myBiomodModelOut, as.data.frame=TRUE)
             
             ## ##especificidade
             ## outputRawTSSspec = evaluationScores['TSS','Specificity',,,]
@@ -319,7 +319,7 @@ for(i in 1:Nsp){
 
 
             ##rodando Mahalanobis, Bioclim e Domain
-
+            
             mahalanobisSDM = mahal( x=predictors, p=as.matrix(myBiomodData@coord[!is.na(myBiomodData@data.species),]) )
             mahalanobisPred = dismo::predict(mahalanobisSDM, predictors)
 
@@ -329,14 +329,72 @@ for(i in 1:Nsp){
             domainSDM = domain( x=predictors, p=as.matrix(myBiomodData@coord[!is.na(myBiomodData@data.species),]) )
             domainPred = dismo::predict(predictors, domainSDM)
 
-            ##inspecao grafica
-            par(mfrow=c(1,2))
-            plot(SpDistAC)
-            plot(domainPred)
-            dev.off()
+            ##lista de objetos com os modelos
+            SDMlist = list('mahalanobisSDM'=mahalanobisSDM, 'bioclimSDM'=bioclimSDM, 'domainSDM'=domainSDM)
+            
+            ##iterando 100 replicas (ATENCAO: tem que ser o mesmo numero que no biomod2)
+            for (model_i in c('mahalanobisSDM', 'bioclimSDM', 'domainSDM')){
+                for (iter in 1:100){
+                    currentSDM = SDMlist[[model_i]] #modelo da iteracao atual
+                    curent_occData_test = subset( x=myBiomodData@coord[!is.na(myBiomodData@data.species),], subset=kfold(curent_occData, k=3)==1 ) #occ para teste
+                    curent_bgData_test = myBiomodData@coord[is.na(myBiomodData@data.species),] #bg par teste
+
+                    SDMeval = evaluate(model = currentSDM,
+                                       p = curent_occData_test,
+                                       a = curent_bgData_test,
+                                       x = predictors) #algoritmo de avaliacao do modelo
+
+                    ##TSS
+                    tssVector = SDMeval@TPR + SDMeval@TNR - 1
+                    tssVal = max( SDMeval@TPR + SDMeval@TNR - 1 )
+                    % Obs1: formula do TSS = true positive ratio + true negative ratio - 1
+                    FONTE: ALOUCHE & KADMON (2006), Journal of Applied Ecology.
+                    Obs2: outra forma de fazer a mesma coisa seria:
+                    tssVal = tssVector[ which(SDMeval@t == threshold(SDMeval, 'spec_sens')) ] %
+                    ##threshold (maximizando o TSS)
+                    current_thre_maximizingTSS = threshold(SDMeval, 'spec_sens')
+                    %Obs: outra forma de fazer a mesma coisa seria:
+                    tssVal = SDMeval@t[which(tssVector==max(tssVector))]%
+                    ##AUC
+                    aucVal = SDMeval@auc
+                    current_thre_maximizingROC = SDMeval@t[which(
+                                                             sqrt( (1-SDMeval@TPR)^2 + (1-SDMeval@TNR)^2 ) == min(sqrt( (1-SDMeval@TPR)^2 + (1-SDMeval@TNR)^2 ))
+                                                         )]
+                    %Obs1: esse eh o procedimento realizado pelo Biomod. FONTE: http://lists.r-forge.r-project.org/pipermail/biomod-commits/2010-August/000129.html
+                    Obs2: Formula pitagorica retirada de Jimenez-Valverde (2012) Global Ecology and Biogreography.%
+                    
+                    ##adicionando na tabela evaluationScores obtida pelo biomod2
+                    outputDF = rbind(evaluationScores,
+                                     data.frame(Model.name = rep(paste(model_i,'_RUN',iter,'_PA1',sep=''),2),
+                                                Eval.metric = c('TSS','ROC'),
+                                                Testing.data = c(tssVal, SDMeval@auc),
+                                                Evaluating.data = rep(NA,2),
+                                                Cutoff = c(current_thre_maximizingTSS, current_thre_maximizingROC),
+                                                Sensitivity = c(SDMeval@TPR[which(SDMeval@t == current_thre_maximizingTSS)], SDMeval@TPR[which(SDMeval@t == current_thre_maximizingROC)]),
+                                                Specificity = c(SDMeval@TNR[which(SDMeval@t == current_thre_maximizingTSS)], SDMeval@TNR[which(SDMeval@t == current_thre_maximizingROC)])
+                                                ))
+
+                }
+            }
 
 
-            evaluate()
+
+
+            
+
+########################### continuar daqui #################################
+
+            ## ajustar a funcao autoral 'makeOuput' para trabalhar com o objeto 'evaluationScores' no formato data.frame.
+
+
+#############################################################################
+
+
+
+
+
+
+
 
 
 

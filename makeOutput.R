@@ -14,20 +14,20 @@ makeOutput = function(outputDataRaw, data_frame, i_index,j_index, sdm_type, samp
     SDM = sdm_type
     sampleSize = sample_size
     
-    ##especificidade
-    outputRawTSSspec = evaluationScores['TSS','Specificity',,,]
+    ##especificidade    
+    outputRawTSSspec = subset( x=evaluationScores, subset=c(Eval.metric=='TSS' ), select=Specificity ) #evaluationScores['TSS','Specificity',,,]
     outputRawTSSspec = outputRawTSSspec[complete.cases(outputRawTSSspec),]
-    outputRawAUCspec = evaluationScores['ROC','Specificity',,,]
+    outputRawAUCspec = subset( x=evaluationScores, subset=c(Eval.metric=='ROC' ), select=Specificity ) #evaluationScores['ROC','Specificity',,,]
     outputRawAUCspec = outputRawAUCspec[complete.cases(outputRawAUCspec),]
     ##auc e tss
-    outputRawTSSvalue = evaluationScores['TSS','Testing.data',,,]
+    outputRawTSSvalue = subset( x=evaluationScores, subset=c(Eval.metric=='TSS' ), select=Testing.data ) #evaluationScores['TSS','Testing.data',,,]
     outputRawTSSvalue = outputRawTSSvalue[complete.cases(outputRawTSSvalue),]
-    outputRawAUCvalue = evaluationScores['ROC','Testing.data',,,]
+    outputRawAUCvalue = subset( x=evaluationScores, subset=c(Eval.metric=='ROC' ), select=Testing.data ) #evaluationScores['ROC','Testing.data',,,]
     outputRawAUCvalue = outputRawAUCvalue[complete.cases(outputRawAUCvalue),]
     
     ##maior valor de especificidade de cada algoritmo implementado (tanto para TSS qto para AUC)
-    TSSspec = as.numeric(apply(outputRawTSSspec, 1, max, na.rm=TRUE))
-    AUCspec = as.numeric(apply(outputRawAUCspec, 1, max, na.rm=TRUE))
+    TSSspec = max(outputRawTSSspec, na.rm=TRUE) #as.numeric(apply(outputRawTSSspec, 1, max, na.rm=TRUE))
+    AUCspec = max(outputRawAUCspec, na.rm=TRUE) #as.numeric(apply(outputRawAUCspec, 1, max, na.rm=TRUE))
     
     ##tabela auxiliar para obtencao das informacoes do melhor modelo
     tabBestScoresTSS = data.frame(outputRawTSSspec, bestvalue=TSSspec)
