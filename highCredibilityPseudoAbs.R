@@ -251,83 +251,12 @@ for(i in 1:Nsp){
                 modeling.id = paste(myRespName,'_sample',sampleSizes[j],'_SDMnormal',sep=''))
             
             ##My output data
-            evaluationScores = get_evaluations(myBiomodModelOut, as.data.frame=TRUE)
-            
-            ## ##especificidade
-            ## outputRawTSSspec = evaluationScores['TSS','Specificity',,,]
-            ## outputRawTSSspec = outputRawTSSspec[complete.cases(outputRawTSSspec),]
-            ## outputRawAUCspec = evaluationScores['ROC','Specificity',,,]
-            ## outputRawAUCspec = outputRawAUCspec[complete.cases(outputRawAUCspec),]
-            ## ##auc e tss
-            ## outputRawTSSvalue = evaluationScores['TSS','Testing.data',,,]
-            ## outputRawTSSvalue = outputRawTSSvalue[complete.cases(outputRawTSSvalue),]
-            ## outputRawAUCvalue = evaluationScores['ROC','Testing.data',,,]
-            ## outputRawAUCvalue = outputRawAUCvalue[complete.cases(outputRawAUCvalue),]
-            
-            ## ##maior valore de especificidade de cada algoritmo implementado (tanto para TSS qto para AUC)
-            ## TSSspec = as.numeric(apply(outputRawTSSspec, 1, max, na.rm=TRUE))
-            ## AUCspec = as.numeric(apply(outputRawAUCspec, 1, max, na.rm=TRUE))
-            
-            ## ##tabela auxiliar para obtencao das informacoes do melhor modelo
-            ## tabBestScoresTSS = data.frame(outputRawTSSspec, bestvalue=TSSspec)
-            ## tabBestScoresAUC = data.frame(outputRawAUCspec, bestvalue=AUCspec)
-            
-            ## ##vetores vazios (para os nomes dos melhores modelos)
-            ## bestModelRunTSS = vector()
-            ## bestModelRunAUC = vector()
-            ## TSSvalues = vector()
-            ## AUCvalues = vector()
-            
-            ## for (l in 1:nrow(tabBestScoresTSS)){
-            ##     bestRunNameTSS = names(tabBestScoresTSS)[match(tabBestScoresTSS$bestvalue[l], tabBestScoresTSS[l, 1:ncol(tabBestScoresTSS)-1])] #pegando o nome do melhor modelo (e.g. RUN2)
-            ##     TSSvalueBestModel = outputRawTSSvalue[l,bestRunNameTSS] #pegando o TSS do melhor modelo
-            ##     bestModelRunTSS = append(bestModelRunTSS, bestRunNameTSS) #empilhando os nomes dos melhores modelos
-            ##     TSSvalues = append(TSSvalues, TSSvalueBestModel)
-            ##     ##
-            ##     bestRunNameAUC = names(tabBestScoresAUC)[match(tabBestScoresAUC$bestvalue[l], tabBestScoresAUC[l, 1:ncol(tabBestScoresAUC)-1])] #pegando o nome do melhor modelo (e.g. RUN2)
-            ##     AUCvalueBestModel = outputRawAUCvalue[l,bestRunNameAUC] #pegando o AUC do melhor modelo
-            ##     bestModelRunAUC = append(bestModelRunAUC, bestRunNameAUC)
-            ##     AUCvalues = append(AUCvalues, AUCvalueBestModel)
-            ## }
-            
-            ## ##medias
-            ## meanTSSValue = as.numeric(apply(outputRawTSSvalue, 1, mean, na.rm=TRUE))
-            ## meanTSSspecificity = as.numeric(apply(outputRawTSSspec, 1, mean, na.rm=TRUE))
-            ## meanAUCValue = as.numeric(apply(outputRawAUCvalue, 1, mean, na.rm=TRUE))
-            ## meanAUCspecificity = as.numeric(apply(outputRawAUCspec, 1, mean, na.rm=TRUE))
-            
-            ## ##gravando estatisticas basicas do melhor modelo de cada algoritmo
-            ## statResultsSDMnormal = rbind(statResultsSDMnormal,
-            ##                              data.frame(SDM = 'normal',
-            ##                                         sampleSize = sampleSizes[j],
-            ##                                         sp = i,
-            ##                                         ##tss
-            ##                                         model = rownames(tabBestScoresTSS),
-            ##                                         meanTSSValue = meanTSSValue,
-            ##                                         meanTSSspecificity = meanTSSspecificity,
-            ##                                         maxTSSspecificity = TSSspec,
-            ##                                         bestModelTSS = bestModelRunTSS,
-            ##                                         TSSvalue_bestModel= TSSvalues,
-            ##                                         ##auc
-            ##                                         meanAUCValue = meanAUCValue,
-            ##                                         meanAUCspecificity = meanAUCspecificity,
-            ##                                         maxAUCspecificity = AUCspec,
-            ##                                         bestModelAUC = bestModelRunAUC,
-            ##                                         AUCvalue_bestModel= AUCvalues,
-            ##                                         stringsAsFactors = FALSE)
-            ##                              )
-
+            evaluationScores = get_evaluations(myBiomodModelOut, as.data.frame=TRUE)            
 
             ##rodando Mahalanobis, Bioclim e Domain
-            
             mahalanobisSDM = mahal( x=predictors, p=as.matrix(myBiomodData@coord[!is.na(myBiomodData@data.species),]) )
-            mahalanobisPred = dismo::predict(mahalanobisSDM, predictors)
-
             bioclimSDM = bioclim( x=predictors, p=as.matrix(myBiomodData@coord[!is.na(myBiomodData@data.species),]) )
-            bioclimPred = dismo::predict(predictors, bioclimSDM)
-
             domainSDM = domain( x=predictors, p=as.matrix(myBiomodData@coord[!is.na(myBiomodData@data.species),]) )
-            domainPred = dismo::predict(predictors, domainSDM)
 
             ##lista de objetos com os modelos
             SDMlist = list('mahalanobisSDM'=mahalanobisSDM, 'bioclimSDM'=bioclimSDM, 'domainSDM'=domainSDM)
@@ -336,8 +265,8 @@ for(i in 1:Nsp){
             for (model_i in c('mahalanobisSDM', 'bioclimSDM', 'domainSDM')){
                 for (iter in 1:100){
                     currentSDM = SDMlist[[model_i]] #modelo da iteracao atual
-                    curent_occData_test = subset( x=myBiomodData@coord[!is.na(myBiomodData@data.species),], subset=kfold(curent_occData, k=3)==1 ) #occ para teste
-                    curent_bgData_test = myBiomodData@coord[is.na(myBiomodData@data.species),] #bg par teste
+                    curent_occData_test = subset( x=myBiomodData@coord[!is.na(myBiomodData@data.species),], subset=kfold(myBiomodData@coord[!is.na(myBiomodData@data.species),], k=3)==1 ) #occ para teste
+                    curent_bgData_test = myBiomodData@coord[is.na(myBiomodData@data.species),] #bg para teste
 
                     SDMeval = evaluate(model = currentSDM,
                                        p = curent_occData_test,
@@ -347,110 +276,95 @@ for(i in 1:Nsp){
                     ##TSS
                     tssVector = SDMeval@TPR + SDMeval@TNR - 1
                     tssVal = max( SDMeval@TPR + SDMeval@TNR - 1 )
-                    % Obs1: formula do TSS = true positive ratio + true negative ratio - 1
-                    FONTE: ALOUCHE & KADMON (2006), Journal of Applied Ecology.
-                    Obs2: outra forma de fazer a mesma coisa seria:
-                    tssVal = tssVector[ which(SDMeval@t == threshold(SDMeval, 'spec_sens')) ] %
+                    ## Obs1: formula do TSS = true positive ratio + true negative ratio - 1
+                    ## FONTE: ALOUCHE & KADMON (2006), Journal of Applied Ecology.
+                    ## Obs2: outra forma de fazer a mesma coisa seria:
+                    ## tssVal = tssVector[ which(SDMeval@t == threshold(SDMeval, 'spec_sens')) ]
                     ##threshold (maximizando o TSS)
                     current_thre_maximizingTSS = threshold(SDMeval, 'spec_sens')
-                    %Obs: outra forma de fazer a mesma coisa seria:
-                    tssVal = SDMeval@t[which(tssVector==max(tssVector))]%
+                    ## Obs: outra forma de fazer a mesma coisa seria:
+                    ## tssVal = SDMeval@t[which(tssVector==max(tssVector))]
                     ##AUC
                     aucVal = SDMeval@auc
-                    current_thre_maximizingROC = SDMeval@t[which(
+                    current_thre_maximizingROC = max( SDMeval@t[which(
                                                              sqrt( (1-SDMeval@TPR)^2 + (1-SDMeval@TNR)^2 ) == min(sqrt( (1-SDMeval@TPR)^2 + (1-SDMeval@TNR)^2 ))
-                                                         )]
-                    %Obs1: esse eh o procedimento realizado pelo Biomod. FONTE: http://lists.r-forge.r-project.org/pipermail/biomod-commits/2010-August/000129.html
-                    Obs2: Formula pitagorica retirada de Jimenez-Valverde (2012) Global Ecology and Biogreography.%
+                                                         )] )
+                    ## Obs1: esse eh o procedimento realizado pelo Biomod. FONTE: http://lists.r-forge.r-project.org/pipermail/biomod-commits/2010-August/000129.html
+                    ## Obs2: Formula pitagorica retirada de Jimenez-Valverde (2012) Global Ecology and Biogreography.
                     
-                    ##adicionando na tabela evaluationScores obtida pelo biomod2
-                    outputDF = rbind(evaluationScores,
-                                     data.frame(Model.name = rep(paste(model_i,'_RUN',iter,'_PA1',sep=''),2),
-                                                Eval.metric = c('TSS','ROC'),
-                                                Testing.data = c(tssVal, SDMeval@auc),
-                                                Evaluating.data = rep(NA,2),
-                                                Cutoff = c(current_thre_maximizingTSS, current_thre_maximizingROC),
-                                                Sensitivity = c(SDMeval@TPR[which(SDMeval@t == current_thre_maximizingTSS)], SDMeval@TPR[which(SDMeval@t == current_thre_maximizingROC)]),
-                                                Specificity = c(SDMeval@TNR[which(SDMeval@t == current_thre_maximizingTSS)], SDMeval@TNR[which(SDMeval@t == current_thre_maximizingROC)])
-                                                ))
+                    evaluationScores = rbind(evaluationScores,
+                                             data.frame(Model.name = rep(paste(model_i,'_RUN',iter,'_PA1',sep=''),2),
+                                                        Eval.metric = c('TSS','ROC'),
+                                                        Testing.data = c(tssVal, aucVal),
+                                                        Evaluating.data = c(NA,NA),
+                                                        Cutoff = c(current_thre_maximizingTSS*1000, current_thre_maximizingROC*1000),
+                                                        Sensitivity = c(SDMeval@TPR[which(SDMeval@t==current_thre_maximizingTSS)]*100, SDMeval@TPR[which(SDMeval@t==current_thre_maximizingROC)]*100),
+                                                        Specificity = c(SDMeval@TNR[which(SDMeval@t==current_thre_maximizingTSS)]*100, SDMeval@TNR[which(SDMeval@t==current_thre_maximizingROC)]*100)))
+                }
+            }
 
+            #construindo tabela de outputs
+            ## statResultsSDMnormal = makeOutput(evaluationScores, statResultsSDMnormal, i, j, 'normal', sampleSizes[j])
+            statResultsSDMnormal = data.frame(SDM='normal', sampleSize=sampleSizes[j], evaluationScores)
+            
+            write.csv(statResultsSDMnormal, file=paste(projectFolder,'/StatisticalResults_SDMnormal.csv',sep=''), row.names=FALSE)
+            
+            ##selecao do modelo de maior sensibilidade            
+            modelNames = bestModel(evaluationScores, myBiomodModelOut)
+            rm(evaluationScores)
+
+
+
+
+
+
+
+
+
+
+
+            
+            ##rodando algortmo de projecao (i.e. rodando a projecao)
+            currentSDMpred = list()
+            if ( length(grep(pattern=paste(modelNames,collapse='|'),x=myBiomodModelOut@models.computed, value=FALSE)) > 0 ){
+            myBiomodProj <- BIOMOD_Projection(
+                modeling.output = myBiomodModelOut,
+                new.env = myExpl,
+                proj.name = paste('sp',i,'_sample',sampleSizes[j],'_SDMnormal',sep=''),
+                selected.models = grep(pattern=paste(modelNames,collapse='|'),x=myBiomodModelOut@models.computed, value=TRUE),
+                compress = 'TRUE',
+                build.clamping.mask = 'TRUE')
+            }
+            if (length(grep(pattern=paste(names(SDMlist),collapse='|'),x=modelNames, value=FALSE)) > 0 ){
+
+
+
+
+
+                
+                modelNamesList = grep(pattern=paste(modelNames,collapse='|'),x=names(SDMlist), value=TRUE)
+                for (model_i in names(SDMlist)){
+                    for (n in 1:100){
+                    currentSDM = SDMlist[[model_i]] #modelo da iteracao atual
+                    currentSDMpred = append(currentSDMpred, dismo::predict(predictors, currentSDM))
+                    }
+                    rasterLayer_i_mean = calc( x=currentSDMpred, fun=mean )
+                    rasterLayer_i_SD = calc( x=myCurrentProj[[modelNames[i]]], fun=sd )
+                    ##salvando no HD
+                    writeRaster(rasterLayer_i_mean,file=paste(projectFolder,'/SDMnormal/sp',i,'.sample',sampleSizes[j],'.SDMnormal','/proj_sp',i,'_sample',sampleSizes[j],'_SDMnormal/','sp',i,'_sample',sampleSizes[j],'_SDMnormal_Mean.asc',sep=''), overwrite=TRUE)
+                    writeRaster(rasterLayer_i_SD,file=paste(projectFolder,'/SDMnormal/sp',i,'.sample',sampleSizes[j],'.SDMnormal','/proj_sp',i,'_sample',sampleSizes[j],'_SDMnormal/','sp',i,'_sample',sampleSizes[j],'_SDMnormal_SD.asc',sep=''), overwrite=TRUE)
                 }
             }
 
 
 
 
-            
-
-########################### continuar daqui #################################
-
-            ## ajustar a funcao autoral 'makeOuput' para trabalhar com o objeto 'evaluationScores' no formato data.frame.
-
-
-#############################################################################
-
-
-
-
-
 
 
 
 
 
             
-
-            #construindo tabela de outputs
-            statResultsSDMnormal = makeOutput(evaluationScores, statResultsSDMnormal, i, j, 'normal', sampleSizes[j])
-            
-            write.csv(statResultsSDMnormal, file=paste(projectFolder,'/StatisticalResults_SDMnormal.csv',sep=''), row.names=FALSE)
-            
-            ##selecao do modelo de maior sensibilidade
-
-            ## tssMax = max(as.numeric(statResultsSDMnormal[which(statResultsSDMnormal$sp == i),]$TSSspec))
-            ## aucMax = max(as.numeric(statResultsSDMnormal[which(statResultsSDMnormal$sp == i),]$AUCspec))
-            ## bestAlgorithmTSS = statResultsSDMnormal[which(statResultsSDMnormal$TSSspec==tssMax),]$model
-            ## bestAlgorithmAUC = statResultsSDMnormal[which(statResultsSDMnormal$TSSspec==tssMax),]$model
-            ## ind = match(bestAlgorithmTSS, bestAlgorithmAUC)
-            ## modelToProj = bestAlgorithmAUC[ind]
-            ## modelNames = grep(pattern=paste(modelToProj,collapse='|'), x=myBiomodModelOut@models.computed, value=TRUE)
-            
-            ## ##maior TSS e AUC para especie da iteracao atual
-            ## tssMax = max(TSSspec)
-            ## aucMax = max(AUCspec)
-            
-            ## ##formacao de vetor com nome e RUN do melhor modelo (TSS)
-            ## bestAlgorithmTSS = statResultsSDMnormal[which(statResultsSDMnormal$maxTSSspecificity==tssMax),]$model
-            ## bestRunTSS = statResultsSDMnormal[which(statResultsSDMnormal$maxTSSspecificity==tssMax),]$bestModelTSS
-            ## patternsTSS = paste(bestRunTSS,bestAlgorithmTSS,sep='_')
-            
-            ## ##formacao de vetor com nome e RUN do melhor modelo (AUC)
-            ## bestAlgorithmAUC = statResultsSDMnormal[which(statResultsSDMnormal$maxAUCspecificity==aucMax),]$model
-            ## bestRunAUC = statResultsSDMnormal[which(statResultsSDMnormal$maxAUCspecificity==aucMax),]$bestModelAUC
-            ## patternsAUC = paste(bestRunAUC,bestAlgorithmAUC,sep='_')
-            
-            ## ##nomes dos melhores modelos
-            ## modelNames = grep(pattern=paste(c(patternsTSS,patternsAUC),collapse='|'), x=myBiomodModelOut@models.computed, value=TRUE)
-            
-            modelNames = bestModel(evaluationScores, statResultsSDMnormal, myBiomodModelOut)
-            rm(evaluationScores)
-            
-            ## if (bestAlgorithmTSS == bestAlgorithmAUC){
-            ##     modelToProj = bestAlgorithmTSS
-            ## }else{
-            ##     modelToProj = c(bestAlgorithmAUC, bestAlgorithmTSS)
-            ## }
-            ## ind = grep(pattern=modelToProj, x=myBiomodModelOut@models.computed) ##pegando os indices
-            ## modelNames = myBiomodModelOut@models.computed[ind] ##pegando os nomes dos modelos para projecao (aqueles com maior especificidade)
-            
-            ##rodando algortmo de projecao (i.e. rodando a projecao)
-            myBiomodProj <- BIOMOD_Projection(
-                modeling.output = myBiomodModelOut,
-                new.env = myExpl,
-                proj.name = paste('sp',i,'_sample',sampleSizes[j],'_SDMnormal',sep=''),
-                selected.models = modelNames,
-                compress = 'TRUE',
-                build.clamping.mask = 'TRUE')
 
             ##pegando os gridfiles
             myCurrentProj <- get_predictions(myBiomodProj)
@@ -643,70 +557,10 @@ for(i in 1:Nsp){
             
             ##My output data
             evaluationScores = get_evaluations(myBiomodModelOut)
+
+
+
             
-                                        # ##especificidade
-                                        # outputRawTSSspec = evaluationScores['TSS','Specificity',,,]
-                                        # outputRawTSSspec = outputRawTSSspec[complete.cases(outputRawTSSspec),]
-                                        # outputRawAUCspec = evaluationScores['ROC','Specificity',,,]
-                                        # outputRawAUCspec = outputRawAUCspec[complete.cases(outputRawAUCspec),]
-                                        # ##auc e tss
-                                        # outputRawTSSvalue = evaluationScores['TSS','Testing.data',,,]
-                                        # outputRawTSSvalue = outputRawTSSvalue[complete.cases(outputRawTSSvalue),]
-                                        # outputRawAUCvalue = evaluationScores['ROC','Testing.data',,,]
-                                        # outputRawAUCvalue = outputRawAUCvalue[complete.cases(outputRawAUCvalue),]
-                                        # 
-                                        # ##maior valore de especificidade de cada algoritmo implementado (tanto para TSS qto para AUC)
-                                        # TSSspec = as.numeric(apply(outputRawTSSspec, 1, max, na.rm=TRUE))
-                                        # AUCspec = as.numeric(apply(outputRawAUCspec, 1, max, na.rm=TRUE))
-                                        # 
-                                        # ##tabela auxiliar para obtencao das informacoes do melhor modelo
-                                        # tabBestScoresTSS = data.frame(outputRawTSSspec, bestvalue=TSSspec)
-                                        # tabBestScoresAUC = data.frame(outputRawAUCspec, bestvalue=AUCspec)
-                                        # 
-                                        # ##vetores vazios (para os nomes dos melhores modelos)
-                                        # bestModelRunTSS = vector()
-                                        # bestModelRunAUC = vector()
-                                        # TSSvalues = vector()
-                                        # AUCvalues = vector()
-                                        # 
-                                        # for (l in 1:nrow(tabBestScoresTSS)){
-                                        #   bestRunNameTSS = names(tabBestScoresTSS)[match(tabBestScoresTSS$bestvalue[l], tabBestScoresTSS[l, 1:ncol(tabBestScoresTSS)-1])] #pegando o nome do melhor modelo (e.g. RUN2)
-                                        #   TSSvalueBestModel = outputRawTSSvalue[l,bestRunNameTSS] #pegando o TSS do melhor modelo
-                                        #   bestModelRunTSS = append(bestModelRunTSS, bestRunNameTSS) #empilhando os nomes dos melhores modelos
-                                        #   TSSvalues = append(TSSvalues, TSSvalueBestModel)
-                                        #   ##
-                                        #   bestRunNameAUC = names(tabBestScoresAUC)[match(tabBestScoresAUC$bestvalue[l], tabBestScoresAUC[l, 1:ncol(tabBestScoresAUC)-1])] #pegando o nome do melhor modelo (e.g. RUN2)
-                                        #   AUCvalueBestModel = outputRawAUCvalue[l,bestRunNameAUC] #pegando o AUC do melhor modelo
-                                        #   bestModelRunAUC = append(bestModelRunAUC, bestRunNameAUC)
-                                        #   AUCvalues = append(AUCvalues, AUCvalueBestModel)
-                                        # }
-                                        # 
-                                        # ##medias
-                                        # meanTSSValue = as.numeric(apply(outputRawTSSvalue, 1, mean, na.rm=TRUE))
-                                        # meanTSSspecificity = as.numeric(apply(outputRawTSSspec, 1, mean, na.rm=TRUE))
-                                        # meanAUCValue = as.numeric(apply(outputRawAUCvalue, 1, mean, na.rm=TRUE))
-                                        # meanAUCspecificity = as.numeric(apply(outputRawAUCspec, 1, mean, na.rm=TRUE))
-                                        # 
-                                        # ##gravando estatisticas basicas do melhor modelo de cada algoritmo
-                                        # statResultsSDMimproved = rbind(statResultsSDMimproved,
-                                        #                                data.frame(SDM = 'improved',
-                                        #                                           sampleSize = sampleSizes[j],
-                                        #                                           sp = i,
-                                        #                                           ##tss
-                                        #                                           model = rownames(tabBestScoresTSS),
-                                        #                                           meanTSSValue = meanTSSValue,
-                                        #                                           meanTSSspecificity = meanTSSspecificity,
-                                        #                                           maxTSSspecificity = TSSspec,
-                                        #                                           bestModelTSS = bestModelRunTSS,
-                                        #                                           TSSvalue_bestModel= TSSvalues,
-                                        #                                           ##auc
-                                        #                                           meanAUCValue = meanAUCValue,
-                                        #                                           meanAUCspecificity = meanAUCspecificity,
-                                        #                                           maxAUCspecificity = AUCspec,
-                                        #                                           bestModelAUC = bestModelRunAUC,
-                                        #                                           AUCvalue_bestModel= AUCvalues,
-                                        #                                           stringsAsFactors = FALSE)
-                                        # )
             
             statResultsSDMimproved = makeOutput(evaluationScores, statResultsSDMimproved, i, j, 'improved', sampleSizes[j])
             rm(evaluationScores)
