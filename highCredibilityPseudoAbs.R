@@ -87,7 +87,11 @@ source('/home/anderson/R-Scripts/bestModel.R')
 setwd(projectFolder)
 
 
+
+
 ##PARTE 1: criando as especies artificiais
+
+
 
 
 for(i in 1:Nsp){
@@ -117,7 +121,13 @@ for(i in 1:Nsp){
 }
 
 
+
+
 ##PARTE 2: modelando ausencias 
+
+
+
+
 
 for(i in 1:Nsp){
     for(j in 1:length(sampleSizes)){
@@ -236,8 +246,7 @@ for(i in 1:Nsp){
                           mtry = 'default',
                           nodesize = 5,
                           maxnodes = NULL)
-            )            
-            
+            )                        
             
             ##rodando o(s) algoritmo(s) (i.e. SDMs)
             myBiomodModelOut <- BIOMOD_Modeling(
@@ -287,8 +296,8 @@ for(i in 1:Nsp){
                     ##AUC
                     aucVal = SDMeval@auc
                     current_thre_maximizingROC = max( SDMeval@t[which(
-                                                             sqrt( (1-SDMeval@TPR)^2 + (1-SDMeval@TNR)^2 ) == min(sqrt( (1-SDMeval@TPR)^2 + (1-SDMeval@TNR)^2 ))
-                                                         )] )
+                                                                  sqrt( (1-SDMeval@TPR)^2 + (1-SDMeval@TNR)^2 ) == min(sqrt( (1-SDMeval@TPR)^2 + (1-SDMeval@TNR)^2 ))
+                                                              )] )
                     ## Obs1: esse eh o procedimento realizado pelo Biomod. FONTE: http://lists.r-forge.r-project.org/pipermail/biomod-commits/2010-August/000129.html
                     ## Obs2: Formula pitagorica retirada de Jimenez-Valverde (2012) Global Ecology and Biogreography.
                     
@@ -302,8 +311,8 @@ for(i in 1:Nsp){
                                                         Specificity = c(SDMeval@TNR[which(SDMeval@t==current_thre_maximizingTSS)]*100, SDMeval@TNR[which(SDMeval@t==current_thre_maximizingROC)]*100)))
                 }
             }
-
-            #construindo tabela de outputs
+            
+            ##construindo tabela de outputs
             ## statResultsSDMnormal = makeOutput(evaluationScores, statResultsSDMnormal, i, j, 'normal', sampleSizes[j])
             statResultsSDMnormal = data.frame(SDM='normal', sampleSize=sampleSizes[j], evaluationScores)
             
@@ -312,59 +321,21 @@ for(i in 1:Nsp){
             ##selecao do modelo de maior sensibilidade            
             modelNames = bestModel(evaluationScores, myBiomodModelOut)
             rm(evaluationScores)
-
-
-
-
-
-
-
-
-
-
-
             
-            ##rodando algortmo de projecao (i.e. rodando a projecao)
-            currentSDMpred = list()
+
+            ##rodando algortmo de projecao (i.e. rodando a projecao)##
+            
+            ##predicao espacial para SDMs implemnetados pelo BIOMOD2
             if ( length(grep(pattern=paste(modelNames,collapse='|'),x=myBiomodModelOut@models.computed, value=FALSE)) > 0 ){
-            myBiomodProj <- BIOMOD_Projection(
-                modeling.output = myBiomodModelOut,
-                new.env = myExpl,
-                proj.name = paste('sp',i,'_sample',sampleSizes[j],'_SDMnormal',sep=''),
-                selected.models = grep(pattern=paste(modelNames,collapse='|'),x=myBiomodModelOut@models.computed, value=TRUE),
-                compress = 'TRUE',
-                build.clamping.mask = 'TRUE')
+                myBiomodProj <- BIOMOD_Projection(
+                    modeling.output = myBiomodModelOut,
+                    new.env = myExpl,
+                    binary.meth = c('ROC','TSS'),
+                    proj.name = paste('sp',i,'_sample',sampleSizes[j],'_SDMnormal',sep=''),
+                    ## selected.models = grep(pattern=paste(modelNames,collapse='|'),x=myBiomodModelOut@models.computed, value=TRUE),
+                    compress = 'TRUE',
+                    build.clamping.mask = 'TRUE')
             }
-            if (length(grep(pattern=paste(names(SDMlist),collapse='|'),x=modelNames, value=FALSE)) > 0 ){
-
-
-
-
-
-                
-                modelNamesList = grep(pattern=paste(modelNames,collapse='|'),x=names(SDMlist), value=TRUE)
-                for (model_i in names(SDMlist)){
-                    for (n in 1:100){
-                    currentSDM = SDMlist[[model_i]] #modelo da iteracao atual
-                    currentSDMpred = append(currentSDMpred, dismo::predict(predictors, currentSDM))
-                    }
-                    rasterLayer_i_mean = calc( x=currentSDMpred, fun=mean )
-                    rasterLayer_i_SD = calc( x=myCurrentProj[[modelNames[i]]], fun=sd )
-                    ##salvando no HD
-                    writeRaster(rasterLayer_i_mean,file=paste(projectFolder,'/SDMnormal/sp',i,'.sample',sampleSizes[j],'.SDMnormal','/proj_sp',i,'_sample',sampleSizes[j],'_SDMnormal/','sp',i,'_sample',sampleSizes[j],'_SDMnormal_Mean.asc',sep=''), overwrite=TRUE)
-                    writeRaster(rasterLayer_i_SD,file=paste(projectFolder,'/SDMnormal/sp',i,'.sample',sampleSizes[j],'.SDMnormal','/proj_sp',i,'_sample',sampleSizes[j],'_SDMnormal/','sp',i,'_sample',sampleSizes[j],'_SDMnormal_SD.asc',sep=''), overwrite=TRUE)
-                }
-            }
-
-
-
-
-
-
-
-
-
-            
 
             ##pegando os gridfiles
             myCurrentProj <- get_predictions(myBiomodProj)
@@ -378,7 +349,32 @@ for(i in 1:Nsp){
                 writeRaster(rasterLayer_i_mean,file=paste(projectFolder,'/SDMnormal/sp',i,'.sample',sampleSizes[j],'.SDMnormal','/proj_sp',i,'_sample',sampleSizes[j],'_SDMnormal/','sp',i,'_sample',sampleSizes[j],'_SDMnormal_Mean.asc',sep=''), overwrite=TRUE)
                 writeRaster(rasterLayer_i_SD,file=paste(projectFolder,'/SDMnormal/sp',i,'.sample',sampleSizes[j],'.SDMnormal','/proj_sp',i,'_sample',sampleSizes[j],'_SDMnormal/','sp',i,'_sample',sampleSizes[j],'_SDMnormal_SD.asc',sep=''), overwrite=TRUE)
             }
-            
+
+
+            ##predicao espacial para SDMs NAO implemnetados pelo BIOMOD2 (bioclim, mahalanobis, domain)
+            if (length(grep(pattern=paste(names(SDMlist),collapse='|'),x=modelNames, value=FALSE)) > 0 ){
+                currentSDMpred = list()
+                for (model_i in grep(pattern=paste(names(SDMlist),collapse='|'),x=modelNames, value=TRUE)){ #rodando predict para cada um dos modelos indentificados
+                    for (repl_i in 1:100){ #replicas para mapear areas de incerteza
+                        ##dataset
+                        curent_occData_test = subset( x=myBiomodData@coord[!is.na(myBiomodData@data.species),], subset=kfold(myBiomodData@coord[!is.na(myBiomodData@data.species),], k=3)==1 ) #occ para teste
+                        ##predicao espacial
+                        currentSDM = SDMlist[[model_i]] #modelo da iteracao atual
+                        currentSDMpred = append(currentSDMpred, dismo::predict(predictors, currentSDM))
+                    }
+                    rasterLayer_i_mean = calc( x=stack(currentSDMpred), fun=mean ) #media das projecoes
+                    rasterLayer_i_SD = calc( x=stack(currentSDMpred), fun=sd ) #desvio padrao das projecoes
+                    ##salvando no HD
+                    writeRaster(rasterLayer_i_mean,file=paste(projectFolder,'/SDMnormal/sp',i,'.sample',sampleSizes[j],'.SDMnormal','/proj_sp',i,'_sample',sampleSizes[j],'_SDMnormal/','proj_sp',i,'_sample',sampleSizes[j],'_SDMnormal_sp',i,'.sample',sampleSizes[j],'.',model_i,'_Mean_SDMnormal.asc',sep=''), overwrite=TRUE) #media
+                    writeRaster(rasterLayer_i_SD,file=paste(projectFolder,'/SDMnormal/sp',i,'.sample',sampleSizes[j],'.SDMnormal','/proj_sp',i,'_sample',sampleSizes[j],'_SDMnormal/','proj_sp',i,'_sample',sampleSizes[j],'_SDMnormal_sp',i,'.sample',sampleSizes[j],'.',model_i,'_SD_SDMnormal.asc',sep=''), overwrite=TRUE) #variancia
+                    ##binario
+                    currentTSSresultsTab = subset(x=statResultsSDMnormal, Eval.metric=='TSS')
+                    current_thres = currentTSSresultsTab[ currentTSSresultsTab$Model.name == grep(pattern=paste(rev(unlist(strsplit(x=model_i, split='_'))), collapse='*.*'), x=currentTSSresultsTab[,'Model.name'], value=TRUE), 'Cutoff' ] / 1000
+                    writeRaster(rasterLayer_i_mean > current_thres,file=paste(projectFolder,'/SDMnormal/sp',i,'.sample',sampleSizes[j],'.SDMnormal','/proj_sp',i,'_sample',sampleSizes[j],'_SDMnormal/','proj_sp',i,'_sample',sampleSizes[j],'_SDMnormal_sp',i,'.sample',sampleSizes[j],'.',model_i,'_SD_SDMnormal_TSSbin.asc',sep=''), overwrite=TRUE) 
+                }
+            }
+
+
             ## ##rodando o algoritmo de consenso dos modelos (i.e. ensemble model)
             ## myBiomodEM = BIOMOD_EnsembleModeling(
             ##     modeling.output = myBiomodModelOut,
@@ -400,7 +396,11 @@ for(i in 1:Nsp){
 
 
 
+
 ##PARTE 3: SDM com pseudoausencias melhoradas
+
+
+
 
 for(i in 1:Nsp){
     for(j in 1:length(sampleSizes)){
@@ -429,10 +429,16 @@ for(i in 1:Nsp){
             occPoints = data.frame(lon=occPoints[,1],lat=occPoints[,2])
             
             ##projecoes de ausencias do SDM (rodado na etapa 2, acima)
-            binTSS = raster(paste(projectFolder,'/SDMnormal/','sp',i,'.sample',sampleSizes[j],'.SDMnormal','/proj_sp',i,'_sample',sampleSizes[j],'_SDMnormal','/proj_sp',i,'_sample',sampleSizes[j],'_SDMnormal_sp',i,'.sample',sampleSizes[j],'.SDMnormal_ensemble_TSSbin.grd' ,sep=''))
-            binAUC = raster(paste(projectFolder,'/SDMnormal/','sp',i,'.sample',sampleSizes[j],'.SDMnormal','/proj_sp',i,'_sample',sampleSizes[j],'_SDMnormal','/proj_sp',i,'_sample',sampleSizes[j],'_SDMnormal_sp',i,'.sample',sampleSizes[j],'.SDMnormal_ensemble_ROCbin.grd' ,sep=''))
-            projStackBIN = stack(binTSS,binAUC) #empilhando mapas binarios (feitos com threshold a partir do AUC e TSS)
-            projAbs = sum(projStackBIN) #somando (para depois pegar areas ausencia que ambos os thresolds concordam)
+            ## binTSS = raster(paste(projectFolder,'/SDMnormal/','sp',i,'.sample',sampleSizes[j],'.SDMnormal','/proj_sp',i,'_sample',sampleSizes[j],'_SDMnormal','/proj_sp',i,'_sample',sampleSizes[j],'_SDMnormal_sp',i,'.sample',sampleSizes[j],'.SDMnormal_ensemble_TSSbin.grd' ,sep=''))
+            ## binAUC = raster(paste(projectFolder,'/SDMnormal/','sp',i,'.sample',sampleSizes[j],'.SDMnormal','/proj_sp',i,'_sample',sampleSizes[j],'_SDMnormal','/proj_sp',i,'_sample',sampleSizes[j],'_SDMnormal_sp',i,'.sample',sampleSizes[j],'.SDMnormal_ensemble_ROCbin.grd' ,sep=''))
+
+            binTSS = stack(list.files(path=paste(projectFolder,'/SDMnormal/','sp',i,'.sample',sampleSizes[j],'.SDMnormal','/proj_sp',i,'_sample',sampleSizes[j],'_SDMnormal',sep=''), pattern='TSSbin', full.names=TRUE))
+            binTSS = binTSS[[grep(pattern='_SD_', x=names(binTSS), invert=TRUE)]]
+            binTSS = calc(x=binTSS, fun=sum)
+            
+            ## projStackBIN = stack(binTSS,binAUC) #empilhando mapas binarios (feitos com threshold a partir do AUC e TSS)
+            ## projAbs = sum(projStackBIN) #somando (para depois pegar areas ausencia que ambos os thresolds concordam)
+            projAbs = binTSS #nova versao: nao fazendo com AUC mais
             
             ## amostrando pontos diretamente das areas de ausencia (abaixo do threshold) obtidas na etapa 1 ##
             values(projAbs)[values(projAbs) != 0] = NA  #tranformando areas diferentes de zero em NA (retando somente os dados de ausencia)          
@@ -728,5 +734,72 @@ dev.off()
                                         #teste especificade
 kruskal.test(maxTSSspecificity ~ model, data=statResultsSDMnormal) #rsultado: p>0.05
 kruskal.test(maxAUCspecificity ~ model, data=statResultsSDMnormal) #resultado:p>0.05
+
+
+
+
+
+
+
+##############
+
+##testando diferentes levels de vies espacial usando k-means para exclusao de pontos e alteracao do bias layer
+
+pts = dismo::randomPoints(mask=predictors[[1]], n=1000)
+plot(AmSulShape)
+points(pts)
+
+set.seed(444)
+
+ptsCluster = kmeans(x=pts, centers=10, nstart=10)
+
+plot(AmSulShape)
+points(pts, pch=19, col=ptsCluster$cluster)
+
+ptsNew = pts[ptsCluster$cluster!=2,]
+points(ptsNew, pch='x', cex=2, col=ptsCluster$cluster)
+
+
+##KDE
+
+bgArea = predictors[[1]]*0
+
+ptsDF = data.frame(pts)
+coordinates(ptsDF) = ~x+y
+proj4string(ptsDF) <- CRS('+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs +towgs84=0,0,0')
+
+ptsNewDF = data.frame(ptsNew)
+coordinates(ptsNewDF) = ~x+y
+proj4string(ptsNewDF) <- CRS('+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs +towgs84=0,0,0')
+
+ptsDF = spTransform(ptsDF, CRS(proj4string(bgArea)))
+ptsNewDF = spTransform(ptsNewDF, CRS(proj4string(bgArea)))
+
+##kde
+ptsKde = MASS::kde2d(x=ptsDF$x, y=ptsDF$y, n=100)
+ptsNewKde = MASS::kde2d(x=ptsNewDF$x, y=ptsNewDF$y, n=100)
+
+##rater
+ptsKde = raster(ptsKde); ptsKde = mask(ptsKde, AmSulShape)
+ptsNewKde = raster(ptsNewKde); ptsNewKde = mask(ptsNewKde, AmSulShape)
+
+par(mfrow=c(1,2))
+plot(ptsKde); plot(AmSulShape, add=T); points(pts, pch=19, col=ptsCluster$cluster)
+plot(ptsNewKde); plot(AmSulShape, add=T); points(ptsNew, pch=19, col=ptsCluster$cluster)
+
+dev.off()
+
+##teste
+
+sampleOcc1 = dismo::randomPoints(mask=ptsKde, n=900, prob=TRUE)
+sampleOcc2 = dismo::randomPoints(mask=ptsNewKde, n=900, prob=TRUE)
+
+par(mfrow=c(1,2))
+plot(ptsKde); plot(AmSulShape, add=T); points(sampleOcc1)
+plot(ptsNewKde); plot(AmSulShape, add=T); points(sampleOcc2)
+
+dev.off()
+
+
 
 

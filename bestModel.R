@@ -22,7 +22,7 @@ bestModel = function(outputDataRaw, myBiomodModelOut){
     bestModelAUCraw = outputRawAUC[which(outputRawAUC$Specificity == max(outputRawAUC$Specificity)),]
 
     ##modelNames = c(as.vector(bestModelAUCraw$Model.name), as.vector(bestModelTSSraw$Model.name) )
-    namePatternsRaw = as.vector(bestModelTSSraw$Model.name) #nao usando mais os melhores modelos pelo AUC    
+    namePatternsRaw = unique(c(as.vector(bestModelAUCraw$Model.name), as.vector(bestModelTSSraw$Model.name)))
 
     ## ## valores de especificidade (maximizando TSS e AUC)
     ## outputRawTSSspec = evaluationScores['TSS','Specificity',,,]
@@ -57,7 +57,13 @@ bestModel = function(outputDataRaw, myBiomodModelOut){
     }
         
     biomodModelsNames = grep(pattern=paste(namePatternsRawList,collapse='|'), x=myBiomodModelOut@models.computed, value=TRUE)
-    otherSDMs = grep(pattern=paste(myBiomodModelOut@models.computed,collapse='|'), x=namePatternsRawList , value=TRUE, invert=TRUE)
+
+
+    allSDMnames = gsub(pattern='_PA1', replacement='', x=evaluationScores$Model.name)
+    allSDMnames = strsplit(x=allSDMnames, split='_')
+    allSDMnames = unique(unlist(lapply(lapply(allSDMnames, rev), paste, collapse='_')))
+    
+    otherSDMs = grep(pattern=paste(allSDMnames,collapse='|'), x=myBiomodModelOut@models.computed, value=TRUE, invert=TRUE)
 
     modelNames = c(biomodModelsNames, otherSDMs)
     
