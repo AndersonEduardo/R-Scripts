@@ -104,7 +104,7 @@ for (s in scenarios){
     for (i in 1:100){
         
         ##sistema de diretorios para a iteracao atual
-        mainDir = "/home/anderson/Documentos/Projetos/Diversidade beta Rio Doce Isaac" #diretorio principal
+        mainDir = "/home/anderson/Projetos/Isaac - diversidade beta Rio Doce" #diretorio principal
         scenarioDir = paste('outputs/','scenario_',(1-s)*100,sep='') #diretorio dos resultados da s-esimo cenario
         iterationDir = paste('iteration_',i,sep='') #diretorio dos resultados da i-esima iteracao
         output_i = file.path(mainDir, scenarioDir, iterationDir) #diretorio com os resultados
@@ -155,7 +155,7 @@ pturnDF = read.csv(file=file.path(diretorio,'pturnData.csv'), header = TRUE)
 
 
 ##criando os graficos
-diretorio = '/home/anderson/Documentos/Projetos/Diversidade beta Rio Doce Isaac' #especificar diretorio onde salvar os graficos
+diretorio = '/home/anderson/Projetos/Isaac - diversidade beta Rio Doce' #especificar diretorio onde salvar os graficos
 
 ##boxplots
 jpeg(file.path(diretorio,'boxplotNest.jpg'), width=600, height=600)
@@ -223,29 +223,29 @@ dev.off()
 jpeg(file.path(diretorio,'densidadeSep_Nest.jpg'), width=600, height=600)
 par(family='times', cex.axis=1.5, cex.lab=1.5)
 plot(nestDens95, lty=1, lwd=2, col='red', ylim=c(0,5), main = '', ylab='Density', xlab='Nestedness')
-lines(nestDens75, lty=1, lwd=2, col='purple')
-lines(nestDens50, lty=1,lwd=2, col='green')
+lines(nestDens75, lty=1, lwd=2, col='brown')
+lines(nestDens50, lty=1,lwd=2, col='purple')
 lines(nestDens25, lty=1, lwd=2, col='blue')
-lines(nestDens0,lty=1, lwd=2, col='black')
-legend(x='topright',legend=c('0% of extinction','25% of extinction','50% of extinction','75% of extinction','95% of extinction'), pch=c(22,22,22,22,22), col=c(0,0,0,0,0) , pt.bg=c('black','blue','green','purple','red'), cex=1.5)
+lines(nestDens0,lty=1, lwd=2, col='green')
+legend(x='topright',legend=c('0% of extinction','25% of extinction','50% of extinction','75% of extinction','95% of extinction'), pch=c(22,22,22,22,22), col=c(0,0,0,0,0) , pt.bg=c('green','blue','purple','brown','red'), cex=1.5)
 dev.off()
 
 jpeg(file.path(diretorio,'densidadeSep_Beta.jpg'), width=600, height=600)
 par(family='times', cex.axis=1.5, cex.lab=1.5)
 plot(betaDens95, lty=1, lwd=2, col='red', ylim=c(0,6), main = '', ylab='Density', xlab='Beta Diversity')
-lines(betaDens75, lty=1, lwd=2, col='purple')
-lines(betaDens50, lty=1, lwd=2, col='green')
+lines(betaDens75, lty=1, lwd=2, col='brown')
+lines(betaDens50, lty=1, lwd=2, col='purple')
 lines(betaDens25, lty=1, lwd=2, col='blue')
-lines(betaDens0, lty=1, lwd=2, col='black')
-legend(x='topright',legend=c('0% of extinction','25% of extinction','50% of extinction','75% of extinction','95% of extinction'), pch=c(22,22,22,22,22), col=c(0,0,0,0,0) , pt.bg=c('black','blue','green','purple','red'), cex=1.5)
+lines(betaDens0, lty=1, lwd=2, col='green')
+legend(x='topright',legend=c('0% of extinction','25% of extinction','50% of extinction','75% of extinction','95% of extinction'), pch=c(22,22,22,22,22), col=c(0,0,0,0,0) , pt.bg=c('green','blue','purple','brown','red'), cex=1.5)
 dev.off()
 
 jpeg(file.path(diretorio,'densidadeSep_Turn.jpg'), width=600, height=600)
 par(family='times', cex.axis=1.5, cex.lab=1.5)
 plot(turnDens95, lty=1, lwd=2, col='red', ylim=c(0,10), main = '', ylab='Density', xlab='Turnover')
-lines(turnDens75, lty=1, lwd=2, col='purple')
-lines(turnDens50, lty=1, lwd=2, col='green')
+lines(turnDens75, lty=1, lwd=2, col='brown')
+lines(turnDens50, lty=1, lwd=2, col='purple')
 lines(turnDens25, lty=1, lwd=2, col='blue')
-lines(turnDens0, lty=1, lwd=2, col='black')
-legend(x='topright',legend=c('0% of extinction','25% of extinction','50% of extinction','75% of extinction','95% of extinction'), pch=c(22,22,22,22,22), col=c(0,0,0,0,0) , pt.bg=c('black','blue','green','purple','red'), cex=1.5)
+lines(turnDens0, lty=1, lwd=2, col='green')
+legend(x='topright',legend=c('0% of extinction','25% of extinction','50% of extinction','75% of extinction','95% of extinction'), pch=c(22,22,22,22,22), col=c(0,0,0,0,0) , pt.bg=c('green','blue','purple','brown','red'), cex=1.5)
 dev.off()

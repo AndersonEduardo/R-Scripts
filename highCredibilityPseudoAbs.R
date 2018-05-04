@@ -421,12 +421,75 @@ for(i in 1:Nsp){
             betterPseudo = list()
             betterPseudoVar = list()
 
-            ##pontos de ocorrencia
+            
+            ##pontos de ocorrencia com diferentes niveis de vies##
+
+
+            ## ##bias layer da iteracao atual - America do Sul
+            ## biasLayerBGpts =  data.frame( dismo::randomPoints(mask=predictors[[1]], n=10000) )
+            ## ptsCluster = kmeans(x=biasLayerBGpts, centers=10, nstart=10)
+            ## biasLayerBGpts$kcluster = ptsCluster$cluster
+            ## biasLayerBGpts = biasLayerBGpts[ sapply(biasLayerBGpts$kcluster, function(x) x  %in% vies_i), ]
+
+            ##bias layer da iteracao atual - sps range
+            SpDistAC = raster(paste(projectFolder,'/virtual species/sp',i,'.asc',sep=''))            
+            biasLayerBGpts =  data.frame( dismo::randomPoints(mask=SpDistAC, n=100, prob=TRUE) )
+            ptsCluster = kmeans(x=biasLayerBGpts, centers=10, nstart=10)
+            biasLayerBGpts$kcluster = ptsCluster$cluster
+            biasLayerBGpts = biasLayerBGpts[ sapply(biasLayerBGpts$kcluster, function(x) x  %in% vies_i), ]
+            
+            ## ##inspecao visual
+            ## plot(AmSulShape)
+            ## points(biasLayerBGpts, pch=19, col=ptsCluster$cluster)
+            ## ptsNew = biasLayerBGpts[ptsCluster$cluster!=2,]
+            ## points(ptsNew, pch='x', cex=2, col=ptsCluster$cluster)
+
+            ##KDE
+            bgArea = predictors[[1]]*0
+            biasLayer = data.frame(biasLayerBGpts[,1:2])
+            coordinates(biasLayer) = ~x+y
+            proj4string(biasLayer) <- CRS('+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs +towgs84=0,0,0')
+            biasLayerBGptsKDE = MASS::kde2d(x=biasLayer$x, y=biasLayer$y, n=100, lims=c(xl=extent(bgArea)@xmin, xu=extent(bgArea)@xmax, yl=extent(bgArea)@ymin, yl=extent(bgArea)@ymax ))
+            ##raster
+            biasLayerBGptsKDE = raster(biasLayerBGptsKDE)
+            biasLayerBGptsKDE = mask(biasLayerBGptsKDE, AmSulShape)
+            ##ajustando projecao, etc (com cuidado para nao quebrar com o grau de tolerancia)
+            biasLayerBGptsKDE = projectRaster(biasLayerBGptsKDE, crs=proj4string(bgArea), res=res(bgArea), method="bilinear")
+            tolerance = 0.1
+            biasLayerBGptsKDEtry = try( merge(biasLayerBGptsKDE, bgArea, tolerance=tolerance) )
+            while('try-error' %in% class(biasLayerBGptsKDEtry)){
+                tolerance = tolerance+0.5
+                biasLayerBGptsKDEtry = merge(biasLayerBGptsKDE, bgArea, tolerance=tolerance)
+            }
+            biasLayerBGptsKDE = biasLayerBGptsKDEtry
+            biasLayerBGptsKDE = crop(x=biasLayerBGptsKDE, y=bgArea)
+            extent(biasLayerBGptsKDE) = extent(bgArea)
+            biasLayerBGptsKDE = biasLayerBGptsKDE/biasLayerBGptsKDE@data@max #ajustando entre 0 e 1
+
+            ##potos de ocorrencia            
             SpDistAC = raster(paste(projectFolder,'/virtual species/sp',i,'.asc',sep=''))
-            values(SpDistAC)[values(SpDistAC)==0] = NA
-            occPoints = dismo::randomPoints(mask=SpDistAC, n=sampleSizes[j]) #sorteando pontos da distribuicao modelada
+            biasLayerBGptsKDE = crop(biasLayerBGptsKDE,SpDistAC)
+            extent(biasLayerBGptsKDE) =  extent(SpDistAC) 
+            ## values(SpDistAC)[values(SpDistAC)==0] = NA
+            occPoints = dismo::randomPoints( mask=SpDistAC*biasLayerBGptsKDE, n=sampleSizes[j], prob=TRUE ) #sorteando pontos da distribuicao modelada
             rm(SpDistAC) ##teste do bug persistente
             occPoints = data.frame(lon=occPoints[,1],lat=occPoints[,2])
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
             
             ##projecoes de ausencias do SDM (rodado na etapa 2, acima)
             ## binTSS = raster(paste(projectFolder,'/SDMnormal/','sp',i,'.sample',sampleSizes[j],'.SDMnormal','/proj_sp',i,'_sample',sampleSizes[j],'_SDMnormal','/proj_sp',i,'_sample',sampleSizes[j],'_SDMnormal_sp',i,'.sample',sampleSizes[j],'.SDMnormal_ensemble_TSSbin.grd' ,sep=''))
@@ -435,10 +498,13 @@ for(i in 1:Nsp){
             binTSS = stack(list.files(path=paste(projectFolder,'/SDMnormal/','sp',i,'.sample',sampleSizes[j],'.SDMnormal','/proj_sp',i,'_sample',sampleSizes[j],'_SDMnormal',sep=''), pattern='TSSbin', full.names=TRUE))
             binTSS = binTSS[[grep(pattern='_SD_', x=names(binTSS), invert=TRUE)]]
             binTSS = calc(x=binTSS, fun=sum)
+
+            projAbs = stack( list.files(path=paste(projectFolder,'/SDMnormal/','sp',i,'.sample',sampleSizes[j],'.SDMnormal','/proj_sp',i,'_sample',sampleSizes[j],'_SDMnormal',sep=''), pattern='bin.grd|bin.asc', full.names=TRUE) )
+            projAbs = projAbs[[grep(pattern='_SD_', x=names(binTSS), invert=TRUE)]]
+
             
             ## projStackBIN = stack(binTSS,binAUC) #empilhando mapas binarios (feitos com threshold a partir do AUC e TSS)
             ## projAbs = sum(projStackBIN) #somando (para depois pegar areas ausencia que ambos os thresolds concordam)
-            projAbs = binTSS #nova versao: nao fazendo com AUC mais
             
             ## amostrando pontos diretamente das areas de ausencia (abaixo do threshold) obtidas na etapa 1 ##
             values(projAbs)[values(projAbs) != 0] = NA  #tranformando areas diferentes de zero em NA (retando somente os dados de ausencia)          
@@ -597,7 +663,12 @@ for(i in 1:Nsp){
 Sys.time() - timeOne
 
 
+
+
+
 ##PARTE 4: graficos e analise dos resultados
+
+
 
 
 ##ambiente para salvar os graficos

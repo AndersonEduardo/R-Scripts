@@ -18,8 +18,8 @@ bestModel = function(outputDataRaw, myBiomodModelOut){
     outputRawTSS = base::subset( x=evaluationScores, subset= c(Eval.metric=='TSS')  )
     outputRawAUC = base::subset( x=evaluationScores, subset=c(Eval.metric=='ROC')  )
 
-    bestModelTSSraw = outputRawTSS[which(outputRawTSS$Specificity == max(outputRawTSS$Specificity)),] 
-    bestModelAUCraw = outputRawAUC[which(outputRawAUC$Specificity == max(outputRawAUC$Specificity)),]
+    bestModelTSSraw = outputRawTSS[which(outputRawTSS$Specificity == max(outputRawTSS$Specificity, na.rm=TRUE)),] 
+    bestModelAUCraw = outputRawAUC[which(outputRawAUC$Specificity == max(outputRawAUC$Specificity, na.rm=TRUE)),]
 
     ##modelNames = c(as.vector(bestModelAUCraw$Model.name), as.vector(bestModelTSSraw$Model.name) )
     namePatternsRaw = unique(c(as.vector(bestModelAUCraw$Model.name), as.vector(bestModelTSSraw$Model.name)))
@@ -63,7 +63,7 @@ bestModel = function(outputDataRaw, myBiomodModelOut){
     allSDMnames = strsplit(x=allSDMnames, split='_')
     allSDMnames = unique(unlist(lapply(lapply(allSDMnames, rev), paste, collapse='_')))
     
-    otherSDMs = grep(pattern=paste(allSDMnames,collapse='|'), x=myBiomodModelOut@models.computed, value=TRUE, invert=TRUE)
+    otherSDMs = grep(pattern=paste('*.',allSDMnames,sep='',collapse='|'), x=myBiomodModelOut@models.computed, value=TRUE, invert=TRUE)
 
     modelNames = c(biomodModelsNames, otherSDMs)
     
