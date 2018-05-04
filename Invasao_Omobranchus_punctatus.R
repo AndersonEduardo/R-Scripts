@@ -5,17 +5,17 @@
 
 
 
-## PARTE 1: carregando pacotes, parÃ¢metros e variaveis
+## PARTE 1: carregando pacotes, parâmetros e variaveis
 
 
 
 
-## limpando a memÃ³ria (qdo necessario)
+## limpando a memória (qdo necessario)
 rm(list=ls(all=TRUE))
 gc()
 
 ## abrindo pacotes necessarios
-Sys.setenv(JAVA_HOME = "/usr/lib/jvm/java-7-openjdk-amd64")
+#Sys.setenv(JAVA_HOME = "/usr/lib/jvm/java-7-openjdk-amd64")
 #Windows#Sys.setenv(JAVA_HOME='C:\\Program Files\\Java\\jre1.8.0_91') # for 64-bit version
 options(java.parameters = "Xmx7g")
 library(ecospat)
@@ -29,15 +29,23 @@ library(rJava)
 
 
 
-## definindo variaveis e parametros
-projectFolder = "/home/anderson/Projetos/Invasao_Omobranchus_punctatus" #pasta do projeto
-envVarFolder = "/home/anderson/gridfiles/Bio-ORACLE" #pasta com as variaveis ambientais
+# ## definindo variaveis e parametros - Notebook
+# projectFolder = "/home/anderson/Projetos/Invasao_Omobranchus_punctatus" #pasta do projeto
+# envVarFolder = "/home/anderson/gridfiles/Bio-ORACLE" #pasta com as variaveis ambientais
+# predictors = stack(list.files(path=envVarFolder, full.names=TRUE, pattern='.asc')) #predictors com todas as variaveis
+# spData = read.csv(file.path(projectFolder,'spOcc.csv'),header=TRUE) #dados de ocorrencia ambiente nativo
+# names(spData) = c('lon','lat')
+# wrld = readOGR('/home/anderson/shapefiles/ne_50m_ocean/ne_50m_ocean.shp') #mapa mundi
+
+
+## definindo variaveis e parametros - Iavana
+projectFolder = "D:/Anderson_Eduardo/Invasao_Omobranchus_punctatus" #pasta do projeto
+envVarFolder = "D:/Anderson_Eduardo/gridfiles/Bio-ORACLE - variaveis bentonicas" #pasta com as variaveis ambientais
 predictors = stack(list.files(path=envVarFolder, full.names=TRUE, pattern='.asc')) #predictors com todas as variaveis
+predictors = predictors[[grep(pattern=paste(c('Chlorophyll','Phytoplankton','Silicate','*.Mean$','*.Max$','*.Min$'),collapse='|'), names(predictors), value=FALSE,invert=TRUE)]]
 spData = read.csv(file.path(projectFolder,'spOcc.csv'),header=TRUE) #dados de ocorrencia ambiente nativo
 names(spData) = c('lon','lat')
-wrld = readOGR('/home/anderson/shapefiles/ne_50m_ocean/ne_50m_ocean.shp') #mapa mundi
-
-
+wrld = readOGR('D:/Anderson_Eduardo/shapefiles/ne_50m_ocean/ne_50m_ocean.shp') #mapa mundi
 
 
 ## PARTE 2: definindo dados da area nativa e area invadida
@@ -61,15 +69,15 @@ plot(areaInv,ad=TRUE,col='red') #verificando
 
 ## recortando pontos para area nativa
 spNat = spData[which(spData$lon > natAreaExtent[1] &
-                     spData$lon < natAreaExtent[2] &
-                     spData$lat > natAreaExtent[3] &
-                     spData$lat < natAreaExtent[4]),]
+                       spData$lon < natAreaExtent[2] &
+                       spData$lat > natAreaExtent[3] &
+                       spData$lat < natAreaExtent[4]),]
 
 ## recortando pontos para area invadida
 spInv = spData[which(spData$lon > invAreaExtent[1] &
-                     spData$lon < invAreaExtent[2] &
-                     spData$lat > invAreaExtent[3] &
-                     spData$lat < invAreaExtent[4]),]
+                       spData$lon < invAreaExtent[2] &
+                       spData$lat > invAreaExtent[3] &
+                       spData$lat < invAreaExtent[4]),]
 
 ## inspecao visual
 plot(wrld) #plotando mapa mundi
@@ -165,9 +173,8 @@ predictorsVif1@results$Variables
 predictorsVif2@results$Variables
 
 ##definindo variaveis preditoras a serem usadas nos modelos
-predAreaNat = predAreaNat[[ grep(pattern=paste(predictorsVif1@results$Variables,collapse='|'), x=names(predAreaNat), value=TRUE) ]]
-predAreaInv = predAreaInv[[ grep(pattern=paste(predictorsVif1@results$Variables,collapse='|'), x=names(predAreaInv), value=TRUE) ]]
-
+predAreaNat = predAreaNat[[ grep(pattern=paste(predictorsVif2@results$Variables,collapse='|'), x=names(predAreaNat), value=TRUE) ]]
+predAreaInv = predAreaInv[[ grep(pattern=paste(predictorsVif2@results$Variables,collapse='|'), x=names(predAreaInv), value=TRUE) ]]
 
 ##salvando no HD
 writeRaster(x=predAreaNat, filename=paste(projectFolder,'/variaveis_ambientais/predAreaNat.asc',sep=''), overwrite=TRUE, bylayer=TRUE, suffix=names(predAreaNat))
@@ -177,7 +184,7 @@ writeRaster(x=predAreaInv, filename=paste(projectFolder,'/variaveis_ambientais/p
 ##KDE para vies amostral a partir de ocorrencias no GBIF para o genero Omobranchus##
 
 ##abrindo arquivo salvo
-omobranchusDataset = read.csv(file='/home/anderson/Projetos/Invasao_Omobranchus_punctatus/GBIF - genero Omobranchus - 13-set-2018/0000608-180412121330197.csv', header=TRUE, sep='\t', dec='.', stringsAsFactors=FALSE, na.strings="")
+omobranchusDataset = read.csv(file='D:/Anderson_Eduardo/Invasao_Omobranchus_punctatus/GBIF - genero Omobranchus - 13-set-2018/0000608-180412121330197.csv', header=TRUE, sep='\t', dec='.', stringsAsFactors=FALSE, na.strings="")
 omobranchusOcc = omobranchusDataset[,c('decimallongitude','decimallatitude')]
 names(omobranchusOcc) = c('lon','lat')
 omobranchusOcc = omobranchusOcc[complete.cases(omobranchusOcc),]
@@ -216,21 +223,23 @@ densRas = crop(x=densRas, y=natAreaExtent)
 
 
 ##ajustando projecao e fundindo com pano de fundo
-predAreaNatBG = raster('/home/anderson/Projetos/Invasao_Omobranchus_punctatus/variaveis_ambientais/predAreaNat_Present.Surface.pH.asc.asc')
+predAreaNatBG = raster('D:/Anderson_Eduardo/Invasao_Omobranchus_punctatus/variaveis_ambientais/predAreaNat_Present.Benthic.Mean.Depth.Primary.productivity.Lt.min.asc')
 crs(predAreaNatBG) = '+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0'
 #predAreaNatBG = crop(x=predAreaNatBG, y=natAreaExtent)
 predAreaNatBG = predAreaNatBG*0
 densRas = projectRaster(densRas, crs=proj4string(predAreaNatBG), res=res(predAreaNatBG), method="bilinear")
-densRas = merge(densRas, predAreaNatBG, tolerance=0.1)
+densRas = merge(densRas, predAreaNatBG, tolerance=0.3)
 
 extent(densRas) = extent(predAreaNatBG)
 densRas = crop(x=densRas, y=predAreaNatBG)
-
+res(densRas) =  res(predAreaNatBG)
 densRas = extend(x=densRas, y=extent(predAreaNatBG), value=NA)
 
+values(densRas)[values(densRas)<=0] = 0
+densRas = mask(x=densRas, mask=wrld)
 
 ##salvado raster
-writeRaster(x=densRas, file='/home/anderson/Projetos/Invasao_Omobranchus_punctatus/omobranchusBiasLayer.asc', overwrite=TRUE)
+writeRaster(x=densRas, file=paste(projectFolder,'/omobranchusBiasLayer.asc',sep=''), overwrite=TRUE)
 
 
 ##pseudo-ausencia na area nativa com o mesmo vies dos dados de ocorrencia
@@ -247,7 +256,10 @@ dataSet = data.frame(lon = c(spNat$lon, spInv$lon, bgPoints$lon),
 #arredondando para garantir
 dataSet[,c('lon','lat')] = round(dataSet[,c('lon','lat')], 2)
 ##variaveis ambientais
-dataSetVars = extract(x=predictors[[as.vector(predictorsVif1@results$Variables)]], y=dataSet[,c('lon','lat')], method='bilinear', na.rm=TRUE) #extraindo variaeis ambientais
+dataSetVars = extract(x=predictors[[ grep(pattern=paste(predictorsVif2@results$Variables,collapse='|'), x=names(predictors), value=TRUE) ]],
+                      y=dataSet[,c('lon','lat')], 
+                      method='bilinear', 
+                      na.rm=TRUE) #extraindo variaeis ambientais
 dataSet = data.frame(dataSet, dataSetVars) #juntando ao dataset
 dataSet = dataSet[complete.cases(dataSet),] #retirando dados errados
 dataSet = dataSet[!duplicated(dataSet[,c('lon','lat')]),] #retirando pontos numa mesma celula
@@ -306,23 +318,23 @@ names(spNatData) = gsub(pattern='predAreaNat_', replacement='', x=names(spNatDat
 names(spInvData) = gsub(pattern='predAreaInv_', replacement='', x=names(spInvData))
 
 ## The PCA is calibrated on all the sites of the study area
-pca.env <- dudi.pca(rbind(spNatData,spInvData)[,grep(pattern='2o5', x=names(spNatData), value=TRUE)],scannf=F,nf=2)
+pca.env <- dudi.pca(rbind(spNatData,spInvData)[,grep(pattern='Present.Benthic.Mean.Depth.', x=names(spNatData), value=TRUE)],scannf=F,nf=2)
 ## ecospat.plot.contrib(contrib=pca.env$co, eigen=pca.env$eig) #grafico
 
 ## PCA scores for the whole study area
 scores.globclim <- pca.env$li
 
 ## PCA scores for the species native distribution
-scores.sp.nat <- suprow(pca.env,spNatData[which(spNatData[,'occ']==1),grep(pattern='2o5', x=names(spNatData), value=TRUE)])$li
+scores.sp.nat <- suprow(pca.env,spNatData[which(spNatData[,'occ']==1),grep(pattern='Present.Benthic.Mean.Depth.', x=names(spNatData), value=TRUE)])$li
 
 ## PCA scores for the species invasive distribution
-scores.sp.inv <- suprow(pca.env,spInvData[which(spInvData[,'occ']==1),grep(pattern='2o5', x=names(spInvData), value=TRUE)])$li
+scores.sp.inv <- suprow(pca.env,spInvData[which(spInvData[,'occ']==1),grep(pattern='Present.Benthic.Mean.Depth.', x=names(spInvData), value=TRUE)])$li
 
 ## PCA scores for the whole native study area
-scores.clim.nat <-suprow(pca.env,spNatData[,grep(pattern='2o5', x=names(spNatData), value=TRUE)])$li
+scores.clim.nat <-suprow(pca.env,spNatData[,grep(pattern='Present.Benthic.Mean.Depth.', x=names(spNatData), value=TRUE)])$li
 
 ## PCA scores for the whole invaded study area
-scores.clim.inv <- suprow(pca.env,spInvData[,grep(pattern='2o5', x=names(spInvData), value=TRUE)])$li
+scores.clim.inv <- suprow(pca.env,spInvData[,grep(pattern='Present.Benthic.Mean.Depth.', x=names(spInvData), value=TRUE)])$li
 
 ## gridding the native niche
 grid.clim.nat <-ecospat.grid.clim.dyn(glob=scores.globclim, glob1=scores.clim.nat, sp=scores.sp.nat, R=100, th.sp=0)
@@ -355,7 +367,7 @@ write.csv(nicheOverlapTab, paste(projectFolder,'/nicheOverlapTab.csv',sep=''), r
 
 ## ajustando o diretorio de trabalho (pois o biomod roda e salva tudo simultaneamente)
 if(!file.exists(file.path(projectFolder,'maxent',sep=''))){
-    dir.create(file.path(projectFolder,'maxent',sep=''),recursive=TRUE)
+  dir.create(file.path(projectFolder,'maxent',sep=''),recursive=TRUE)
 }
 setwd(file.path(projectFolder,'maxent'))
 
@@ -413,13 +425,16 @@ varNames = gsub(pattern='predAreaNat_', replacement='', x=varNames)
 
 ##excluindo variaveis sem imporntacia para o modelo (ver importancia das variaveis do SDMeval)
 dataSet = dataSet[,c('lon','lat','occ','area',grep(pattern=paste(varNames, collapse='|'), x=names(dataSet), value=TRUE))]
+write.csv(dataSet,paste(projectFolder,'/dataSet.csv',sep=''),row.names=FALSE) #atualiza o dataset salvo no hd
 
 
 ##MAXENT##
 SDMmaxent = maxent(x = dataSet[which(dataSet$area!='inv'),grep(pattern=paste(as.character(varNames),collapse="|"),x=names(dataSet),value=TRUE)],
                    p = dataSet[which(dataSet$area!='inv'),'occ'],
                    args = c(unlist(make.args(RMvalues=bestModel$rm, fc=bestModel$features, labels=FALSE)),
-                   			'replicates=1,'
+                            'replicates=100',
+                            'randomtestpoints=75',
+                            'replicatetype=Subsample',
                             'responsecurves=TRUE',
                             'writemess=TRUE',
                             'pictures=TRUE',
@@ -437,25 +452,28 @@ save(SDMmaxent, file=paste(projectFolder,'/maxent/SDMmaxent.R',sep=''))
 ##predicao AREA NATIVA
 names(predAreaNat) = gsub( pattern='^predAreaNat_', replacement='', x=names(predAreaNat) ) #retirando parte do nome para adequar ao modelo
 predAreaNat = predAreaNat[[ grep(pattern=paste(varNames,collapse='|'), x=names(predAreaNat), value=TRUE) ]] #novo objeto, correto
-SDMpredNativ = predict(predAreaNat, SDMmaxent) #projecao espacial
+SDMpredNativ = dismo::predict(SDMmaxent, predAreaNat, progress='text') #projecao espacial
 crs(SDMpredNativ) = '+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0'
 
 
 ##predicao AREA INVADIDA
 names(predAreaInv) = gsub( pattern='^predAreaInv_', replacement='', x=names(predAreaInv) ) #retirando parte do nome para adequar ao modelo
 predAreaInv = predAreaInv[[ grep(pattern=paste(varNames,collapse='|'), x=names(predAreaNat), value=TRUE) ]] #novo objeto, correto
-SDMpredInv = predict(predAreaInv, SDMmaxent) #projecao espacial
+SDMpredInv = dismo::predict(SDMmaxent, predAreaInv, progress='text') #projecao espacial
 crs(SDMpredInv) = '+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0'
 
 
 ##salvando gridfiles
-writeRaster(SDMpredNativ, paste(projectFolder,'/maxent/SDMpredNativ_Suitability.asc',sep=''), overwrite=TRUE) #area nativa
-writeRaster(SDMpredInv,paste(projectFolder,'/maxent/SDMpredInv_Suitability.asc',sep=''), overwrite=TRUE) #area nativa
+writeRaster(calc(SDMpredNativ,mean), paste(projectFolder,'/maxent/SDMpredNativ_Suitability_Mean.asc',sep=''), overwrite=TRUE) #area nativa
+writeRaster(calc(SDMpredNativ,sd), paste(projectFolder,'/maxent/SDMpredNativ_Suitability_SD.asc',sep=''), overwrite=TRUE) #area nativa
+##
+writeRaster(calc(SDMpredInv,mean),paste(projectFolder,'/maxent/SDMpredInv_Suitability_Mean.asc',sep=''), overwrite=TRUE) #area nativa
+writeRaster(calc(SDMpredInv,sd),paste(projectFolder,'/maxent/SDMpredInv_Suitability_SD.asc',sep=''), overwrite=TRUE) #area nativa
 
 
 ##calculo do threshold##
 ##valores preditos pelo SDM em cada ponto do dataset na AREA NATIVA
-pred =  extract(x=SDMpredNativ,
+pred =  extract(x=calc(SDMpredNativ,mean),
                 y=dataSet[dataSet$area!='inv',c('lon','lat')],
                 method='bilinear',
                 na.rm=TRUE)
@@ -488,7 +506,7 @@ dev.off()
 
 ##salvando imagens jpeg no HD
 
-mapInv = raster(paste(projectFolder,'/maxent/SDMpredInv_Suitability.asc',sep='')) #abrindo arquivo salvo
+mapInv = raster(paste(projectFolder,'/maxent/SDMpredInv_Suitability_Mean.asc',sep='')) #abrindo arquivo salvo
 
 ##binario
 jpeg(paste(projectFolder,'/mapInvBIN.jpg',sep=''), width=900, height=900)
@@ -507,7 +525,7 @@ plot(wrld,lwd=0.1, add=TRUE)
 dev.off()
 
 
-mapNat = raster(paste(projectFolder,'/maxent/SDMpredNativ_Suitability.asc',sep='')) #abrindo arquivo salvo
+mapNat = raster(paste(projectFolder,'/maxent/SDMpredNativ_Suitability_Mean.asc',sep='')) #abrindo arquivo salvo
 
 ##binario
 jpeg(paste(projectFolder,'/mapNatBIN.jpg',sep=''), width=900, height=900)
@@ -532,6 +550,9 @@ dev.off()
 
 
 
+
+##pacote
+library(iSDM)
 
 ##abrindo as variaveis ambientais
 predAreaNat = stack(list.files(path=paste(projectFolder,'/variaveis_ambientais',sep=''),pattern='predAreaNat',full.names=TRUE))
@@ -569,27 +590,25 @@ proj4string(occNat) = "+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"
 ##pDLA
 
 probability = pDLA(occData=occInv,
-                  envData=envDataInv,
-                  longlat=TRUE,
-                  occNative=occNat,
-                  envNative=envDataNativ)
+                   envData=envDataInv,
+                   longlat=TRUE,
+                   occNative=occNat,
+                   envNative=envDataNativ)
 
 ##Display the results
 par(mfrow=c(1,2),mar=c(2,2.5,2,2.5))
 plot(realized.dist$occupied.area,main="Realized distribution")
 plot(occData,col=ifelse(occData$SP==1,2,1),add=TRUE,pch=19,cex=0.8)
 
-plot(SDMpredInv, main="Potential distribution")
+plot(SDMpredInv[[1]], main="Potential distribution")
 
 scatterCol<-function(x){
-    x <- (x-min(x, na.rm=TRUE))/(max(x, na.rm=TRUE)-min(x, na.rm=TRUE))
-    colorFunction <- colorRamp(colorRamps::matlab.like(100))
-    zMatrix <- colorFunction(x)
-    zColors <- rgb(zMatrix[,1], zMatrix[,2], zMatrix[,3], maxColorValue=255)
-    return(zColors)
+  x <- (x-min(x, na.rm=TRUE))/(max(x, na.rm=TRUE)-min(x, na.rm=TRUE))
+  colorFunction <- colorRamp(colorRamps::matlab.like(100))
+  zMatrix <- colorFunction(x)
+  zColors <- rgb(zMatrix[,1], zMatrix[,2], zMatrix[,3], maxColorValue=255)
+  return(zColors)
 }
 
 
 points(probability,pch=21, col=1,bg=scatterCol(probability@data[,"PDLA"]),cex=1)
-
-
