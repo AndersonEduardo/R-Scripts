@@ -256,7 +256,10 @@ dataSet = data.frame(lon = c(spNat$lon, spInv$lon, bgPoints$lon),
 #arredondando para garantir
 dataSet[,c('lon','lat')] = round(dataSet[,c('lon','lat')], 2)
 ##variaveis ambientais
-dataSetVars = extract(x=predAreaNat, y=dataSet[,c('lon','lat')], method='bilinear', na.rm=TRUE) #extraindo variaeis ambientais
+dataSetVars = extract(x=predictors[[ grep(pattern=paste(predictorsVif2@results$Variables,collapse='|'), x=names(predictors), value=TRUE) ]],
+                      y=dataSet[,c('lon','lat')], 
+                      method='bilinear', 
+                      na.rm=TRUE) #extraindo variaeis ambientais
 dataSet = data.frame(dataSet, dataSetVars) #juntando ao dataset
 dataSet = dataSet[complete.cases(dataSet),] #retirando dados errados
 dataSet = dataSet[!duplicated(dataSet[,c('lon','lat')]),] #retirando pontos numa mesma celula
@@ -315,23 +318,23 @@ names(spNatData) = gsub(pattern='predAreaNat_', replacement='', x=names(spNatDat
 names(spInvData) = gsub(pattern='predAreaInv_', replacement='', x=names(spInvData))
 
 ## The PCA is calibrated on all the sites of the study area
-pca.env <- dudi.pca(rbind(spNatData,spInvData)[,grep(pattern='2o5', x=names(spNatData), value=TRUE)],scannf=F,nf=2)
+pca.env <- dudi.pca(rbind(spNatData,spInvData)[,grep(pattern='Present.Benthic.Mean.Depth.', x=names(spNatData), value=TRUE)],scannf=F,nf=2)
 ## ecospat.plot.contrib(contrib=pca.env$co, eigen=pca.env$eig) #grafico
 
 ## PCA scores for the whole study area
 scores.globclim <- pca.env$li
 
 ## PCA scores for the species native distribution
-scores.sp.nat <- suprow(pca.env,spNatData[which(spNatData[,'occ']==1),grep(pattern='2o5', x=names(spNatData), value=TRUE)])$li
+scores.sp.nat <- suprow(pca.env,spNatData[which(spNatData[,'occ']==1),grep(pattern='Present.Benthic.Mean.Depth.', x=names(spNatData), value=TRUE)])$li
 
 ## PCA scores for the species invasive distribution
-scores.sp.inv <- suprow(pca.env,spInvData[which(spInvData[,'occ']==1),grep(pattern='2o5', x=names(spInvData), value=TRUE)])$li
+scores.sp.inv <- suprow(pca.env,spInvData[which(spInvData[,'occ']==1),grep(pattern='Present.Benthic.Mean.Depth.', x=names(spInvData), value=TRUE)])$li
 
 ## PCA scores for the whole native study area
-scores.clim.nat <-suprow(pca.env,spNatData[,grep(pattern='2o5', x=names(spNatData), value=TRUE)])$li
+scores.clim.nat <-suprow(pca.env,spNatData[,grep(pattern='Present.Benthic.Mean.Depth.', x=names(spNatData), value=TRUE)])$li
 
 ## PCA scores for the whole invaded study area
-scores.clim.inv <- suprow(pca.env,spInvData[,grep(pattern='2o5', x=names(spInvData), value=TRUE)])$li
+scores.clim.inv <- suprow(pca.env,spInvData[,grep(pattern='Present.Benthic.Mean.Depth.', x=names(spInvData), value=TRUE)])$li
 
 ## gridding the native niche
 grid.clim.nat <-ecospat.grid.clim.dyn(glob=scores.globclim, glob1=scores.clim.nat, sp=scores.sp.nat, R=100, th.sp=0)
@@ -422,6 +425,7 @@ varNames = gsub(pattern='predAreaNat_', replacement='', x=varNames)
 
 ##excluindo variaveis sem imporntacia para o modelo (ver importancia das variaveis do SDMeval)
 dataSet = dataSet[,c('lon','lat','occ','area',grep(pattern=paste(varNames, collapse='|'), x=names(dataSet), value=TRUE))]
+write.csv(dataSet,paste(projectFolder,'/dataSet.csv',sep=''),row.names=FALSE) #atualiza o dataset salvo no hd
 
 
 ##MAXENT##
@@ -460,13 +464,16 @@ crs(SDMpredInv) = '+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0'
 
 
 ##salvando gridfiles
-writeRaster(SDMpredNativ, paste(projectFolder,'/maxent/SDMpredNativ_Suitability.asc',sep=''), overwrite=TRUE) #area nativa
-writeRaster(SDMpredInv,paste(projectFolder,'/maxent/SDMpredInv_Suitability.asc',sep=''), overwrite=TRUE) #area nativa
+writeRaster(calc(SDMpredNativ,mean), paste(projectFolder,'/maxent/SDMpredNativ_Suitability_Mean.asc',sep=''), overwrite=TRUE) #area nativa
+writeRaster(calc(SDMpredNativ,sd), paste(projectFolder,'/maxent/SDMpredNativ_Suitability_SD.asc',sep=''), overwrite=TRUE) #area nativa
+##
+writeRaster(calc(SDMpredInv,mean),paste(projectFolder,'/maxent/SDMpredInv_Suitability_Mean.asc',sep=''), overwrite=TRUE) #area nativa
+writeRaster(calc(SDMpredInv,sd),paste(projectFolder,'/maxent/SDMpredInv_Suitability_SD.asc',sep=''), overwrite=TRUE) #area nativa
 
 
 ##calculo do threshold##
 ##valores preditos pelo SDM em cada ponto do dataset na AREA NATIVA
-pred =  extract(x=SDMpredNativ,
+pred =  extract(x=calc(SDMpredNativ,mean),
                 y=dataSet[dataSet$area!='inv',c('lon','lat')],
                 method='bilinear',
                 na.rm=TRUE)
@@ -499,7 +506,7 @@ dev.off()
 
 ##salvando imagens jpeg no HD
 
-mapInv = raster(paste(projectFolder,'/maxent/SDMpredInv_Suitability.asc',sep='')) #abrindo arquivo salvo
+mapInv = raster(paste(projectFolder,'/maxent/SDMpredInv_Suitability_Mean.asc',sep='')) #abrindo arquivo salvo
 
 ##binario
 jpeg(paste(projectFolder,'/mapInvBIN.jpg',sep=''), width=900, height=900)
@@ -518,7 +525,7 @@ plot(wrld,lwd=0.1, add=TRUE)
 dev.off()
 
 
-mapNat = raster(paste(projectFolder,'/maxent/SDMpredNativ_Suitability.asc',sep='')) #abrindo arquivo salvo
+mapNat = raster(paste(projectFolder,'/maxent/SDMpredNativ_Suitability_Mean.asc',sep='')) #abrindo arquivo salvo
 
 ##binario
 jpeg(paste(projectFolder,'/mapNatBIN.jpg',sep=''), width=900, height=900)
@@ -543,6 +550,9 @@ dev.off()
 
 
 
+
+##pacote
+library(iSDM)
 
 ##abrindo as variaveis ambientais
 predAreaNat = stack(list.files(path=paste(projectFolder,'/variaveis_ambientais',sep=''),pattern='predAreaNat',full.names=TRUE))
@@ -590,7 +600,7 @@ par(mfrow=c(1,2),mar=c(2,2.5,2,2.5))
 plot(realized.dist$occupied.area,main="Realized distribution")
 plot(occData,col=ifelse(occData$SP==1,2,1),add=TRUE,pch=19,cex=0.8)
 
-plot(SDMpredInv, main="Potential distribution")
+plot(SDMpredInv[[1]], main="Potential distribution")
 
 scatterCol<-function(x){
   x <- (x-min(x, na.rm=TRUE))/(max(x, na.rm=TRUE)-min(x, na.rm=TRUE))
