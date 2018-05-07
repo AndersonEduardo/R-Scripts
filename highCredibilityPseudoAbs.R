@@ -314,7 +314,8 @@ for(i in 1:Nsp){
             
             ##construindo tabela de outputs
             ## statResultsSDMnormal = makeOutput(evaluationScores, statResultsSDMnormal, i, j, 'normal', sampleSizes[j])
-            statResultsSDMnormal = data.frame(SDM='normal', sampleSize=sampleSizes[j], evaluationScores)
+            statResultsSDMnormal = rbind(statResultsSDMnormal,
+                                         data.frame(SDM='normal', sampleSize=sampleSizes[j], evaluationScores))
             
             write.csv(statResultsSDMnormal, file=paste(projectFolder,'/StatisticalResults_SDMnormal.csv',sep=''), row.names=FALSE)
             
@@ -332,13 +333,14 @@ for(i in 1:Nsp){
                     new.env = myExpl,
                     binary.meth = c('ROC','TSS'),
                     proj.name = paste('sp',i,'_sample',sampleSizes[j],'_SDMnormal',sep=''),
-                    ## selected.models = grep(pattern=paste(modelNames,collapse='|'),x=myBiomodModelOut@models.computed, value=TRUE),
+                    selected.models = grep(pattern=paste(modelNames,collapse='|'),x=myBiomodModelOut@models.computed, value=TRUE),
                     compress = 'TRUE',
                     build.clamping.mask = 'TRUE')
-            }
 
-            ##pegando os gridfiles
-            myCurrentProj <- get_predictions(myBiomodProj)
+                ##pegando os gridfiles
+                myCurrentProj <- get_predictions(myBiomodProj)   
+            }
+            
 
             ##media e desvio padrao das projecoes
             for(i in 1:length(modelNames)){
@@ -364,13 +366,17 @@ for(i in 1:Nsp){
                     }
                     rasterLayer_i_mean = calc( x=stack(currentSDMpred), fun=mean ) #media das projecoes
                     rasterLayer_i_SD = calc( x=stack(currentSDMpred), fun=sd ) #desvio padrao das projecoes
-                    ##salvando no HD
-                    writeRaster(rasterLayer_i_mean,file=paste(projectFolder,'/SDMnormal/sp',i,'.sample',sampleSizes[j],'.SDMnormal','/proj_sp',i,'_sample',sampleSizes[j],'_SDMnormal/','proj_sp',i,'_sample',sampleSizes[j],'_SDMnormal_sp',i,'.sample',sampleSizes[j],'.',model_i,'_Mean_SDMnormal.asc',sep=''), overwrite=TRUE) #media
-                    writeRaster(rasterLayer_i_SD,file=paste(projectFolder,'/SDMnormal/sp',i,'.sample',sampleSizes[j],'.SDMnormal','/proj_sp',i,'_sample',sampleSizes[j],'_SDMnormal/','proj_sp',i,'_sample',sampleSizes[j],'_SDMnormal_sp',i,'.sample',sampleSizes[j],'.',model_i,'_SD_SDMnormal.asc',sep=''), overwrite=TRUE) #variancia
-                    ##binario
-                    currentTSSresultsTab = subset(x=statResultsSDMnormal, Eval.metric=='TSS')
-                    current_thres = currentTSSresultsTab[ currentTSSresultsTab$Model.name == grep(pattern=paste(rev(unlist(strsplit(x=model_i, split='_'))), collapse='*.*'), x=currentTSSresultsTab[,'Model.name'], value=TRUE), 'Cutoff' ] / 1000
-                    writeRaster(rasterLayer_i_mean > current_thres,file=paste(projectFolder,'/SDMnormal/sp',i,'.sample',sampleSizes[j],'.SDMnormal','/proj_sp',i,'_sample',sampleSizes[j],'_SDMnormal/','proj_sp',i,'_sample',sampleSizes[j],'_SDMnormal_sp',i,'.sample',sampleSizes[j],'.',model_i,'_SD_SDMnormal_TSSbin.asc',sep=''), overwrite=TRUE) 
+                    ##salvando no HD - media e variancia do mapa de suitability
+                    writeRaster(rasterLayer_i_mean,
+                                file=paste(projectFolder,'/SDMnormal/sp',i,'.sample',sampleSizes[j],'.SDMnormal','/proj_sp',i,'_sample',sampleSizes[j],'_SDMnormal/','proj_sp',i,'_sample',sampleSizes[j],'_SDMnormal_sp',i,'.sample',sampleSizes[j],'.',model_i,'_Mean_SDMnormal.asc',sep=''), overwrite=TRUE) #media
+                    writeRaster(rasterLayer_i_SD,
+                                file=paste(projectFolder,'/SDMnormal/sp',i,'.sample',sampleSizes[j],'.SDMnormal','/proj_sp',i,'_sample',sampleSizes[j],'_SDMnormal/','proj_sp',i,'_sample',sampleSizes[j],'_SDMnormal_sp',i,'.sample',sampleSizes[j],'.',model_i,'_SD_SDMnormal.asc',sep=''), overwrite=TRUE) #variancia
+                    ##mapas binarios
+                    current_thres_TSS = statResultsSDMnormal[ statResultsSDMnormal$Model.name == grep(pattern=paste(rev(unlist(strsplit(x=model_i, split='_'))), collapse='*.*'), x=statResultsSDMnormal[,'Model.name'], value=TRUE) & statResultsSDMnormal$Eval.metric =='TSS' ,'Cutoff']/1000
+                    current_thres_ROC = statResultsSDMnormal[ statResultsSDMnormal$Model.name == grep(pattern=paste(rev(unlist(strsplit(x=model_i, split='_'))), collapse='*.*'), x=statResultsSDMnormal[,'Model.name'], value=TRUE) & statResultsSDMnormal$Eval.metric =='ROC' ,'Cutoff']/1000
+                    ##
+                    writeRaster(rasterLayer_i_mean > current_thres_TSS, file=paste(projectFolder,'/SDMnormal/sp',i,'.sample',sampleSizes[j],'.SDMnormal','/proj_sp',i,'_sample',sampleSizes[j],'_SDMnormal/','proj_sp',i,'_sample',sampleSizes[j],'_SDMnormal_sp',i,'.sample',sampleSizes[j],'.',model_i,'_Mean_SDMnormal_TSSbin.asc',sep=''), overwrite=TRUE)
+                    writeRaster(rasterLayer_i_mean > current_thres_ROC, file=paste(projectFolder,'/SDMnormal/sp',i,'.sample',sampleSizes[j],'.SDMnormal','/proj_sp',i,'_sample',sampleSizes[j],'_SDMnormal/','proj_sp',i,'_sample',sampleSizes[j],'_SDMnormal_sp',i,'.sample',sampleSizes[j],'.',model_i,'_Mean_SDMnormal_ROCbin.asc',sep=''), overwrite=TRUE) 
                 }
             }
 
@@ -495,16 +501,19 @@ for(i in 1:Nsp){
             ## binTSS = raster(paste(projectFolder,'/SDMnormal/','sp',i,'.sample',sampleSizes[j],'.SDMnormal','/proj_sp',i,'_sample',sampleSizes[j],'_SDMnormal','/proj_sp',i,'_sample',sampleSizes[j],'_SDMnormal_sp',i,'.sample',sampleSizes[j],'.SDMnormal_ensemble_TSSbin.grd' ,sep=''))
             ## binAUC = raster(paste(projectFolder,'/SDMnormal/','sp',i,'.sample',sampleSizes[j],'.SDMnormal','/proj_sp',i,'_sample',sampleSizes[j],'_SDMnormal','/proj_sp',i,'_sample',sampleSizes[j],'_SDMnormal_sp',i,'.sample',sampleSizes[j],'.SDMnormal_ensemble_ROCbin.grd' ,sep=''))
 
-            binTSS = stack(list.files(path=paste(projectFolder,'/SDMnormal/','sp',i,'.sample',sampleSizes[j],'.SDMnormal','/proj_sp',i,'_sample',sampleSizes[j],'_SDMnormal',sep=''), pattern='TSSbin', full.names=TRUE))
-            binTSS = binTSS[[grep(pattern='_SD_', x=names(binTSS), invert=TRUE)]]
-            binTSS = calc(x=binTSS, fun=sum)
+            ## binTSS = stack(list.files(path=paste(projectFolder,'/SDMnormal/','sp',i,'.sample',sampleSizes[j],'.SDMnormal','/proj_sp',i,'_sample',sampleSizes[j],'_SDMnormal',sep=''), pattern='TSSbin', full.names=TRUE))
+            ## binTSS = binTSS[[grep(pattern='_SD_', x=names(binTSS), invert=TRUE)]]
+            ## binTSS = calc(x=binTSS, fun=sum)
 
-            projAbs = stack( list.files(path=paste(projectFolder,'/SDMnormal/','sp',i,'.sample',sampleSizes[j],'.SDMnormal','/proj_sp',i,'_sample',sampleSizes[j],'_SDMnormal',sep=''), pattern='bin.grd|bin.asc', full.names=TRUE) )
-            projAbs = projAbs[[grep(pattern='_SD_', x=names(binTSS), invert=TRUE)]]
+            bin_files = list.files(path=paste(projectFolder,'/SDMnormal/','sp',i,'.sample',sampleSizes[j],'.SDMnormal','/proj_sp',i,'_sample',sampleSizes[j],'_SDMnormal',sep=''), pattern='bin.grd|bin.asc', full.names=TRUE)
+            bin_files = grep(pattern='*._SD_', x=bin_files, invert=TRUE, value=TRUE)
+            ##
+            projAbs = stack( bin_files )
 
             
             ## projStackBIN = stack(binTSS,binAUC) #empilhando mapas binarios (feitos com threshold a partir do AUC e TSS)
-            ## projAbs = sum(projStackBIN) #somando (para depois pegar areas ausencia que ambos os thresolds concordam)
+            ##projAbs = sum(projStackBIN) #somando (para depois pegar areas ausencia que ambos os thresolds concordam)
+            projAbs = sum(projAbs)
             
             ## amostrando pontos diretamente das areas de ausencia (abaixo do threshold) obtidas na etapa 1 ##
             values(projAbs)[values(projAbs) != 0] = NA  #tranformando areas diferentes de zero em NA (retando somente os dados de ausencia)          
@@ -628,14 +637,13 @@ for(i in 1:Nsp){
             
             
             ##My output data
-            evaluationScores = get_evaluations(myBiomodModelOut)
-
-
-
+            evaluationScores = get_evaluations(myBiomodModelOut, as.data.frame=TRUE)
             
-            
-            statResultsSDMimproved = makeOutput(evaluationScores, statResultsSDMimproved, i, j, 'improved', sampleSizes[j])
-            rm(evaluationScores)
+            ## statResultsSDMimproved = makeOutput(evaluationScores, statResultsSDMimproved, i, j, 'improved', sampleSizes[j])
+            ## rm(evaluationScores)
+
+            statResultsSDMnormal = rbind(statResultsSDMnormal,
+                                         data.frame(SDM='improved', sampleSize=sampleSizes[j], evaluationScores))
             
             write.csv(statResultsSDMimproved, file=paste(projectFolder,'/StatisticalResults_SDMimproved','.csv',sep=''), row.names=FALSE)
             
@@ -661,7 +669,6 @@ for(i in 1:Nsp){
 
 ##calculando tempo gasto para processamento
 Sys.time() - timeOne
-
 
 
 

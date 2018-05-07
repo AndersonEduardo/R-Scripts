@@ -56,14 +56,14 @@ bestModel = function(outputDataRaw, myBiomodModelOut){
         namePatternsRawList = append(x=namePatternsRawList, values=paste(namePatternsRawSplit[[1]][2],namePatternsRawSplit[[1]][1],sep='_'))
     }
         
-    biomodModelsNames = grep(pattern=paste(namePatternsRawList,collapse='|'), x=myBiomodModelOut@models.computed, value=TRUE)
+    biomodModelsNames = grep(pattern=paste(namePatternsRawList,collapse='|'), x=myBiomodModelOut@models.computed, value=TRUE, invert=FALSE)
 
+    ## allSDMnames = gsub(pattern='_PA1', replacement='', x=evaluationScores$Model.name)
+    ## allSDMnames = strsplit(x=allSDMnames, split='_')
+    ## allSDMnames = unique(unlist(lapply(lapply(allSDMnames, rev), paste, collapse='_')))    
+    ## otherSDMs = grep(pattern=paste(myBiomodModelOut@models.computed,sep='',collapse='|'), x=allSDMnames, value=TRUE, invert=TRUE)
 
-    allSDMnames = gsub(pattern='_PA1', replacement='', x=evaluationScores$Model.name)
-    allSDMnames = strsplit(x=allSDMnames, split='_')
-    allSDMnames = unique(unlist(lapply(lapply(allSDMnames, rev), paste, collapse='_')))
-    
-    otherSDMs = grep(pattern=paste('*.',allSDMnames,sep='',collapse='|'), x=myBiomodModelOut@models.computed, value=TRUE, invert=TRUE)
+    otherSDMs = grep(pattern=paste(namePatternsRawList,collapse='|'), x=allSDMnames, value=TRUE)
 
     modelNames = c(biomodModelsNames, otherSDMs)
     
