@@ -87,7 +87,7 @@ spsTypes = c('spHW', 'spCD')  #c('spHW', 'spHD', 'spCD') #nomes das especies
 sampleSizes = c(10,50,100) #c(5,10,20,40,80,160) #tamanhos das amostras
 NumRep = 5 #numero de replicas (de cada cenario amostral)
 Tmax = 22 #idade maxima (no passado)
-bgPoints = 1000 #numero de pontos de background
+bgPoints = 5000 #numero de pontos de background
 
 
 ##PARA SDM MULTITEMPORAL E SEM VIES AMOSTRAL

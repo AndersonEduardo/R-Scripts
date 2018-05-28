@@ -29,23 +29,25 @@ library(rJava)
 
 
 
-# ## definindo variaveis e parametros - Notebook
-# projectFolder = "/home/anderson/Projetos/Invasao_Omobranchus_punctatus" #pasta do projeto
-# envVarFolder = "/home/anderson/gridfiles/Bio-ORACLE" #pasta com as variaveis ambientais
-# predictors = stack(list.files(path=envVarFolder, full.names=TRUE, pattern='.asc')) #predictors com todas as variaveis
-# spData = read.csv(file.path(projectFolder,'spOcc.csv'),header=TRUE) #dados de ocorrencia ambiente nativo
-# names(spData) = c('lon','lat')
-# wrld = readOGR('/home/anderson/shapefiles/ne_50m_ocean/ne_50m_ocean.shp') #mapa mundi
-
-
-## definindo variaveis e parametros - Iavana
-projectFolder = "D:/Anderson_Eduardo/Invasao_Omobranchus_punctatus" #pasta do projeto
-envVarFolder = "D:/Anderson_Eduardo/gridfiles/Bio-ORACLE - variaveis bentonicas" #pasta com as variaveis ambientais
+## definindo variaveis e parametros - Notebook
+projectFolder = "/home/anderson/Projetos/Invasao_Omobranchus_punctatus" #pasta do projeto
+envVarFolder = "/home/anderson/gridfiles/Bio-ORACLE" #pasta com as variaveis ambientais
 predictors = stack(list.files(path=envVarFolder, full.names=TRUE, pattern='.asc')) #predictors com todas as variaveis
 predictors = predictors[[grep(pattern=paste(c('Chlorophyll','Phytoplankton','Silicate','*.Mean$','*.Max$','*.Min$'),collapse='|'), names(predictors), value=FALSE,invert=TRUE)]]
 spData = read.csv(file.path(projectFolder,'spOcc.csv'),header=TRUE) #dados de ocorrencia ambiente nativo
 names(spData) = c('lon','lat')
-wrld = readOGR('D:/Anderson_Eduardo/shapefiles/ne_50m_ocean/ne_50m_ocean.shp') #mapa mundi
+wrld = readOGR('/home/anderson/shapefiles/ne_50m_ocean/ne_50m_ocean.shp') #mapa mundi
+
+
+## ## definindo variaveis e parametros - Iavana
+## projectFolder = "D:/Anderson_Eduardo/Invasao_Omobranchus_punctatus" #pasta do projeto
+## envVarFolder = "D:/Anderson_Eduardo/gridfiles/Bio-ORACLE - variaveis bentonicas" #pasta com as variaveis ambientais
+## predictors = stack(list.files(path=envVarFolder, full.names=TRUE, pattern='.asc')) #predictors com todas as variaveis
+## predictors = predictors[[grep(pattern=paste(c('Chlorophyll','Phytoplankton','Silicate','*.Mean$','*.Max$','*.Min$'),collapse='|'), names(predictors), value=FALSE,invert=TRUE)]]
+## spData = read.csv(file.path(projectFolder,'spOcc.csv'),header=TRUE) #dados de ocorrencia ambiente nativo
+## names(spData) = c('lon','lat')
+## wrld = readOGR('D:/Anderson_Eduardo/shapefiles/ne_50m_ocean/ne_50m_ocean.shp') #mapa mundi
+
 
 
 ## PARTE 2: definindo dados da area nativa e area invadida
@@ -546,7 +548,85 @@ dev.off()
 
 
 
-## PARTE 4: Analise de pDLA - iSDM  ##NAO FUNCIONOU...  :(
+## PARTE 4: Analise da correlacao do suitability com o Global Ocean Health Index (GOHI)
+
+
+
+
+##suitability
+mapInv = raster(paste(projectFolder,'/maxent/SDMpredInv_Suitability.asc',sep=''), crs=CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0'))
+mapInv = crop(x=mapInv, y=areaInv) #so pra garantir
+
+##indice (fazer apenas uma vez, salvar e usar o salvo - da mto trabalho ajustar esse negocio...)
+## gohi = raster(paste(projectFolder,'/Global Ocean Health Index/global_cumul_impact_2013_all_layers_WGS.grd',sep=''))
+## gohiInvi = crop(x=gohi, y=extent(mapInv))
+## gohiInviAdjusted = projectRaster(gohiInvi, crs=proj4string(mapInv), res=res(mapInv), method="bilinear")
+## gohiInviAdjusted = crop(x=gohiInviAdjusted, y=mapInv)
+##writeRaster(gohiInviAdjusted, filename=paste(projectFolder,'/Global Ocean Health Index/global_cumul_impact_2013_all_layers_WGS_AREA_INVADIDA.asc',sep='' ))
+gohiInviAdjusted = raster(paste(projectFolder,'/Global Ocean Health Index/global_cumul_impact_2013_all_layers_WGS_AREA_INVADIDA.asc',sep=''))
+
+##extraindo valores de background para correlacao
+bgPts = randomPoints(mask=mapInv, n=nrow(spInv)*2)
+bgPts = bgPts[complete.cases(bgPts),]
+bgPts = round(bgPts, digits=2)
+bgPts = data.frame(bgPts)
+names(bgPts) = names(spInv)
+
+##dataframe de pres/brackground dataset
+datasetGohi = data.frame(
+    rbind(spInv,bgPts),
+    pres = c(rep(1,nrow(spInv)),rep(0,nrow(bgPts))))
+
+
+datasetGohi = round(datasetGohi)
+
+
+
+
+##extraindo valores do indice GOHI e do suitability nos pontos (presenca/background)
+gohiPts = extract(x=gohi, y=datasetGohi[,c('lon','lat')])
+suitabilityPts = extract(x=mapInv, y=datasetGohi[,c('lon','lat')])
+
+##consolidando dataset
+datasetGohi = cbind(datasetGohi,gohiPts,suitabilityPts)
+datasetGohi = datasetGohi[complete.cases(datasetGohi),]
+
+##modelos estatisticos - GLM
+modelGohi = glm(pres ~ gohiPts, data=datasetGohi, family=binomial) #modelo linear
+summary(modelGohi)
+
+modelGohiQuad = glm(pres ~ gohiPts + I(gohiPts^2), data=datasetGohi, family=binomial) #modelo quadratico
+summary(modelGohiQuad)
+
+AIC(modelGohi, modelGohiQuad) #comparando por AIC
+
+##visualizacao grafica
+plot(datasetGohi$pres ~ datasetGohi$gohiPts) 
+points(predict(modelGohi, newdata=data.frame(gohiPts=c(-100:100/10)), type='response'), col='red', type='b')
+points(predict(modelGohiQuad, newdata=data.frame(gohiPts=c(-100:100/10)), type='response'), col='blue', cex=1.5, type='b')
+
+##graficos baguncados
+plot(predict(modelGohi, newdata=data.frame(gohiPts=c(-100:100/10)), type='response') ~ c(-100:100/10), ylim=c(0,1), col='red', type='b')
+points(predict(modelGohiQuad, newdata=data.frame(gohiPts=c(-100:100/10)), type='response') ~ c(-100:100/10), ylim=c(0,1), col='blue', cex=1.5, type='b')
+points(datasetGohi$pres ~ datasetGohi$gohiPts) #visualizacao grafica
+
+
+##correlacao (linear) usando pontos de presenca/background na area de invasao
+corMatrixPts = cor( datasetGohi[which(datasetGohi$pres==1),'gohiPts'], datasetGohi[which(datasetGohi$pres==1),'suitabilityPts'] )
+save(corMatrixPts,file=paste(projectFolder,'/corMatrixPts.R',sep=''))
+
+##correlacao (linear) usando os rasters completos na area invadida
+stackedRasters = stack(gohiInviAdjusted, mapInv)
+names(stackedRasters) = c('gohi','suitability')
+valuesMatrix = data.frame(na.omit(values(stackedRasters)))
+##
+corMatrixRasters = cor(valuesMatrix, use="complete.obs") #resultado: nao correlacionado (linearmente)
+save(corMatrixRasters,file=paste(projectFolder,'/corMatrixPts.R',sep=''))
+
+
+
+
+## PARTE 5: Analise de pDLA - iSDM  ##NAO FUNCIONOU...  :(
 
 
 
@@ -612,3 +692,4 @@ scatterCol<-function(x){
 
 
 points(probability,pch=21, col=1,bg=scatterCol(probability@data[,"PDLA"]),cex=1)
+
