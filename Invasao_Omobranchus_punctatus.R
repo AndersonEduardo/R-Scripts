@@ -56,9 +56,9 @@ wrld = readOGR('/home/anderson/shapefiles/ne_50m_ocean/ne_50m_ocean.shp') #mapa 
 
 
 ## separando area nativa e area invadida
-plot(wrld) #criando imagem
-points(spData,col='red') #plotando os pontos de ocorencia da sp
-drawExtent() #delimitando area no mapa
+#plot(wrld) #criando imagem
+#points(spData,col='red') #plotando os pontos de ocorencia da sp
+#drawExtent() #delimitando area no mapa
 natAreaExtent = extent(19.53604, 184.1086, -58.39874, 53.9756) #area distr. nativa
 invAreaExtent = extent(-92.2889 , 18.83274, -88.59934, 24.47734) #area distr. invadida
 
@@ -186,7 +186,8 @@ writeRaster(x=predAreaInv, filename=paste(projectFolder,'/variaveis_ambientais/p
 ##KDE para vies amostral a partir de ocorrencias no GBIF para o genero Omobranchus##
 
 ##abrindo arquivo salvo
-omobranchusDataset = read.csv(file='D:/Anderson_Eduardo/Invasao_Omobranchus_punctatus/GBIF - genero Omobranchus - 13-set-2018/0000608-180412121330197.csv', header=TRUE, sep='\t', dec='.', stringsAsFactors=FALSE, na.strings="")
+##omobranchusDataset = read.csv(file='D:/Anderson_Eduardo/Invasao_Omobranchus_punctatus/GBIF - genero Omobranchus - 13-set-2018/0000608-180412121330197.csv', header=TRUE, sep='\t', dec='.', stringsAsFactors=FALSE, na.strings="")
+omobranchusDataset = read.csv(file='/home/anderson/Projetos/Invasao_Omobranchus_punctatus/GBIF - genero Omobranchus - 13-set-2018/0000608-180412121330197.csv', header=TRUE, sep='\t', dec='.', stringsAsFactors=FALSE, na.strings="")
 omobranchusOcc = omobranchusDataset[,c('decimallongitude','decimallatitude')]
 names(omobranchusOcc) = c('lon','lat')
 omobranchusOcc = omobranchusOcc[complete.cases(omobranchusOcc),]
@@ -553,7 +554,7 @@ dev.off()
 
 
 
-##suitability
+##mapa de suitability na area invadida
 mapInv = raster(paste(projectFolder,'/maxent/SDMpredInv_Suitability.asc',sep=''), crs=CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0'))
 mapInv = crop(x=mapInv, y=areaInv) #so pra garantir
 
@@ -566,32 +567,47 @@ mapInv = crop(x=mapInv, y=areaInv) #so pra garantir
 gohiInviAdjusted = raster(paste(projectFolder,'/Global Ocean Health Index/global_cumul_impact_2013_all_layers_WGS_AREA_INVADIDA.asc',sep=''))
 
 ##extraindo valores de background para correlacao
-bgPts = randomPoints(mask=mapInv, n=nrow(spInv)*2)
-bgPts = bgPts[complete.cases(bgPts),]
-bgPts = round(bgPts, digits=2)
+##KDE area invadida (para background com mesmo vies amostral que as ocorrencias)
+omobranchusDataset = read.csv(file='/home/anderson/Projetos/Invasao_Omobranchus_punctatus/GBIF - genero Omobranchus - 13-set-2018/0000608-180412121330197.csv', header=TRUE, sep='\t', dec='.', stringsAsFactors=FALSE, na.strings="")
+omobranchusOcc = omobranchusDataset[,c('decimallongitude','decimallatitude')]
+names(omobranchusOcc) = c('lon','lat')
+omobranchusOcc = omobranchusOcc[complete.cases(omobranchusOcc),]
+coordinates(omobranchusOcc) <- ~lon+lat
+proj4string(omobranchusOcc) <- CRS('+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs +towgs84=0,0,0')
+##ajustando o sistema de coordenadas geograficas entre pontos e shapefile
+omobranchusOcc <- spTransform(omobranchusOcc, CRS(proj4string(wrld)))
+omobranchusOcc <- omobranchusOcc[wrld, ]
+##kernel density estimation com o pacote MASS
+dens = MASS::kde2d(x=omobranchusOcc$lon, y=omobranchusOcc$lat, n=100)
+densRas = raster(dens)
+values(densRas)[values(densRas)<=0] = 0
+densRas = mask(x=densRas, mask=wrld)
+densRasInv = crop(x=densRas, y=invAreaExtent)
+##plot(densRasInv)
+##plot(wrld,add=T)
+##amostrando os pontos de bg
+bgPts = randomPoints(mask=densRasInv, n=nrow(spInv)*2, prob=TRUE)
 bgPts = data.frame(bgPts)
 names(bgPts) = names(spInv)
 
-##dataframe de pres/brackground dataset
+##dataframe de pres/brackground
 datasetGohi = data.frame(
     rbind(spInv,bgPts),
     pres = c(rep(1,nrow(spInv)),rep(0,nrow(bgPts))))
-
-
-datasetGohi = round(datasetGohi)
-
-
-
+##alguns ajustes 
+datasetGohi = datasetGohi[complete.cases(datasetGohi),]
+datasetGohi = round(datasetGohi, digits=2)
+datasetGohi = unique(datasetGohi)
 
 ##extraindo valores do indice GOHI e do suitability nos pontos (presenca/background)
-gohiPts = extract(x=gohi, y=datasetGohi[,c('lon','lat')])
+gohiPts = extract(x=gohiInviAdjusted, y=datasetGohi[,c('lon','lat')])
 suitabilityPts = extract(x=mapInv, y=datasetGohi[,c('lon','lat')])
 
 ##consolidando dataset
 datasetGohi = cbind(datasetGohi,gohiPts,suitabilityPts)
 datasetGohi = datasetGohi[complete.cases(datasetGohi),]
 
-##modelos estatisticos - GLM
+##modelos estatisticos - GLM para presenca/background X GOHI##
 modelGohi = glm(pres ~ gohiPts, data=datasetGohi, family=binomial) #modelo linear
 summary(modelGohi)
 
@@ -599,29 +615,51 @@ modelGohiQuad = glm(pres ~ gohiPts + I(gohiPts^2), data=datasetGohi, family=bino
 summary(modelGohiQuad)
 
 AIC(modelGohi, modelGohiQuad) #comparando por AIC
+anova(modelGohi, modelGohiQuad, test='Chisq') #comparando por Chisq
 
 ##visualizacao grafica
-plot(datasetGohi$pres ~ datasetGohi$gohiPts) 
-points(predict(modelGohi, newdata=data.frame(gohiPts=c(-100:100/10)), type='response'), col='red', type='b')
-points(predict(modelGohiQuad, newdata=data.frame(gohiPts=c(-100:100/10)), type='response'), col='blue', cex=1.5, type='b')
+plot(datasetGohi$pres ~ datasetGohi$gohiPts, ylab='Occurrrence', xlab='GOHI') 
+points(x = c(-100:100/10),
+       y = predict(modelGohi, newdata=data.frame(gohiPts=c(-100:100/10)), type='response'),
+       col='red', type='l')
+points(x = c(-100:100/10),
+       y = predict(modelGohiQuad, newdata=data.frame(gohiPts=c(-100:100/10)), type='response'),
+       col='blue', type='l')
 
-##graficos baguncados
-plot(predict(modelGohi, newdata=data.frame(gohiPts=c(-100:100/10)), type='response') ~ c(-100:100/10), ylim=c(0,1), col='red', type='b')
-points(predict(modelGohiQuad, newdata=data.frame(gohiPts=c(-100:100/10)), type='response') ~ c(-100:100/10), ylim=c(0,1), col='blue', cex=1.5, type='b')
-points(datasetGohi$pres ~ datasetGohi$gohiPts) #visualizacao grafica
+
+## ##correlacao (linear) usando pontos de presenca/background na area de invasao
+## corMatrixPts = cor( datasetGohi[which(datasetGohi$pres==1),'gohiPts'], datasetGohi[which(datasetGohi$pres==1),'suitabilityPts'] )
+## save(corMatrixPts,file=paste(projectFolder,'/corMatrixPts.R',sep=''))
+
+## ##correlacao (linear) usando os rasters completos na area invadida
+## stackedRasters = stack(gohiInviAdjusted, mapInv)
+## names(stackedRasters) = c('gohi','suitability')
+## valuesMatrix = data.frame(na.omit(values(stackedRasters)))
+## ##
+## corMatrixRasters = cor(valuesMatrix, use="complete.obs") #resultado: nao correlacionado (linearmente)
+##save(corMatrixRasters,file=paste(projectFolder,'/corMatrixPts.R',sep=''))
 
 
-##correlacao (linear) usando pontos de presenca/background na area de invasao
-corMatrixPts = cor( datasetGohi[which(datasetGohi$pres==1),'gohiPts'], datasetGohi[which(datasetGohi$pres==1),'suitabilityPts'] )
-save(corMatrixPts,file=paste(projectFolder,'/corMatrixPts.R',sep=''))
+##modelos estatisticos - GLM para suitability X GOHI##
 
-##correlacao (linear) usando os rasters completos na area invadida
-stackedRasters = stack(gohiInviAdjusted, mapInv)
-names(stackedRasters) = c('gohi','suitability')
-valuesMatrix = data.frame(na.omit(values(stackedRasters)))
-##
-corMatrixRasters = cor(valuesMatrix, use="complete.obs") #resultado: nao correlacionado (linearmente)
-save(corMatrixRasters,file=paste(projectFolder,'/corMatrixPts.R',sep=''))
+
+modelSuitXGohi = glm(suitabilityPts ~ gohiPts, data=datasetGohi) #modelo linear
+summary(modelSuitXGohi)
+
+modelSuitXGohiQuad = glm(suitabilityPts ~ gohiPts + I(gohiPts^2), data=datasetGohi) #modelo quadratico
+summary(modelSuitXGohiQuad)
+
+AIC(modelSuitXGohi, modelSuitXGohiQuad) #comparando por AIC
+anova(modelSuitXGohi, modelSuitXGohiQuad, test='Chisq') #comparando por Chisq
+
+##visualizacao grafica
+plot(datasetGohi$suitabilityPts ~ datasetGohi$gohiPts, ylim=c(0,1.1), xlim=c(-10,10), xlab='GOHI', ylab='Suitability') 
+points(x = c(-100:100/10),
+       y = predict(modelSuitXGohi, newdata=data.frame(gohiPts=c(-100:100/10)), type='response'),
+       col='red', type='l')
+points(x = c(-100:100/10),
+       y = predict(modelSuitXGohiQuad, newdata=data.frame(gohiPts=c(-100:100/10)), type='response'),
+       col='blue', type='l')
 
 
 
