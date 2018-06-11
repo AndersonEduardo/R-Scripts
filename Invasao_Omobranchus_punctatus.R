@@ -31,7 +31,7 @@ library(rJava)
 
 ## definindo variaveis e parametros - Notebook
 projectFolder = "/home/anderson/Projetos/Invasao_Omobranchus_punctatus" #pasta do projeto
-envVarFolder = "/home/anderson/gridfiles/Bio-ORACLE" #pasta com as variaveis ambientais
+envVarFolder = "/home/anderson/Projetos/Invasao_Omobranchus_punctatus/variaveis_ambientais" #pasta com as variaveis ambientais
 predictors = stack(list.files(path=envVarFolder, full.names=TRUE, pattern='.asc')) #predictors com todas as variaveis
 predictors = predictors[[grep(pattern=paste(c('Chlorophyll','Phytoplankton','Silicate','*.Mean$','*.Max$','*.Min$'),collapse='|'), names(predictors), value=FALSE,invert=TRUE)]]
 spData = read.csv(file.path(projectFolder,'spOcc.csv'),header=TRUE) #dados de ocorrencia ambiente nativo
@@ -47,6 +47,7 @@ wrld = readOGR('/home/anderson/shapefiles/ne_50m_ocean/ne_50m_ocean.shp') #mapa 
 ## spData = read.csv(file.path(projectFolder,'spOcc.csv'),header=TRUE) #dados de ocorrencia ambiente nativo
 ## names(spData) = c('lon','lat')
 ## wrld = readOGR('D:/Anderson_Eduardo/shapefiles/ne_50m_ocean/ne_50m_ocean.shp') #mapa mundi
+
 
 
 
@@ -480,6 +481,7 @@ pred =  extract(x=calc(SDMpredNativ,mean),
                 y=dataSet[dataSet$area!='inv',c('lon','lat')],
                 method='bilinear',
                 na.rm=TRUE)
+
 threshDF = data.frame(occ=dataSet[dataSet$area!='inv',]$occ, pred=pred) #juntando predicoes e observacoes
 threshDF = threshDF[complete.cases(threshDF),] #retirando possiveis NAs
 
@@ -509,7 +511,7 @@ dev.off()
 
 ##salvando imagens jpeg no HD
 
-mapInv = raster(paste(projectFolder,'/maxent/SDMpredInv_Suitability_Mean.asc',sep='')) #abrindo arquivo salvo
+mapInv = raster(paste(projectFolder,'/maxent - Yavanna/SDMpredInv_Suitability_Mean.asc',sep='')) #abrindo arquivo salvo
 
 ##binario
 jpeg(paste(projectFolder,'/mapInvBIN.jpg',sep=''), width=900, height=900)
@@ -528,7 +530,7 @@ plot(wrld,lwd=0.1, add=TRUE)
 dev.off()
 
 
-mapNat = raster(paste(projectFolder,'/maxent/SDMpredNativ_Suitability_Mean.asc',sep='')) #abrindo arquivo salvo
+mapNat = raster(paste(projectFolder,'/maxent - Yavanna/SDMpredNativ_Suitability_Mean.asc',sep='')) #abrindo arquivo salvo
 
 ##binario
 jpeg(paste(projectFolder,'/mapNatBIN.jpg',sep=''), width=900, height=900)
@@ -555,7 +557,7 @@ dev.off()
 
 
 ##mapa de suitability na area invadida
-mapInv = raster(paste(projectFolder,'/maxent/SDMpredInv_Suitability.asc',sep=''), crs=CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0'))
+mapInv = raster(paste(projectFolder,'/maxent - Yavanna/SDMpredInv_Suitability_Mean.asc',sep=''), crs=CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0'))
 mapInv = crop(x=mapInv, y=areaInv) #so pra garantir
 
 ##indice (fazer apenas uma vez, salvar e usar o salvo - da mto trabalho ajustar esse negocio...)
@@ -586,7 +588,7 @@ densRasInv = crop(x=densRas, y=invAreaExtent)
 ##plot(densRasInv)
 ##plot(wrld,add=T)
 ##amostrando os pontos de bg
-bgPts = randomPoints(mask=densRasInv, n=nrow(spInv)*2, prob=TRUE)
+bgPts = randomPoints(mask=densRasInv, n=nrow(spInv)*2, p=spInv, prob=TRUE)
 bgPts = data.frame(bgPts)
 names(bgPts) = names(spInv)
 
@@ -607,6 +609,7 @@ suitabilityPts = extract(x=mapInv, y=datasetGohi[,c('lon','lat')])
 datasetGohi = cbind(datasetGohi,gohiPts,suitabilityPts)
 datasetGohi = datasetGohi[complete.cases(datasetGohi),]
 
+
 ##modelos estatisticos - GLM para presenca/background X GOHI##
 modelGohi = glm(pres ~ gohiPts, data=datasetGohi, family=binomial) #modelo linear
 summary(modelGohi)
@@ -614,17 +617,20 @@ summary(modelGohi)
 modelGohiQuad = glm(pres ~ gohiPts + I(gohiPts^2), data=datasetGohi, family=binomial) #modelo quadratico
 summary(modelGohiQuad)
 
-AIC(modelGohi, modelGohiQuad) #comparando por AIC
-anova(modelGohi, modelGohiQuad, test='Chisq') #comparando por Chisq
+aicPresXgohi =  AIC(modelGohi, modelGohiQuad) #comparando por AIC
+anovaPresXgohi = anova(modelGohi, modelGohiQuad, test='Chisq') #comparando por Chisq
 
 ##visualizacao grafica
-plot(datasetGohi$pres ~ datasetGohi$gohiPts, ylab='Occurrrence', xlab='GOHI') 
+jpeg(filename=paste(projectFolder,'/presXgohi.jpg',sep=''))
+plot(datasetGohi$pres ~ datasetGohi$gohiPts, xlim=range(datasetGohi$gohiPts), pch=20, ylab='Occurrrence', xlab='GOHI') 
 points(x = c(-100:100/10),
        y = predict(modelGohi, newdata=data.frame(gohiPts=c(-100:100/10)), type='response'),
        col='red', type='l')
 points(x = c(-100:100/10),
        y = predict(modelGohiQuad, newdata=data.frame(gohiPts=c(-100:100/10)), type='response'),
        col='blue', type='l')
+legend(x=3.3, y=0.95, legend=c('Linear model','Quadratic model'), lty=1, col=c('red','blue'))
+dev.off()
 
 
 ## ##correlacao (linear) usando pontos de presenca/background na area de invasao
@@ -649,17 +655,31 @@ summary(modelSuitXGohi)
 modelSuitXGohiQuad = glm(suitabilityPts ~ gohiPts + I(gohiPts^2), data=datasetGohi) #modelo quadratico
 summary(modelSuitXGohiQuad)
 
-AIC(modelSuitXGohi, modelSuitXGohiQuad) #comparando por AIC
-anova(modelSuitXGohi, modelSuitXGohiQuad, test='Chisq') #comparando por Chisq
+aicSuitXgohi =  AIC(modelSuitXGohi, modelSuitXGohiQuad) #comparando por AIC
+anovaSuitXgohi = anova(modelSuitXGohi, modelSuitXGohiQuad, test='Chisq') #comparando por Chisq
 
 ##visualizacao grafica
-plot(datasetGohi$suitabilityPts ~ datasetGohi$gohiPts, ylim=c(0,1.1), xlim=c(-10,10), xlab='GOHI', ylab='Suitability') 
+jpeg(filename=paste(projectFolder,'/suitabilityXgohi.jpg',sep=''))
+plot(datasetGohi$suitabilityPts ~ datasetGohi$gohiPts,  xlim=range(datasetGohi$gohiPts), pch=20, xlab='GOHI', ylab='Suitability') 
 points(x = c(-100:100/10),
        y = predict(modelSuitXGohi, newdata=data.frame(gohiPts=c(-100:100/10)), type='response'),
        col='red', type='l')
 points(x = c(-100:100/10),
        y = predict(modelSuitXGohiQuad, newdata=data.frame(gohiPts=c(-100:100/10)), type='response'),
        col='blue', type='l')
+legend(x=3.3,y=0.99, legend=c('Linear model','Quadratic model'), lty=1, col=c('red','blue'))
+dev.off()
+
+
+##tabela dos resultados dos modelos##
+
+modelsGOHI = data.frame( responseVariable = c('occurrence','occurrence','suitability','suitability'),
+                        model = c('linear','quadratic','linear','quadratic'),
+                        degree_freedom = c(anovaPresXgohi$ 'Resid. Df', anovaSuitXgohi$ 'Resid. Df'),
+                        deviance = c(anovaPresXgohi$ 'Resid. Dev', anovaSuitXgohi$ 'Resid. Dev'),
+                        aic = c(aicPresXgohi$AIC, aicSuitXgohi$AIC) )
+
+write.csv(modelsGOHI, paste(projectFolder,'/modelsGOHI.csv',sep='' ), row.names=FALSE)
 
 
 
