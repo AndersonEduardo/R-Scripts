@@ -217,62 +217,62 @@ for(i in 1:Nsp){
         biasLayerBGptsKDE = crop(x=biasLayerBGptsKDE, y=bgArea)
         extent(biasLayerBGptsKDE) = extent(bgArea)
         biasLayerBGptsKDE = biasLayerBGptsKDE/biasLayerBGptsKDE@data@max #ajustando entre 0 e 1
-        values(biasLayerBGptsKDE)[which(values(biasLayerBGptsKDE)<=0)] = NA
+        values(biasLayerBGptsKDE)[which(values(biasLayerBGptsKDE)<=0)] = 0
         
         occPoints = dismo::randomPoints(mask=SpDistAC*biasLayerBGptsKDE, n=sampleSizes[j], prob=TRUE) #sorteando pontos da distribuicao modelada
 
-        rm(SpDistAC) ##teste do bug persistente
+        ##rm(SpDistAC) ##teste do bug persistente
         occPoints = data.frame(lon=occPoints[,1],lat=occPoints[,2])
     
         
-        ## amostrando pontos back ground
-        bgPoints = dismo::randomPoints(mask=biasLayerBGptsKDE, n=5000, p=occPoints, prob=TRUE) #sorteando pontos da distribuicao modelada
-        
-        ##betterPseudoDF = extract(projStackBIN[[k]], be tterPseudoPoints) #distinguindo entre occ e ausencia
-        bgPointsDF = data.frame(lon=bgPoints[,1], lat=bgPoints[,2], occ=0) #distinguindo entre occ e ausencia
-        ##betterPseudo[[k]] =  data.frame(lon=betterPseudoPoints[,1], lat=betterPseudoPoints[,2], occ=betterPseudoDF) #data.frame
-        ##betterPseudo[[k]] = betterPseudo[[k]][which(betterPseudo[[k]]$occ==0),] #excluindo as presencas
-        bgPointsVar = extract(predictors, bgPointsDF[,c('lon','lat')]) #obtendo as variaveis preditoras nos pontos
-        bgPointsDF = data.frame(bgPointsDF, bgPointsVar) #motando dataset
-        
-        ## plot(projStackBIN[[k]])
-        ## points(betterPseudo[[k]][,c('lon','lat')])
-        
-        ##definindo variaveis e parametros locais para o biomod2 (que rodara a seguir)
-        occPointsDF = data.frame(occPoints, occ=1, extract(predictors,occPoints)) #assumindo que o stack predictors contem apenas as variaveis empregadas no projeto atual
-        
-        ##agrupando ocorrencias e pseudo-ausencias melhoradas
-        dataSet = data.frame(rbind(occPointsDF, bgPointsDF)) #planilha de dados no formato SWD
-        ##variaveis e parametros locais especificos para o biomod2
-        myRespName <- paste('sp',i,sep='')  # nome do cenario atual (para biomod2)
-        myResp <- dataSet[,c('occ')] # variavel resposta (para biomod2)
-        myRespXY <- dataSet[,c('lon','lat')] # coordenadas associadas a variavel resposta (para biomod2)
-        myExpl = dataSet[,c('bioclim_01','bioclim_12')]  #variavel preditora (para biomod2)
-        
-        
-        ##ajuste de dados de entrada para biomod2
-        myBiomodData <- BIOMOD_FormatingData(resp.var = myResp,
-                                             expl.var = myExpl,
-                                             resp.xy = myRespXY, 
-                                             resp.name = paste(myRespName,'_sample',sampleSizes[j],'_biaslevel',current_vies_level,'_SDMnormal',sep=''))
-        
-        
-        # myResp <- data.frame(lon=occPoints[,1], lat=occPoints[,2])
-        # coordinates(myResp) <- ~ lon + lat #transformando em spatialPoints
-        # crs(myResp) = CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0') #transformando em spatialPoints
+        # ## amostrando pontos back ground
+        # bgPoints = dismo::randomPoints(mask=biasLayerBGptsKDE+0.001, n=5000, p=occPoints, prob=TRUE) #sorteando pontos da distribuicao modelada
         # 
+        # ##betterPseudoDF = extract(projStackBIN[[k]], be tterPseudoPoints) #distinguindo entre occ e ausencia
+        # bgPointsDF = data.frame(lon=bgPoints[,1], lat=bgPoints[,2], occ=0) #distinguindo entre occ e ausencia
+        # ##betterPseudo[[k]] =  data.frame(lon=betterPseudoPoints[,1], lat=betterPseudoPoints[,2], occ=betterPseudoDF) #data.frame
+        # ##betterPseudo[[k]] = betterPseudo[[k]][which(betterPseudo[[k]]$occ==0),] #excluindo as presencas
+        # bgPointsVar = extract(predictors, bgPointsDF[,c('lon','lat')]) #obtendo as variaveis preditoras nos pontos
+        # bgPointsDF = data.frame(bgPointsDF, bgPointsVar) #motando dataset
+        # 
+        # ## plot(projStackBIN[[k]])
+        # ## points(betterPseudo[[k]][,c('lon','lat')])
+        # 
+        # ##definindo variaveis e parametros locais para o biomod2 (que rodara a seguir)
+        # occPointsDF = data.frame(occPoints, occ=1, extract(predictors,occPoints)) #assumindo que o stack predictors contem apenas as variaveis empregadas no projeto atual
+        # 
+        # ##agrupando ocorrencias e pseudo-ausencias melhoradas
+        # dataSet = data.frame(rbind(occPointsDF, bgPointsDF)) #planilha de dados no formato SWD
         # ##variaveis e parametros locais especificos para o biomod2
         # myRespName <- paste('sp',i,sep='')  # nome do cenario atual (para biomod2)
-        # ##myResp <- dataSet[,c('pres')] # variavel resposta (para biomod2)
-        # ##myRespXY <- dataSet[,c('lon','lat')] # coordenadas associadas a variavel resposta (para biomod2)
-        # myExpl = predictors  #variavel preditora (para biomod2)
+        # myResp <- dataSet[,c('occ')] # variavel resposta (para biomod2)
+        # myRespXY <- dataSet[,c('lon','lat')] # coordenadas associadas a variavel resposta (para biomod2)
+        # myExpl = dataSet[,c('bioclim_01','bioclim_12')]  #variavel preditora (para biomod2)
+        # 
         # 
         # ##ajuste de dados de entrada para biomod2
         # myBiomodData <- BIOMOD_FormatingData(resp.var = myResp,
         #                                      expl.var = myExpl,
-        #                                      resp.name = paste(myRespName,'_sample',sampleSizes[j],'_biaslevel',current_vies_level,'_SDMnormal',sep=''),
-        #                                      PA.nb.rep = 1,
-        #                                      PA.nb.absences = 5000)
+        #                                      resp.xy = myRespXY, 
+        #                                      resp.name = paste(myRespName,'_sample',sampleSizes[j],'_biaslevel',current_vies_level,'_SDMnormal',sep=''))
+        # 
+        
+        myResp <- data.frame(lon=occPoints[,1], lat=occPoints[,2])
+        coordinates(myResp) <- ~ lon + lat #transformando em spatialPoints
+        crs(myResp) = CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0') #transformando em spatialPoints
+
+        ##variaveis e parametros locais especificos para o biomod2
+        myRespName <- paste('sp',i,sep='')  # nome do cenario atual (para biomod2)
+        ##myResp <- dataSet[,c('pres')] # variavel resposta (para biomod2)
+        ##myRespXY <- dataSet[,c('lon','lat')] # coordenadas associadas a variavel resposta (para biomod2)
+        myExpl = predictors  #variavel preditora (para biomod2)
+
+        ##ajuste de dados de entrada para biomod2
+        myBiomodData <- BIOMOD_FormatingData(resp.var = myResp,
+                                             expl.var = myExpl,
+                                             resp.name = paste(myRespName,'_sample',sampleSizes[j],'_biaslevel',current_vies_level,'_SDMnormal',sep=''),
+                                             PA.nb.rep = 1,
+                                             PA.nb.absences = 5000)
         
         ## ##inspecionando o objeto gerado pela funcao do biomod2
         ## myBiomodData
@@ -357,7 +357,7 @@ for(i in 1:Nsp){
           models = c('MAXENT.Phillips','GLM','GAM','MARS','CTA','GBM','RF'),
           models.options = myBiomodOption,
           NbRunEval = SDMreplicates,
-          DataSplit = 70,
+          DataSplit = 80,
           models.eval.meth = c('TSS','ROC'),
           do.full.models = FALSE,
           modeling.id = paste(myRespName,'_sample',sampleSizes[j],'_SDMnormal',sep=''))
@@ -694,7 +694,8 @@ for(i in 1:Nsp){
         ## biasLayerBGpts = biasLayerBGpts[ sapply(biasLayerBGpts$kcluster, function(x) x  %in% vies_i), ]
         
         ##bias layer da iteracao atual - sps range
-        SpDistAC = raster(paste(projectFolder,'/virtual species/sp',i,'.asc',sep=''))          
+        SpDistAC = raster(paste(projectFolder,'/virtual species/sp',i,'.asc',sep=''))
+        crs(SpDistAC) = CRS( '+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0' )
         biasLayerBGpts =  data.frame( dismo::randomPoints(mask=SpDistAC, n=100, prob=TRUE) )
         ptsCluster = kmeans(x=biasLayerBGpts, centers=5, nstart=5)
         biasLayerBGpts$kcluster = ptsCluster$cluster
@@ -708,9 +709,10 @@ for(i in 1:Nsp){
         
         ##KDE
         bgArea = SpDistAC*0 #predictors[[1]]*0
+        crs(bgArea) = CRS( '+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0' )
         biasLayer = data.frame(biasLayerBGpts[,1:2])
         coordinates(biasLayer) = ~x+y
-        proj4string(biasLayer) <- CRS('+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs +towgs84=0,0,0')
+        crs(biasLayer) <- CRS('+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs +towgs84=0,0,0')
         biasLayerBGptsKDE = MASS::kde2d(x=biasLayer$x, y=biasLayer$y, n=100, lims=c(xl=extent(bgArea)@xmin, xu=extent(bgArea)@xmax, yl=extent(bgArea)@ymin, yl=extent(bgArea)@ymax ))
         ##raster
         biasLayerBGptsKDE = raster(biasLayerBGptsKDE)
@@ -727,11 +729,13 @@ for(i in 1:Nsp){
         biasLayerBGptsKDE = crop(x=biasLayerBGptsKDE, y=bgArea)
         extent(biasLayerBGptsKDE) = extent(bgArea)
         biasLayerBGptsKDE = biasLayerBGptsKDE/biasLayerBGptsKDE@data@max #ajustando entre 0 e 1
+        values(biasLayerBGptsKDE)[which(values(biasLayerBGptsKDE)<=0)] = 0
         
-        ##potos de ocorrencia            
-        SpDistAC = raster(paste(projectFolder,'/virtual species/sp',i,'.asc',sep=''))
-        biasLayerBGptsKDE = crop(biasLayerBGptsKDE,SpDistAC)
-        extent(biasLayerBGptsKDE) =  extent(SpDistAC) 
+        
+        ##potos de ocorrencia          
+        ##SpDistAC = raster(paste(projectFolder,'/virtual species/sp',i,'.asc',sep=''))
+        ##biasLayerBGptsKDE = crop(biasLayerBGptsKDE,SpDistAC)
+        ##extent(biasLayerBGptsKDE) =  extent(SpDistAC) 
         ## values(SpDistAC)[values(SpDistAC)==0] = NA
         occPoints = dismo::randomPoints( mask=SpDistAC*biasLayerBGptsKDE, n=sampleSizes[j], prob=TRUE ) #sorteando pontos da distribuicao modelada
         rm(SpDistAC) ##teste do bug persistente
@@ -756,10 +760,10 @@ for(i in 1:Nsp){
         verifyOverproj = function(x) length( values(x)[which(values(x)==0)] ) == 0 #funcao para verificar
         projAbsList = unstack(projAbs) #tranfromando o raster stack em lista (para a funcao)
         overProj = lapply(projAbsList, verifyOverproj) #lista dos raster com sobreprojecao
-        overProjIdx = which(overProj != TRUE) #indices dos rasters com sobreprojecao
+        projIdx = which(overProj != TRUE) #indices dos rasters com sobreprojecao
         
-        if( length(overProjIdx) > 0 ){
-          projAbs = projAbs[[overProjIdx]]
+        if( length(projIdx) > 0 ){
+          projAbs = projAbs[[projIdx]]
         }else{
           print(' ATENCAO! Essa iteracao falhou porque todos os rasters da etapa 1 estavam com sobreprojecao!')
           
@@ -793,8 +797,8 @@ for(i in 1:Nsp){
         betterPseudoDF = data.frame(lon=betterPseudoPoints[,1], lat=betterPseudoPoints[,2], occ=0) #distinguindo entre occ e ausencia
         ##betterPseudo[[k]] =  data.frame(lon=betterPseudoPoints[,1], lat=betterPseudoPoints[,2], occ=betterPseudoDF) #data.frame
         ##betterPseudo[[k]] = betterPseudo[[k]][which(betterPseudo[[k]]$occ==0),] #excluindo as presencas
-        betterPseudoVar = extract(predictors,betterPseudoDF[,c('lon','lat')]) #obtendo as variaveis preditoras nos pontos
-        betterPseudoDF = data.frame(betterPseudoDF,betterPseudoVar) #motando dataset
+        betterPseudoVar = extract(predictors, betterPseudoDF[,c('lon','lat')]) #obtendo as variaveis preditoras nos pontos
+        betterPseudoDF = data.frame(betterPseudoDF, betterPseudoVar) #motando dataset
         
         ## plot(projStackBIN[[k]])
         ## points(betterPseudo[[k]][,c('lon','lat')])
