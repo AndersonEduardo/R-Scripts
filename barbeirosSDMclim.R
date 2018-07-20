@@ -1,4 +1,4 @@
-##SCRIPT PARA DISTRIBUICAO DE BARBEIROS (PRESENTE E FUTURO) - APENAS VARIAVEIS CLIMATICAS##
+##SCRIPT PARA DISTRIBUICAO DE BARBEIROS (SDMclim) - APENAS VARIAVEIS CLIMATICAS##
 
 library(raster)
 library(maptools)
@@ -21,14 +21,14 @@ options(java.parameters = "Xmx7g")
 ## spOccFolder = "J:/Lucas/Modelagem barbeiros/Ocorrencias"
 ## projectFolder = "J:/Lucas/Modelagem barbeiros/"
 #anderson
-envVarFolder = "/home/anderson/Documentos/Projetos/Distribuicao de barbeiros com interacao com humanos/Variaveis Climaticas"
-spOccFolder = "/home/anderson/Documentos/Projetos/Distribuicao de barbeiros com interacao com humanos/Ocorrencias"
-projectFolder = "/home/anderson/Documentos/Projetos/Distribuicao de barbeiros com interacao com humanos"
-AmSulShape = rgdal::readOGR("/home/anderson/PosDoc/shapefiles/Am_Sul/borders.shp") #abrindo shape da America do Sul
-SAborders = rgdal::readOGR('/home/anderson/PosDoc/shapefiles/continents/continent.shp') #bordas de continentes
+envVarFolder = "/home/anderson/Projetos/Distribuicao de barbeiros com interacao com humanos/Variaveis Climaticas"
+spOccFolder = "/home/anderson/Projetos/Distribuicao de barbeiros com interacao com humanos/Ocorrencias"
+projectFolder = "/home/anderson/Projetos/Distribuicao de barbeiros com interacao com humanos"
+AmSulShape = rgdal::readOGR("/home/anderson/shapefiles/Am_Sul/borders.shp") #abrindo shape da America do Sul
+SAborders = rgdal::readOGR('/home/anderson/shapefiles/ne_50m_land/ne_50m_land.shp') #bordas de continentes
 SOAextent = extent(-81.57551,-34.03384,-57.13385,12.99115)
 SAborders = crop(SAborders,SOAextent)
-biasLayer = raster('/home/anderson/Documentos/Projetos/Distribuicao de barbeiros com interacao com humanos/Ocorrencias/reduviidaeBiasLayer.grd')
+biasLayer = raster('/home/anderson/Projetos/Distribuicao de barbeiros com interacao com humanos/Ocorrencias/reduviidaeBiasLayer.grd')
 
 
 
@@ -443,10 +443,7 @@ for (sp_i in splist[-1]){
 }
 
 
-
 ###calculo do PARTIAL AUC####
-
-
 
 source('/home/anderson/R/R-Scripts/PartialROC.R')
 library(sqldf)
@@ -495,19 +492,8 @@ for (sp_i in splist){
 
 
 
+###QUARTA PARTE: gerando mapa de suitability acumulado (i.e., mapa de "riqueza") - SEM impacto humano###
 
-
-#################################################################################################
-
-
-
-
-###QUARTA PARTE: implementado mapas de riqueza###
-
-
-
-library(SSDM)
-vignette('SSDM')
 
 
 
@@ -515,398 +501,17 @@ vignette('SSDM')
 occ.sps <- list.files(paste(spOccFolder,'/sps_occ_Lucas',sep=''),pattern="csv")
 splist <-unlist(lapply(occ.sps, FUN = strsplit, split=("\\.csv")))
 
-dataSet = data.frame()
+##criando objeto para armazenas os mapas de suitability de cada especie
+spsStackSDMclim = stack()
 
-
-for (sp_i in splist){
-        
-        ##dados de ocorrencia
-        occPoints = read.csv(paste(spOccFolder,'/sps_occ_Lucas/',sp_i,'.csv',sep=''), header=FALSE, sep=',', dec='.', na.strings='',colClasses=c('character','numeric','numeric')) #abrindo pontos de ocorrencia
-        names(occPoints) =  c('sps','lon','lat')
-        occPoints$sps = sp_i
-   
-        ##pseudo-ausencia com o mesmo vies dos dados de ocorrencia    
-        bgPoints = dismo::randomPoints(mask=biasLayer, n=10000, p=occPoints[,c('lon','lat')], prob=TRUE)
-        bgPoints = data.frame(sps=sp_i, lon=bgPoints[,1], lat=bgPoints[,2])
-        
-        ##consolindando dados de presenca e background
-        dataSet = rbind(dataSet,
-                        data.frame(sps=c(occPoints$sps, bgPoints$sps),
-                                   lon=c(occPoints$lon, bgPoints$lon),
-                                   lat=c(occPoints$lat, bgPoints$lat),
-                                   occ=c(rep(1,nrow(occPoints)),rep(0,nrow(bgPoints)))))
-
-        dataSet[,c('lon','lat')] = round(dataSet[,c('lon','lat')], 2) #arredondando para garantir
-        dataSet = dataSet[complete.cases(dataSet),] #retirando dados errados
-        dataSet = dataSet[!duplicated(dataSet[,c('lon','lat')]),] #retirando pontos numa mesma celula
-
+##loop para pegar os mapas de suitability de cada especie
+for(sp_i in splist){
+    mapSDMclim_sp_i = raster(paste(projectFolder,'/SDM outputs/resultados SDM sem humanos/',sp_i,'/',sp_i,'Suitability.asc',sep=''))
+    spsStackSDMclim = stack(c(spsStackSDMclim,mapSDMclim_sp_i))
 }
 
-
-SSDM <- stack_modelling(c('MAXENT'),
-                        dataSet[dataSet$occ==1,c('sps','lon','lat')],
-                        predictors,
-                        rep = 1,
-                        Xcol = 'lon',
-                        Ycol = 'lat',
-                        Spcol = 'sps',
-                        method = "pSSDM",
-                        verbose = FALSE)
-
-plot(SSDM@diversity.map, main = 'SSDM\nfor Cryptocarya genus\nwith CTA and SVM algorithms')
-
-
-
-
-###INTERACAO ENTRE ESPECIES COM JSDM
-
-
-
-install.packages(c('R2jags', 'MASS', 'MCMCpack', 'abind', 'random', 'mclust'))
-
-
-coefsDF = data.frame()
-
-for (sp_i in splist){
-        
-        ##dados de ocorrencia
-        occPoints = read.csv(paste(spOccFolder,'/sps_occ_Lucas/',sp_i,'.csv',sep=''), header=FALSE, sep=',', dec='.', na.strings='',colClasses=c('character','numeric','numeric')) #abrindo pontos de ocorrencia
-        names(occPoints) =  c('sps','lon','lat')
-        occPoints$sps = sp_i
-   
-        ##pseudo-ausencia com o mesmo vies dos dados de ocorrencia    
-        bgPoints = dismo::randomPoints(mask=biasLayer, n=10000, p=occPoints[,c('lon','lat')], prob=TRUE)
-        bgPoints = data.frame(sps=sp_i, lon=bgPoints[,1], lat=bgPoints[,2])
-        
-        ##consolindando dados de presenca e background
-        dataSet = data.frame(lon=c(occPoints$lon, bgPoints$lon),
-                             lat=c(occPoints$lat, bgPoints$lat),
-                             occ=c(rep(1,nrow(occPoints)),rep(0,nrow(bgPoints))))
-
-        dataSet[,c('lon','lat')] = round(dataSet[,c('lon','lat')], 2) #arredondando para garantir
-        ##variaveis ambientais##
-        dataSetVars = extract(x=predictors, y=dataSet[,c('lon','lat')], method='bilinear', na.rm=TRUE) #extraindo variaeis ambientais
-        dataSet = data.frame(dataSet, dataSetVars) #juntando ao dataset
-        dataSet = dataSet[complete.cases(dataSet),] #retirando dados errados
-        dataSet = dataSet[!duplicated(dataSet[,c('lon','lat')]),] #retirando pontos numa mesma celula
-
-
-    ##equacao do modelo##
-    modelEq = occ ~ predictors_bio10 +
-        predictors_bio11 +
-        predictors_bio12 +
-        predictors_bio13 +
-        predictors_bio14 +
-        predictors_bio15 +
-        predictors_bio16
-    
-
-    ##rodando SDM
-    GLM <- glm(modelEq, family=binomial(link=logit), data=dataSet)
-
-
-    ##projecao espacial
-    rm(SDMpred)
-    SDMpred =  predict(predictors, GLM, type='response')
-
-
-    ##guardando coeficientes
-    modelCoeffs = as.numeric(coef(GLM))
-    coefsDF = rbind(coefsDF, modelCoeffs)
-    names(coefsDF) = names(coef(GLM))
-    
-
-    ##threshold
-
-    ##valores preditos pelo SDM em cada ponto do dataset
-    pred =  extract(x=SDMpred,
-                    y=dataSet[,c('lon','lat')],
-                    method='bilinear',
-                    na.rm=TRUE)
-    threshDF = data.frame(occ=dataSet$occ, pred=pred) #juntando predicoes e observacoes
-    threshDF = threshDF[complete.cases(threshDF),] #retirando possiveis NAs
-    
-    ##OBS.: omissao -> falso negativo -> false negative rate (FNR) = 1 - TPR (True Positive Rate)
-    ##TPR = sensitividade
-    
-    myRoc = roc(predictor=threshDF$pred, response=threshDF$occ, positive=1) #curva ROC
-    rocDF = data.frame( FNR = 1-myRoc$sensitivities, thresholds = myRoc$thresholds ) #data.frame com omissao e thresholds
-    thre = max(rocDF[which(rocDF$FNR == max(rocDF[rocDF$FNR <= 0.05 ,]$FNR)),]$thresholds) #thresold de 5% omissao
-    
-    ##calculo do TSS para com o threshold -- OBS: TSS = sensitivity + specificity - 1
-        
-    TSSvalue = myRoc$sensitivities[which(myRoc$thresholds == thre)] + myRoc$specificities[which(myRoc$thresholds == thre)] - 1
-
-
-    ##mapa binario
-    SDMpredBIN =  SDMpred>thre
-
-
-    ##empilhando
-    SDMpredBINstack = stack(SDMpredBINstack, SDMpredBIN)
-
-}
-
-
-##arrumando os nomes das especies na pilha de mapas
-names(SDMpredBINstack) = splist
-
-
-##trandormando em dataframe
-spsOccMat = as.data.frame(SDMpredBIN, xy=TRUE, na.rm=TRUE) #transformando raster em data.frame
-names(spsOccMat) = c('lon', 'lat', splist)
-spsOccMat[,splist] = as.integer(spsOccMat[,splist])
-
-
-
-##matriz de coeficientes
-coefsMat = as.matrix(coefsDF)
-
-
-##matriz das preditoras
-locs = spsOccMat[,c('lon','lat')]
-varsMat = extract(predictors, locs, method='bilinear', na.rm=TRUE)
-X = as.matrix(varsMat)
-
-
-##alguns parametros para JSDM
-n_env_vars <- nlayers(predictors)
-n_sites <- nrow(spsOccMat)
-n_species <- length(splist)
-
-Occur <- as.matrix(spsOccMat[,splist])
-
-#Occur <- as.matrix(spsOccMat[,c('AA','BB')])
-
-##parametros mcmc 
-n.chains <- 5
-n.iter <- 1000 #150000
-n.burn <- 0.2*1000  #110000
-n.thin <- 40
-df <- 1
-model_name <- 'teste_teste'
-
-source("/home/anderson/Documentos/Projetos/Distribuicao de barbeiros com interacao com humanos/scriptSumplementarJSDM.R")
-
-Diagnose(Beta, 'rhat')
-
-Diagnose(Beta, 'effn')
-
-TPLOT(Beta, 2, 2)
-
-TPLOT(Rho, 1, 2)
-
-
-
-
-#################################################################################################################
-
-
-
-
-###TERCEIRA PARTE: gerando mapas de sobreposicao (i.e. mapa de riqueza) - SEM impacto humano###
-
-
-#sobrepondo distribuicoes para mapa de riqueza
-#presente
-listaPresente = grep(list.files(paste(projectFolder,"Projecoes",sep=""),full.names=TRUE),pattern='Otimista|Pessimista',inv=T,value=T)
-listaPresenteBIN = grep(listaPresente,pattern='BIN.asc',value=TRUE)
-camadasPresente = stack(listaPresenteBIN)
-mapaRiquezaPresente = sum(camadasPresente)
-plot(mapaRiquezaPresente)
-writeRaster(x=mapaRiquezaPresente,filename=paste(projectFolder,'Mapas de riqueza/mapaRiquezaPresente.asc',sep=''),overwrite=TRUE)
-
-#futuro otimista
-camadasFuturoOtimista = stack(list.files(paste(projectFolder,"Projecoes",sep=""),pattern="OtimistaBIN.asc",full.names=TRUE))
-mapaRiquezaFuturoOtimista = sum(camadasFuturoOtimista)
-plot(mapaRiquezaFuturoOtimista)
-writeRaster(x=mapaRiquezaFuturoOtimista,filename=paste(projectFolder,'Mapas de riqueza/mapaRiquezaFuturoOtimista.asc',sep=''),overwrite=TRUE)
-
-#futuro pessimista
-camadasFuturoPessimista = stack(list.files(paste(projectFolder,"Projecoes",sep=""),pattern="PessimistaBIN.asc",full.names=TRUE))
-mapaRiquezaFuturoPessimista = sum(camadasFuturoPessimista)
-plot(mapaRiquezaFuturoPessimista)
-writeRaster(x=mapaRiquezaFuturoPessimista,filename=paste(projectFolder,'Mapas de riqueza/mapaRiquezaFuturoPessimista.asc',sep=''),overwrite=TRUE)
-
-
-###QUARTA PARTE: gerando MAPAS DE RISCO - SEM impacto humano###
-
-
-##indices para RISCO DE INFECCAO por especie de vetor (dados SUS)
-##link: http://portalarquivos.saude.gov.br/images/pdf/2015/agosto/03/2014-020..pdf
-tabBarb = read.csv("/home/anderson/Documentos/Projetos/macroecologia_de_chagas/Taxa de infeccao natural vetores 2007-2011.csv",header=TRUE)
-#infecBarb = sort(tabBarb[,3],decreasing=TRUE)
-#infecIndOrdered = c(infecBarb[6],infecBarb[3],infecBarb[5],infecBarb[9],infecBarb[10],infecBarb[11],infecBarb[13],infecBarb[1])
-#infecInd = sort(1:length(infecBarb),decreasing=TRUE) #idice de infeccao para confeccao dos mapas
-
-#sobrepondo distribuicoes para mapa de risco
-#presente
-listaPresente = grep(list.files(paste(projectFolder,"Projecoes",sep=""),full.names=TRUE),pattern='Otimista|Pessimista',inv=T,value=T)
-listaPresenteBIN = grep(listaPresente,pattern='BIN.asc',value=TRUE)
-camadasPresente = stack(listaPresenteBIN)
-#
-listaNomes = names(camadasPresente)
-listaNomes = gsub(pattern='BIN',replacement='',x=listaNomes)
-listaNomes = basename(listaNomes)
-listaNomes = gsub(pattern='.asc',replacement='',x=listaNomes)
-infecIndOrdered = tabBarb$taxaInfeccaonatural[match(listaNomes,tabBarb$sp)]/100 #taxa de infeccao natural na ordem dos rasters (de 0 a 1)
-#
-mapaRiscoPresente = sum(camadasPresente*infecIndOrdered) 
-mapaRiscoPresente = mapaRiscoPresente/length(infecIndOrdered)
-plot(mapaRiscoPresente)
-writeRaster(x=mapaRiscoPresente,filename=paste(projectFolder,'Mapas de risco/mapaRiscoPresente.asc',sep=''),overwrite=TRUE)
-
-#futuro otimista
-camadasFuturoOtimista = stack(list.files(paste(projectFolder,"Projecoes",sep=""),pattern = "OtimistaBIN.asc",full.names=TRUE))
-listaNomes = names(camadasFuturoOtimista)
-listaNomes = gsub(pattern='OtimistaBIN',replacement='',x=listaNomes)
-infecIndOrdered = tabBarb$taxaInfeccaonatural[match(listaNomes,tabBarb$sp)]/100 #taxa de infeccao natural na ordem dos rasters (de 0 a 1)
-#
-mapaRiscoFuturoOtimista = sum(camadasFuturoOtimista*infecIndOrdered)
-mapaRiscoFuturoOtimista = mapaRiscoFuturoOtimista/length(infecIndOrdered)
-plot(mapaRiscoFuturoOtimista)
-writeRaster(x=mapaRiscoFuturoOtimista,filename=paste(projectFolder,'Mapas de risco/mapaRiscoFuturoOtimista.asc',sep=''),overwrite=TRUE)
-
-#futuro pessimista
-camadasFuturoPessimista = stack(list.files(paste(projectFolder,"Projecoes",sep=""),pattern = "PessimistaBIN.asc",full.names=TRUE))
-listaNomes = names(camadasFuturoOtimista)
-listaNomes = gsub(pattern='OtimistaBIN',replacement='',x=listaNomes)
-infecIndOrdered = tabBarb$taxaInfeccaonatural[match(listaNomes,tabBarb$sp)]/100 #taxa de infeccao natural na ordem dos rasters (de 0 a 1)
-#
-mapaRiscoFuturoPessimista = sum(camadasFuturoPessimista*infecIndOrdered)
-mapaRiscoFuturoPessimista = mapaRiscoFuturoPessimista/length(infecIndOrdered)
-plot(mapaRiscoFuturoPessimista)
-writeRaster(x=mapaRiscoFuturoPessimista,filename=paste(projectFolder,'Mapas de risco/mapaRiscoFuturoPessimista.asc',sep=''),overwrite=TRUE)
-
-
-###QUINTA PARTE: estatisticas sumarias a partir dos mapas - SEM impacto humano###
-
-
-##definindo a area do Brasil na America do Sul, para os mapas
-areaBR = extent(-80.00635,-31.71555,-37.8679,8.156474) #extent do Brasil
-AmSulBR = crop(AmSulShape, extent(areaBR))  #america do sul recortada para o BR
-
-#presente 
-
-##abrindo
-mapaRiquezaPresente = raster(paste(projectFolder,'Mapas de riqueza/mapaRiquezaPresente.asc',sep=''))
-mapaRiscoPresente = raster(paste(projectFolder,'Mapas de risco/mapaRiscoPresente.asc',sep=''))
-
-##cortando para o Brasil
-mapaRiquezaPresenteBR = mask(mapaRiquezaPresente, mask=(AmSulShape[AmSulShape$CNTRY_NAME=='Brazil',]))
-mapaRiscoPresenteBR = mask(mapaRiscoPresente, mask=(AmSulShape[AmSulShape$CNTRY_NAME=='Brazil',]))
-
-#tamanho da area do quartil superior (para riqueza e risco), para comparar os cenarios
-hightRiqPres= mapaRiquezaPresenteBR > quantile(mapaRiquezaPresenteBR, 0.75,na.rm=TRUE) #raster quartil superior riqueza
-hightRiscPres = mapaRiscoPresenteBR > quantile(mapaRiscoPresenteBR, 0.75,na.rm=TRUE) #raster quartil superior risco
-
-percCelRiqPres = freq(hightRiqPres,value=1)/(freq(hightRiqPres,value=0)+freq(hightRiqPres,value=1)) #percentagem celulas no quartil sup.
-percCelRiscPres = freq(hightRiscPres,value=1)/(freq(hightRiscPres,value=0)+freq(hightRiscPres,value=1)) #percentagem de celulas no quartil sup.
-
-##correlacao entre riqueza e risco
-rm(test)
-test <- getValues(stack(hightRiqPres,hightRiscPres))
-corPres <- as.data.frame(cor(test, use="complete.obs",method='spearman'))
-##write.csv(cor.matrix,'cor_matrix.csv')
-
-#futuro otimista 
-
-##abrindo
-mapaRiquezaFuturoOtimista = raster(paste(projectFolder,'Mapas de riqueza/mapaRiquezaFuturoOtimista.asc',sep=''))
-mapaRiscoFuturoOtimista = raster(paste(projectFolder,'Mapas de risco/mapaRiscoFuturoOtimista.asc',sep=''))
-
-##cortando para o BR
-mapaRiquezaFuturoOtimistaBR = mask(mapaRiquezaFuturoOtimista, mask=(AmSulShape[AmSulShape$CNTRY_NAME=='Brazil',]))
-mapaRiscoFuturoOtimistaBR = mask(mapaRiscoFuturoOtimista, mask=(AmSulShape[AmSulShape$CNTRY_NAME=='Brazil',]))
-
-##tamanho da area do quartil superior (para riqueza e risco), para comparar os cenarios
-hightRiqOtim= mapaRiquezaFuturoOtimistaBR > quantile(mapaRiquezaFuturoOtimistaBR, 0.75,na.rm=TRUE) #raster quartil superior riqueza
-hightRiscOtim = mapaRiscoFuturoOtimistaBR > quantile(mapaRiscoFuturoOtimistaBR, 0.75,na.rm=TRUE) #raster quartil superior risco
-
-percCelRiqOtim = freq(hightRiqOtim,value=1)/(freq(hightRiqOtim,value=0)+freq(hightRiqOtim,value=1)) #percentagem celulas no quartil sup.
-percCelRiscOtim =  freq(hightRiscOtim,value=1)/(freq(hightRiscOtim,value=0)+freq(hightRiscOtim,value=1)) #percentagem de celulas no quartil sup.
-
-##correlacao entre riqueza e risco
-rm(test)
-test <- getValues(stack(hightRiqOtim,hightRiscOtim))
-corOtim <- as.data.frame(cor(test, use="complete.obs",method='spearman'))
-##write.csv(cor.matrix,'cor_matrix.csv')
-
-##futuro pessimista 
-
-##abrindo
-mapaRiquezaFuturoPessimista = raster(paste(projectFolder,'Mapas de riqueza/mapaRiquezaFuturoPessimista.asc',sep=''))
-mapaRiscoFuturoPessimista = raster(paste(projectFolder,'Mapas de risco/mapaRiscoFuturoPessimista.asc',sep=''))
-
-##cortando para o BR
-mapaRiquezaFuturoPessimistaBR = mask(mapaRiquezaFuturoPessimista, mask=(AmSulShape[AmSulShape$CNTRY_NAME=='Brazil',]))
-mapaRiscoFuturoPessimistaBR = mask(mapaRiscoFuturoPessimista, mask=(AmSulShape[AmSulShape$CNTRY_NAME=='Brazil',]))
-
-#tamanho da area do quartil superior (para riqueza e risco), para comparar os cenarios
-hightRiqPess = mapaRiquezaFuturoPessimistaBR > quantile(mapaRiquezaFuturoPessimistaBR, 0.75,na.rm=TRUE) #raster quartil superior riqueza
-hightRiscPess = mapaRiscoFuturoPessimistaBR > quantile(mapaRiscoFuturoPessimistaBR, 0.75,na.rm=TRUE) #raster quartil superior risco
-
-percCelRiqPess = freq(hightRiqPess,value=1)/(freq(hightRiqPess,value=0)+freq(hightRiqPess,value=1)) #percentagem celulas no quartil sup.
-percCelRiscPess = freq(hightRiscPess,value=1)/(freq(hightRiscPess,value=0)+freq(hightRiscPess,value=1))  #percentagem de celulas no quartil sup.
-
-##correlacao entre riqueza e risco
-rm(test)
-test <- getValues(stack(hightRiqPess,hightRiscPess))
-corPess <- as.data.frame(cor(test, use="complete.obs",method='spearman'))
-##write.csv(cor.matrix,'cor_matrix.csv')
-
-##salvando resultados em tabelas
-
-rm(tam)
-
-tab = data.frame(scenario=c('pres','fut_otim','fut_pess'),
-                 quantile75riq = c(quantile(mapaRiquezaPresenteBR, 0.75,na.rm=TRUE),quantile(mapaRiquezaFuturoOtimistaBR, 0.75,na.rm=TRUE),quantile(mapaRiquezaFuturoPessimistaBR, 0.75,na.rm=TRUE)),
-                 quantile75risc = c(quantile(mapaRiscoPresenteBR, 0.75,na.rm=TRUE),quantile(mapaRiscoFuturoOtimistaBR, 0.75,na.rm=TRUE), quantile(mapaRiscoFuturoPessimistaBR, 0.75,na.rm=TRUE)),
-                 percCellRiq = c(percCelRiqPres,percCelRiqOtim,percCelRiqPess),
-                 percCellRisc = c(percCelRiscPres,percCelRiscOtim,percCelRiscPess),
-                 corRiqRisc = c(corPres[1,2],corOtim[1,2],corPess[1,2])
-)
-
-write.csv(tab,paste(projectFolder,'statsRes.csv',sep=''),row.names = FALSE)
-
-
-###SEXTA PARTE: figuras dos mapas - SEM impacto humano###
-
-
-##abrindo os rasters
-
-mapaRiquezaPresente = raster(paste(projectFolder,'Mapas de riqueza/mapaRiquezaPresente.asc',sep=''))
-mapaRiquezaFuturoOtimista = raster(paste(projectFolder,'Mapas de riqueza/mapaRiquezaFuturoOtimista.asc',sep=''))
-mapaRiquezaFuturoPessimista = raster(paste(projectFolder,'Mapas de riqueza/mapaRiquezaFuturoPessimista.asc',sep=''))
-mapaRiscoPresente = raster(paste(projectFolder,'Mapas de risco/mapaRiscoPresente.asc',sep=''))
-mapaRiscoFuturoOtimista = raster(paste(projectFolder,'Mapas de risco/mapaRiscoFuturoOtimista.asc',sep=''))
-mapaRiscoFuturoPessimista = raster(paste(projectFolder,'Mapas de risco/mapaRiscoFuturoPessimista.asc',sep=''))
-
-##definindo a area do Brasil na America do Sul, para os mapas
-
-areaBR = extent(-80.00635,-31.71555,-37.8679,8.156474) #extent do Brasil
-AmSulBR = crop(AmSulShape, extent(areaBR))  #america do sul recortada para o BR
-
-##cortando para o Brasil
-mapaRiquezaPresenteBR = mask(mapaRiquezaPresente, mask=(AmSulShape[AmSulShape$CNTRY_NAME=='Brazil',]))
-mapaRiquezaFuturoOtimistaBR = mask(mapaRiquezaFuturoOtimista, mask=(AmSulShape[AmSulShape$CNTRY_NAME=='Brazil',]))
-mapaRiquezaFuturoPessimistaBR = mask(mapaRiquezaFuturoPessimista, mask=(AmSulShape[AmSulShape$CNTRY_NAME=='Brazil',]))
-mapaRiscoPresenteBR = mask(mapaRiscoPresente, mask=(AmSulShape[AmSulShape$CNTRY_NAME=='Brazil',]))
-mapaRiscoFuturoOtimistaBR = mask(mapaRiscoFuturoOtimista, mask=(AmSulShape[AmSulShape$CNTRY_NAME=='Brazil',]))
-mapaRiscoFuturoPessimistaBR = mask(mapaRiscoFuturoPessimista, mask=(AmSulShape[AmSulShape$CNTRY_NAME=='Brazil',]))
-
-
-##salvado os mapas
-jpeg(filename=paste(projectFolder,'mapas.jpeg',sep=''),width=1750,height=850)
-par(mfrow=c(2,3), mar=c(5,5,5,20))
-##riqueza
-plot(crop(mapaRiquezaPresenteBR,areaBR),main='Current climate',legend=FALSE,cex.axis=2,cex.main=4) + plot(AmSulShape[AmSulShape$CNTRY_NAME!='Brazil',],col='lightgray',add=TRUE) + plot(AmSulShape[AmSulShape$CNTRY_NAME=='Brazil',],add=TRUE) + box() + grid()
-plot(crop(mapaRiquezaFuturoOtimistaBR,areaBR),main='2070 optmistic',legend=FALSE,cex.axis=2,cex.main=4) + plot(AmSulShape[AmSulShape$CNTRY_NAME!='Brazil',],col='lightgray',add=TRUE) + plot(AmSulShape[AmSulShape$CNTRY_NAME=='Brazil',],add=TRUE) + box() + grid()
-plot(crop(mapaRiquezaFuturoPessimistaBR,areaBR),main='2070 pessimistic',legend=FALSE,cex.axis=2,cex.main=4) + plot(AmSulShape[AmSulShape$CNTRY_NAME!='Brazil',],col='lightgray',add=TRUE) + plot(AmSulShape[AmSulShape$CNTRY_NAME=='Brazil',],add=TRUE) + box() + grid()
-plot(mapaRiquezaFuturoPessimistaBR,legend.only=TRUE,legend.width=3,axis.args=list(cex.axis=2),legend.args=list(text='Species richness',font=2,side=4,line=4.5,cex=2.2,cex.axis=0.2)) #legenda
-##risco
-plot(crop(mapaRiscoPresenteBR,areaBR),main='Current climate',legend=FALSE,cex.axis=2,cex.main=4) + plot(AmSulShape[AmSulShape$CNTRY_NAME!='Brazil',],col='lightgray',add=TRUE) + plot(AmSulShape[AmSulShape$CNTRY_NAME=='Brazil',],add=TRUE) + box() + grid()
-plot(crop(mapaRiscoFuturoOtimistaBR,areaBR),main='2070 optmistic',legend=FALSE,cex.axis=2,cex.main=4) + plot(AmSulShape[AmSulShape$CNTRY_NAME!='Brazil',],col='lightgray',add=TRUE) + plot(AmSulShape[AmSulShape$CNTRY_NAME=='Brazil',],add=TRUE) + box() + grid()
-plot(crop(mapaRiscoFuturoPessimistaBR,areaBR),main='2070 pessimistic',legend=FALSE,cex.axis=2,cex.main=4) + plot(AmSulShape[AmSulShape$CNTRY_NAME!='Brazil',],col='lightgray',add=TRUE) + plot(AmSulShape[AmSulShape$CNTRY_NAME=='Brazil',],add=TRUE) + box() + grid()
-plot(mapaRiscoFuturoPessimistaBR,legend.only=TRUE,legend.width=3,axis.args=list(cex.axis=2),legend.args=list(text='Risk of infected vector',font=2,side=4,line=6.5,cex=2.2,cex.axis=0.2)) #legenda
-dev.off()
+##calculo do suitability acumylado a partir dos mapas de suitability de cada especie
+SDMclimAcumSuit = sum(spsStackSDMclim, na.rm=TRUE)
+writeRaster(x=SDMclimAcumSuit, paste(projectFolder,'/SDM outputs/SDMclimAcumSuit.asc', sep=''), overwrite=TRUE)
+
+##graficos - OBS: a figura do mapa de suitabality acumulado para SDMclim sera criado no script para SDMhuman (nesta mesma secao daquele script)
