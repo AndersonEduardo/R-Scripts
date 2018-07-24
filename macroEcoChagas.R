@@ -5,9 +5,9 @@ library(raster)
 library(rgdal)
 
 ##arquivos raster dos dados
-mapaRiqueza = raster('/home/anderson/Documentos/Projetos/Barbeiros_Lucas/resultados nicho climatico/Mapas de riqueza/mapaRiquezaPresente.asc')
+mapaRiqueza = raster('/home/anderson/Projetos/Distribuicao de barbeiros com interacao com humanos/SDM outputs/SDMclimAcumSuit.asc')
 mapaRisco = raster('/home/anderson/Documentos/Projetos/Barbeiros_Lucas/resultados nicho climatico/Mapas de risco/mapaRiscoPresente.asc')
-mapaRiquezaHii = raster('/home/anderson/Documentos/Projetos/Barbeiros_Lucas/resultados nicho climatico + impacto humano/Mapas de riqueza/mapaRiquezaPresente.asc')
+mapaRiquezaHii = raster('/home/anderson/Projetos/Distribuicao de barbeiros com interacao com humanos/SDM outputs/SDMhumanAcumSuit.asc')
 mapaRiscoHii = raster('/home/anderson/Documentos/Projetos/Barbeiros_Lucas/resultados nicho climatico + impacto humano/Mapas de risco/mapaRiscoPresente.asc')
 mapaHII = raster('/home/anderson/PosDoc/dados_ambientais/hii-s-america-geo-grid/res2-5/hii-2-5.asc')
 estados = readOGR(dsn='/home/anderson/PosDoc/shapefiles/br_unidades_da_federacao/BRUFE250GC_SIR.shp',layer='BRUFE250GC_SIR')
@@ -255,10 +255,11 @@ write.csv(tabResDATASUS,"/home/anderson/Documentos/Projetos/macroecologia_de_cha
 ############################################
 
 
-municipios = readOGR(dsn='/home/anderson/PosDoc/shapefiles/br_municipios/BRMUE250GC_SIR.shp',layer='BRMUE250GC_SIR')
-tabInfecbMuni = read.csv('/home/anderson/Documentos/Projetos/macroecologia_de_chagas/infeccao-municipio-2007-2014.csv',header=TRUE)
+municipios = readOGR(dsn='/home/anderson/shapefiles/br_municipios/BRMUE250GC_SIR.shp',layer='BRMUE250GC_SIR')
+#tabInfecbMuni = read.csv('/home/anderson/Documentos/Projetos/macroecologia_de_chagas/infeccao-municipio-2007-2014.csv',header=TRUE)
+tabInfecbMuni = read.csv('/home/anderson/Downloads/A165041200_17_141_3_DADOS_LIMPOS.csv',header=TRUE)
 
-##extraindo somente para municipios com dados SUS
+##extraindo SOMENTE para municipios com dados SUS
 muniShapes = municipios[match(toupper(tabInfecbMuni$municipio),municipios$NM_MUNICIP),] 
 riqMedMuni = sapply(extract(mapaRiqueza,muniShapes,na.rm=TRUE), mean, na.rm=TRUE)
 riscMedMuni = sapply(extract(mapaRisco,muniShapes,na.rm=TRUE), mean,na.rm=TRUE)
@@ -285,6 +286,9 @@ tabDadosTodosMuni = data.frame(municipios = municipios$NM_MUNICIP,
                           areaMuni=areaMuni)
 
 
+tabDadosTodosMuni = data.frame(municipios = municipios$NM_MUNICIP,
+                          riqMedMuni=riqMedMuni)
+
 ##salvando a tabela com dados das variaveis extraidas por municipio
 write.csv(tabDadosTodosMuni,file="/home/anderson/Documentos/Projetos/macroecologia_de_chagas/tabDadosTodosMuni.csv",row.names=FALSE)
 
@@ -292,11 +296,13 @@ write.csv(tabDadosTodosMuni,file="/home/anderson/Documentos/Projetos/macroecolog
 tabDadosTodosMuni = read.csv("/home/anderson/Documentos/Projetos/macroecologia_de_chagas/tabDadosTodosMuni.csv",header=TRUE)
 
 ##dados de doenca de chagas do ministerio da saude
-tabBarbMuni = read.csv("/home/anderson/Documentos/Projetos/macroecologia_de_chagas/infeccao-municipio-2007-2014.csv",header=TRUE)
+#tabBarbMuni = read.csv("/home/anderson/Documentos/Projetos/macroecologia_de_chagas/infeccao-municipio-2007-2014.csv",header=TRUE)
+tabBarbMuni = read.csv('/home/anderson/Downloads/A165041200_17_141_3_DADOS_LIMPOS.csv', h=T)
+names(tabBarbMuni) = c('municipio','casos')
 
 ##adicionando a tabela de dados de municipios
 vetorCasos = as.integer( tabDadosTodosMuni$municipios %in% toupper(tabBarbMuni$municipio) ) #vetor de 0 e 1
-vetorLinhas = base::match(toupper(tabBarbMuni$municipio),tabDadosTodosMuni$municipios) #encontrando as linhas que tem dados do SUS
+vetorLinhas = base::match( toupper(tabBarbMuni$municipio),tabDadosTodosMuni$municipios ) #encontrando as linhas que tem dados do SUS
 vetorCasos[vetorLinhas] = tabBarbMuni$casos #ajustando para '0' e 'numero de casos',  em vez de '0' e '1'
 tabDadosTodosMuni$casos = vetorCasos #adicionando na tabela de dados
 

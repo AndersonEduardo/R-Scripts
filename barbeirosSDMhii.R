@@ -23,8 +23,8 @@ options(java.parameters = "Xmx7g")
 envVarFolder = "/home/anderson/Projetos/Distribuicao de barbeiros com interacao com humanos/Variaveis Climaticas"
 spOccFolder = "/home/anderson/Projetos/Distribuicao de barbeiros com interacao com humanos/Ocorrencias"
 projectFolder = "/home/anderson/Projetos/Distribuicao de barbeiros com interacao com humanos"
-AmSulShape = rgdal::readOGR("/home/anderson/PosDoc/shapefiles/Am_Sul/borders.shp") #abrindo shape da America do Sul
-SAborders = rgdal::readOGR('/home/anderson/PosDoc/shapefiles/continents/continent.shp') #bordas de continentes
+##AmSulShape = rgdal::readOGR("/home/anderson/PosDoc/shapefiles/Am_Sul/borders.shp") #abrindo shape da America do Sul
+SAborders = rgdal::readOGR('/home/anderson/shapefiles/ne_50m_land/ne_50m_land.shp') #bordas de continentes
 SOAextent = extent(-81.57551,-34.03384,-57.13385,12.99115)
 SAborders = crop(SAborders,SOAextent)
 biasLayer = raster('/home/anderson/Projetos/Distribuicao de barbeiros com interacao com humanos/Ocorrencias/reduviidaeBiasLayer.grd')
@@ -642,107 +642,109 @@ dev.off()
 
 
 
-########################teste regressao com residuos###########################
+########################teste regressao espacial###########################
 
 
-humanInfluenceOutput = data.frame()
+library(nlme)
+
+
+##Criando objeto com a lista dos nomes das especies
+occ.sps <- list.files(paste(spOccFolder,'/sps_occ_Lucas',sep=''),pattern="csv")
+splist <- unlist(lapply(occ.sps, FUN = strsplit, split=("\\.csv")))
+
+##human density data (gridfile)
+humDens = raster('/home/anderson/gridfiles/Densidade humana/gpw-v4-population-density-rev10_2015_2pt5_min_asc/gpw_v4_population_density_rev10_2015_2pt5_min.asc')
+
+##bias layer
+biaslayer = raster('/home/anderson/Projetos/Distribuicao de barbeiros com interacao com humanos/Ocorrencias/reduviidaeBiasLayer.grd')
+
+##Reduviidae data
+reduviidaeDataset = read.csv(file='/home/anderson/Projetos/Distribuicao de barbeiros com interacao com humanos/Ocorrencias/reduviidaeDataset.csv', header=TRUE, sep=',', dec='.', stringsAsFactors=FALSE, na.strings="")
+reduviidaeOcc = reduviidaeDataset[,c('lon','lat')]
+
+##objeto para o output
+output = data.frame()
 
 for(sp_i in splist){
-
-    ##suitability
-    mapSDMclim_sp_i = raster(paste(projectFolder,'/SDM outputs/resultados SDM sem humanos/',sp_i,'/',sp_i,'Suitability.asc',sep=''))
 
     ##dados de ocorrencia
     occPoints = read.csv(paste(spOccFolder,'/sps_occ_Lucas/',sp_i,'.csv',sep=''), header=TRUE, sep=',', dec='.', na.strings='',colClasses=c('character','numeric','numeric')) #abrindo pontos de ocorrencia
     names(occPoints) =  c('sp','lon','lat')
     occPoints = occPoints[,c('lon','lat')]
 
-    ##pseudo-ausencia com o mesmo vies dos dados de ocorrencia    
-    bgPoints = dismo::randomPoints(mask=biasLayer, n=10000, p=occPoints, prob=TRUE)
-    bgPoints = data.frame(lon=bgPoints[,1], lat=bgPoints[,2])
+    ##produzindo background points com e sem correcao de vies amostral
+    bgPtsRand = dismo::randomPoints(mask=biaslayer, n=nrow(occPoints), p=occPoints, prob=FALSE)
+    bgPtsRand = data.frame(lon=bgPtsRand[,1], lat=bgPtsRand[,2])
+    bgPtsCorr = dismo::randomPoints(mask=biaslayer, n=nrow(occPoints), p=occPoints, prob=TRUE)
+    bgPtsCorr = data.frame(lon=bgPtsCorr[,1], lat=bgPtsCorr[,2])
 
-    ##consolindando dados de presenca e background
-    dataSet = data.frame(lon=c(occPoints$lon, bgPoints$lon),
-                         lat=c(occPoints$lat, bgPoints$lat),
-                         occ=c(rep(1,nrow(occPoints)),rep(0,nrow(bgPoints))))
-
-    dataSet[,c('lon','lat')] = round(dataSet[,c('lon','lat')], 2) #arredondando para garantir
-
-    ##tabela de ocorrencia e suitability
-    dataSuit = extract(x=mapSDMclim_sp_i, y=dataSet[,c('lon','lat')], method='bilinear', na.rm=TRUE)
-    dataSet = data.frame(dataSet, suitability=dataSuit)
+    ##consolindando dados de presenca e background (para background SEM CORRECAO de vies amostral)
+    dataSetRand = data.frame(lon=c(occPoints$lon, bgPtsRand$lon),
+                             lat=c(occPoints$lat, bgPtsRand$lat),
+                             occ=c(rep(1,nrow(occPoints)),rep(0,nrow(bgPtsRand))))
     
-    ##variaveis ambientais##
-    dataSetVars = extract(x=predictors[['humDens']], y=dataSet[,c('lon','lat')], method='bilinear', na.rm=TRUE) #extraindo variaeis ambientais
-    dataSet = data.frame(dataSet, dataSetVars) #juntando ao dataset
-    dataSet = dataSet[complete.cases(dataSet),] #retirando dados errados
-    dataSet = dataSet[!duplicated(dataSet[,c('lon','lat')]),] #retirando pontos numa mesma celula
-    names(dataSet) = c('lon','lat','occ','suitability','humDens')
-    
+    dataSetRand[,c('lon','lat')] = round(dataSetRand[,c('lon','lat')], 2) #arredondando para garantir
 
-    ##modelo
+    ##consolindando dados de presenca e background (para background COM CORRECAO de vies amostral)
+    dataSetCorr = data.frame(lon=c(occPoints$lon, bgPtsCorr$lon),
+                             lat=c(occPoints$lat, bgPtsCorr$lat),
+                             occ=c(rep(1,nrow(occPoints)),rep(0,nrow(bgPtsCorr))))
 
-    
-    glmModel = glm( occ ~ suitability + humDens, family='binomial', data=dataSet)
+    dataSetCorr[,c('lon','lat')] = round(dataSetCorr[,c('lon','lat')], 2) #arredondando para garantir
 
-    glmsuit = glm( occ ~ suitability, family='binomial', data=dataSet)
-    
-    xx = dismo::predict(preditoras , glmModel, type='response')
-
-    plot(xx)
-
+    ##dados de densidade humana nos pontos
+    dhRand = extract(x=humDens, y=dataSetRand[,c('lon','lat')], buffer=10000, fun=mean)
+    dataSetRand$hd = dhRand
+    dhCorr = extract(x=humDens, y=dataSetCorr[,c('lon','lat')], buffer=10000, fun=mean)
+    dataSetCorr$hd = dhCorr
 
     
-    ##GLM do nicho
-    glmNiche = glm(occ ~ suitability, family='binomial', data=dataSuit)
+    ##modelos##
 
-    plot(dataSuit$occ ~ dataSuit$suitability, xlim=c(0,1))
-    glmPred = predict(glmNiche, data.frame(suitability=dataSuit$suitability ), type='response')
-    points(glmPred ~ dataSuit$suitability, col='red')
+    glmRand = glm(occ ~ log(hd), data=dataSetRand, family= binomial(link = "logit"))
+    glmCorr = glm(occ ~ log(hd), data=dataSetCorr, family= binomial(link = "logit"))
 
+    output = rbind(output,
+                   data.frame(sps = rep(sp_i,2),
+                              Background_points = c('random','biased'),
+                              coeficients = c(as.numeric(coef(glmRand)[2]), as.numeric(coef(glmCorr)[2])),
+                              Null_deviance = c(glmRand$null.deviance, glmCorr$null.deviance),
+                              Res_deviance = c(glmRand$deviance, glmCorr$null.deviance),
+                              AIC = c(glmRand$aic, glmCorr$aic)))
     
-    ##GLM dos residuos do GLMniche com a densidade humana
-    glmHumanDF = data.frame(residuo = as.numeric(log(resid(glmNiche)))[!is.nan(as.numeric(log(resid(glmNiche))))],
-                            humanDens = dataSet$humDens[!is.nan(as.numeric(log(resid(glmNiche))))] )
-
-    glmHumanDF = data.frame(residuo = log(abs(resid(glmNiche))),
-                            humanDens = dataSet$humDens)
-
-    
-    glmHuman = glm( residuo ~ humanDens, family=gaussian, data=glmHumanDF )
-    #glmHuman2 = glm(log(resid) ~ humanDens + I(humanDens^2) , family=gaussian, data=glmHumanDF)
-
-    plot( log(abs(glmHumanDF$residuo)) ~ log(glmHumanDF$humanDens)) 
-
-    glmPred = predict(glmHuman, data.frame(humanDens=glmHumanDF$humanDens), type='response')
-    points(glmPred ~ glmHumanDF$humanDens, col='red')
-    
-
-    ##tabela de outputs
-    humanInfluenceOutput = rbind(
-        humanInfluenceOutput,
-        data.frame(
-            Sps = sp_i,
-            ##glmNiche
-            Beta_GLMsuitability = as.numeric(glmNiche$coefficients['suitability']),
-            p_value = as.data.frame(coef(summary(glmNiche)))['suitability','Pr(>|z|)'],
-            AIC_GLMsuitability = glmNiche$aic,
-            Deviance_GLMsuitability = glmNiche$deviance,
-            Null_deviance_GLMsuitability = glmNiche$null.deviance,
-            ##glmHuman
-            Beta_GLMhuman = as.numeric(glmHuman$coefficients['humanDens']),
-            p_value = as.data.frame(coef(summary(glmHuman)))['humanDens','Pr(>|t|)'],
-            AIC_GLMhuman = glmNiche$aic,
-            Deviance_GLMhuman = glmNiche$deviance,
-            Null_deviance_GLMhuman = glmNiche$null.deviance))
-
-    write.csv(humanInfluenceOutput, paste(projectFolder,'/SDM outputs/humanInfluenceOutput.csv',sep=''), row.names=FALSE)
-
 }
 
-
+write.csv(output, '/home/anderson/Área de Trabalho/output.csv', row.names=FALSE)
     
 
 ################################################################################
 ##################### FIM DA PARTE NOVA ########################################
 ################################################################################
+
+
+
+    occRaster = biaslayer*0
+    tab = table(cellFromXY(occRaster, occPoints))
+    occRaster[as.numeric(names(tab))] <- tab
+
+    plot(occRaster)
+
+    nSampled = extract(x=occRaster, y=occPoints)
+    hd = extract(x=humDens, y=occPoints)
+
+    plot(nSampled ~ log(hd))
+
+    modelo = glm(nSampled ~ log(hd), family=poisson(link = "log"))
+    summary(modelo)
+
+    dad = data.frame(lon=c(1,1,1.7,1.9), lat=c(4.5,4.5,3,2.4), val=1:4)
+    xx = aggregate(dad, by=list('lon','lat'), FUN=max)
+
+    library(raster)
+    r <- raster(xmn=0, ymn=0, xmx=10, ymx=10, res=1)
+    r[] <- 0
+    xy <- spsample(as(extent(r), 'SpatialPolygons'), 100, 'random')
+    tab <- table(cellFromXY(r,xy))
+    r[as.numeric(names(tab))] <- tab
+
+

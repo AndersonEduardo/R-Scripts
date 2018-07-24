@@ -131,7 +131,7 @@ points(reduviidaeOcc[,c('lon','lat')],cex=0.5)
 
 
 ##abrindo conjunto de dados
-reduviidaeDataset = read.csv(file='/home/anderson/Documentos/Projetos/Distribuicao de barbeiros com interacao com humanos/Ocorrencias/reduviidaeDataset.csv', header=TRUE, sep=',', dec='.', stringsAsFactors=FALSE, na.strings="")
+reduviidaeDataset = read.csv(file='/home/anderson/Projetos/Distribuicao de barbeiros com interacao com humanos/Ocorrencias/reduviidaeDataset.csv', header=TRUE, sep=',', dec='.', stringsAsFactors=FALSE, na.strings="")
 
 ##lista com o nome das especies
 spsNames = c("Panstrongylus_geniculatus",
