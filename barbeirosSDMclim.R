@@ -12,23 +12,31 @@ library(pROC)
 #Windows#Sys.setenv(JAVA_HOME='C:\\Program Files\\Java\\jre1.8.0_91') # for 64-bit version
 library(rJava)
 #source("J:/Anderson_Eduardo/TSSmaxent.R") #sempre verificar aqui o caminho para o arquivo TSSmaxent.R
-Sys.setenv(JAVA_HOME = "/usr/lib/jvm/java-7-openjdk-amd64")
+#Sys.setenv(JAVA_HOME = "/usr/lib/jvm/java-7-openjdk-amd64")
 options(java.parameters = "Xmx7g")
 
 
 ## Definindo parametros e variaveis globais
-## envVarFolder = "J:/Lucas/Modelagem barbeiros/Variaveis Climaticas"
-## spOccFolder = "J:/Lucas/Modelagem barbeiros/Ocorrencias"
-## projectFolder = "J:/Lucas/Modelagem barbeiros/"
-#anderson
-envVarFolder = "/home/anderson/Projetos/Distribuicao de barbeiros com interacao com humanos/Variaveis Climaticas"
-spOccFolder = "/home/anderson/Projetos/Distribuicao de barbeiros com interacao com humanos/Ocorrencias"
-projectFolder = "/home/anderson/Projetos/Distribuicao de barbeiros com interacao com humanos"
-AmSulShape = rgdal::readOGR("/home/anderson/shapefiles/Am_Sul/borders.shp") #abrindo shape da America do Sul
-SAborders = rgdal::readOGR('/home/anderson/shapefiles/ne_50m_land/ne_50m_land.shp') #bordas de continentes
+
+# #notebook anderson
+# envVarFolder = "/home/anderson/Projetos/Distribuicao de barbeiros com interacao com humanos/Variaveis Climaticas"
+# spOccFolder = "/home/anderson/Projetos/Distribuicao de barbeiros com interacao com humanos/Ocorrencias"
+# projectFolder = "/home/anderson/Projetos/Distribuicao de barbeiros com interacao com humanos"
+# AmSulShape = rgdal::readOGR("/home/anderson/shapefiles/Am_Sul/borders.shp") #abrindo shape da America do Sul
+# SAborders = rgdal::readOGR('/home/anderson/shapefiles/ne_50m_land/ne_50m_land.shp') #bordas de continentes
+# SOAextent = extent(-81.57551,-34.03384,-57.13385,12.99115)
+# SAborders = crop(SAborders,SOAextent)
+# biasLayer = raster('/home/anderson/Projetos/Distribuicao de barbeiros com interacao com humanos/Ocorrencias/reduviidaeBiasLayer.grd')
+
+#yavanna
+envVarFolder = "D:/Anderson_Eduardo/Distribuicao de barbeiros com interacao com humanos/Variaveis Climaticas"
+spOccFolder = "D:/Anderson_Eduardo/Distribuicao de barbeiros com interacao com humanos/Ocorrencias"
+projectFolder = "D:/Anderson_Eduardo/Distribuicao de barbeiros com interacao com humanos"
+AmSulShape = rgdal::readOGR("D:/Anderson_Eduardo/shapefiles/Am_Sul/borders.shp") #abrindo shape da America do Sul
+SAborders = rgdal::readOGR('D:/Anderson_Eduardo/shapefiles/ne_50m_land/ne_50m_land.shp') #bordas de continentes
 SOAextent = extent(-81.57551,-34.03384,-57.13385,12.99115)
 SAborders = crop(SAborders,SOAextent)
-biasLayer = raster('/home/anderson/Projetos/Distribuicao de barbeiros com interacao com humanos/Ocorrencias/reduviidaeBiasLayer.grd')
+biasLayer = raster('D:/Anderson_Eduardo/Distribuicao de barbeiros com interacao com humanos/reduviidaeBiasLayer.grd')
 
 
 
@@ -191,7 +199,7 @@ tabRes = data.frame()
 ##loop para SDM com cada uma das especies##
 
 
-for (sp_i in splist[8:14]){
+for (sp_i in splist){
     ##for (sp_i in splist[1:3]){
     tryCatch({
 
@@ -255,10 +263,10 @@ for (sp_i in splist[8:14]){
 
         ##verifica e cria diretorio para salvar as variaveis preditoras da especie atual
         if (!file.exists(paste(envVarFolder,'/presente/usadas/',sp_i,sep=''))){
-            dir.create(paste(envVarFolder,'/presente/usadas/',sp_i,sep=''))
+            dir.create(paste(envVarFolder,'/presente/usadas/SDMclim/',sp_i,sep=''), recursive=TRUE)
         }
 
-        writeRaster(x=predictors, filename=paste(envVarFolder,'/presente/usadas/',sp_i,'/predictors_',sp_i,'.asc',sep=''), overwrite=TRUE, bylayer=TRUE, suffix=names(predictors))
+        writeRaster(x=predictors, filename=paste(envVarFolder,'/presente/usadas/SDMclim/',sp_i,'/predictors_',sp_i,'.asc',sep=''), overwrite=TRUE, bylayer=TRUE, suffix=names(predictors))
         
         ##pseudo-ausencia com o mesmo vies dos dados de ocorrencia
         currentBiasLayer = mask(biasLayer, SpsBuffer)
@@ -291,8 +299,8 @@ for (sp_i in splist[8:14]){
                                occ.grp = ENMblockUser$occ.grp,
                                bg.grp = ENMblockUser$bg.grp,
                                method = 'user',
-                               RMvalues = c(0.5:4.5), #c(0.5:5.5),
-                               fc = c("L", "LQ", "LQH", "LQHPT"), #c("L", "LQ", "H", "LQH", "LQHP", "LQHPT"),
+                               RMvalues = c(0.5:5.5),
+                               fc = c("L", "LQ", "LQH", "LQHP", "LQHPT"), #c("L", "LQ", "H", "LQH", "LQHP", "LQHPT"),
                                clamp = FALSE,
                                parallel = TRUE,
                                numCores = 2)
@@ -347,7 +355,7 @@ for (sp_i in splist[8:14]){
         ##aplicando bufffer no mapa de suitability
         ##suitability continuo
         SAbg = SDMpred*0
-        ##SDMpredRaw = mask(x=SDMpred, mask=SpsBuffer)
+        SDMpredRaw = mask(x=SDMpred, mask=SpsBuffer)
         SDMpred = merge(SDMpred, SAbg)
         writeRaster(SDMpred, paste(projectFolder,'/SDM outputs/resultados SDM sem humanos/',sp_i,'/',sp_i,'Suitability.asc',sep=''), overwrite=TRUE)
         ##binario
@@ -438,7 +446,7 @@ for (sp_i in splist[8:14]){
                            AICc = bestModel$AICc
                        ))
         
-        write.csv(tabRes, paste(projectFolder,'/SDM outputs/tabOutputsSDMclim.csv',sep=''), row.names=FALSE)
+        write.csv(tabRes, paste(projectFolder,'/SDM outputs/resultados SDM sem humanos/tabOutputsSDMclim.csv',sep=''), row.names=FALSE)
         gc()
         
     }, error=function(e){cat("ERROR :",conditionMessage(e), "\n")})
@@ -448,7 +456,10 @@ for (sp_i in splist[8:14]){
 
 ###calculo do PARTIAL AUC####
 
-source('/home/anderson/R/R-Scripts/PartialROC.R')
+
+
+#source('/home/anderson/R/R-Scripts/PartialROC.R')
+source('D:/Anderson_Eduardo/Distribuicao de barbeiros com interacao com humanos/R scripts/partialROC.R')
 library(sqldf)
 
 ##Criando objeto com a lista dos nomes das especies
@@ -466,18 +477,18 @@ for (sp_i in splist){
     ##for (sp_i in splist[1:3]){
 
     ##diretorio base de trabalho
-    setwd(paste(projectFolder,'/SDM outputs',sep=''))
+    setwd(paste(projectFolder,'/SDM outputs/resultados SDM sem humanos',sep=''))
     
     ##camimhos dos arquivos
     occPointsPath = paste(spOccFolder,'/sps_occ_Lucas/',sp_i,'.csv',sep='') #pontos de ocorrencia
-    suitabMapPath = paste(projectFolder,'/SDM outputs/resultados SDM sem humanos/', sp_i, '/', sp_i,'SuitabilityNOVO.asc',sep='')
+    suitabMapPath = paste(projectFolder,'/SDM outputs/resultados SDM sem humanos/', sp_i, '/', sp_i,'Suitability.asc',sep='')
     
     
     ##PartialROC (PresenceFile, PredictionFile, OmissionVal, RandomPercent, NoOfIteration, OutputFile)
     pAUC = PartialROC(PresenceFile = occPointsPath,
                       PredictionFile = suitabMapPath,
                       OmissionVal = 0.05,
-                      RandomPercent = 50,
+                      RandomPercent = 25,
                       NoOfIteration = 100,
                       OutputFile = paste(sp_i,'pAUC.csv'))
 
