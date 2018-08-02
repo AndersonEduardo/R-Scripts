@@ -49,7 +49,7 @@ predictorsRaw = crop(x=predictorsRaw, y=SOAextent)
 predictorsRaw = mask(predictorsRaw, AmSulShape) #cortando para Am. do Sul
 predictorsRaw = stack(humDens,predictorsRaw) #add densidade humana
 crs(predictorsRaw) = '+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0'
-
+cellStats(predictorsRaw, summary)
 
 ## ##abrindo e cortando camadas de variaveis ambientais para projecao
 ## filesProjectionOtimistaRaw <- stack(list.files(path=paste(envVarFolder,"/futuro/cenario_otimista",sep=''), pattern='.asc', full.names=TRUE))
@@ -179,6 +179,12 @@ for (sp_i in splist){
     vif(predictorsForVif)
     predictorsVif1 = vifcor(predictorsForVif, th=0.7)
     
+    ##arquivo de log da selecao de variaveis
+    write.table(x=NULL, file=paste(projectFolder,'/SDM outputs/resultados SDM com humanos/',sp_i,'/var_selection_SDMclim_',sp_i,'.txt',sep='')) #criando arquivo
+    cat("Output of variable selection for ", sp_i, " (using the R funtion 'vifcor' from usdm package) \n \n", file=paste(projectFolder,'/SDM outputs/resultados SDM com humanos/',sp_i,'/var_selection_SDMclim_',sp_i,'.txt',sep=''), append=TRUE) #gravando no arquivo
+    capture.output(predictorsVif1, file=paste(projectFolder,'/SDM outputs/resultados SDM com humanos/',sp_i,'/var_selection_SDMclim_',sp_i,'.txt',sep=''), append = TRUE)
+    
+
     ##predictorsVif2 <- vifstep(predictorsForVif, th=10) # identify collinear variables that should be excluded
     ##predictorsVif2
     
@@ -688,13 +694,13 @@ breaks = c(seq(-100,-0.1,length=1), seq(-0.1,0.1,length=1), seq(0.1,100,length=1
 cols <- colorRampPalette(c('white', 'yellow', 'orange', 'red', 'darkred'))(length(breaks)-1)
 
 jpeg(paste(projectFolder,'/SDM outputs/graficos/','accumSuitab.jpeg',sep=''), 700,500)
-par(mfrow=c(1,2))
+par(mfrow=c(1,2), mar=c(4,3,5,5))
 ##SDMclim
-plot(SDMclimRich, col=cols, main=expression(SDM[clim]))
+plot(SDMclimRich/14, col=cols, main=expression(SDM[clim]),  legend=FALSE)
 plot(SAborders, add=TRUE)
 grid()
 ##SDMhuman
-plot(SDMhumanRich, col=cols, main=expression(SDM[human]))
+plot(SDMhumanRich/14, col=cols, main=expression(SDM[human]))
 plot(SAborders, add=TRUE)
 grid()
 dev.off()

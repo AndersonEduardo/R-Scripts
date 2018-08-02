@@ -250,7 +250,12 @@ for (sp_i in splist){
 
         vif(predictorsForVif)
         predictorsVif1 = vifcor(predictorsForVif, th=0.7)
-
+        
+        ##arquivo de log da selecao de variaveis
+        write.table(x=NULL, file=paste(projectFolder,'/SDM outputs/resultados SDM sem humanos/',sp_i,'/var_selection_SDMclim_',sp_i,'.txt',sep='')) #criando arquivo
+        cat("Output of variable selection for ", sp_i, " (using the R funtion 'vifcor' from usdm package) \n \n", file=paste(projectFolder,'/SDM outputs/resultados SDM sem humanos/',sp_i,'/var_selection_SDMclim_',sp_i,'.txt',sep=''), append=TRUE) #gravando no arquivo
+        capture.output(predictorsVif1, file=paste(projectFolder,'/SDM outputs/resultados SDM sem humanos/',sp_i,'/var_selection_SDMclim_',sp_i,'.txt',sep=''), append = TRUE)
+        
         ##predictorsVif2 <- vifstep(predictorsForVif, th=10) # identify collinear variables that should be excluded
         ##predictorsVif2
 
