@@ -16,27 +16,27 @@ library(rJava)
 options(java.parameters = "Xmx7g")
 
 
-## Definindo parametros e variaveis globais
+##Definindo parametros e variaveis globais
 
-# #notebook anderson
-# envVarFolder = "/home/anderson/Projetos/Distribuicao de barbeiros com interacao com humanos/Variaveis Climaticas"
-# spOccFolder = "/home/anderson/Projetos/Distribuicao de barbeiros com interacao com humanos/Ocorrencias"
-# projectFolder = "/home/anderson/Projetos/Distribuicao de barbeiros com interacao com humanos"
-# AmSulShape = rgdal::readOGR("/home/anderson/shapefiles/Am_Sul/borders.shp") #abrindo shape da America do Sul
-# SAborders = rgdal::readOGR('/home/anderson/shapefiles/ne_50m_land/ne_50m_land.shp') #bordas de continentes
-# SOAextent = extent(-81.57551,-34.03384,-57.13385,12.99115)
-# SAborders = crop(SAborders,SOAextent)
-# biasLayer = raster('/home/anderson/Projetos/Distribuicao de barbeiros com interacao com humanos/Ocorrencias/reduviidaeBiasLayer.grd')
-
-#yavanna
-envVarFolder = "D:/Anderson_Eduardo/Distribuicao de barbeiros com interacao com humanos/Variaveis Climaticas"
-spOccFolder = "D:/Anderson_Eduardo/Distribuicao de barbeiros com interacao com humanos/Ocorrencias"
-projectFolder = "D:/Anderson_Eduardo/Distribuicao de barbeiros com interacao com humanos"
-AmSulShape = rgdal::readOGR("D:/Anderson_Eduardo/shapefiles/Am_Sul/borders.shp") #abrindo shape da America do Sul
-SAborders = rgdal::readOGR('D:/Anderson_Eduardo/shapefiles/ne_50m_land/ne_50m_land.shp') #bordas de continentes
+#notebook anderson
+envVarFolder = "/home/anderson/Projetos/Distribuicao de barbeiros com interacao com humanos/Variaveis Climaticas"
+spOccFolder = "/home/anderson/Projetos/Distribuicao de barbeiros com interacao com humanos/Ocorrencias"
+projectFolder = "/home/anderson/Projetos/Distribuicao de barbeiros com interacao com humanos"
+AmSulShape = rgdal::readOGR("/home/anderson/shapefiles/Am_Sul/borders.shp") #abrindo shape da America do Sul
+SAborders = rgdal::readOGR('/home/anderson/shapefiles/ne_50m_land/ne_50m_land.shp') #bordas de continentes
 SOAextent = extent(-81.57551,-34.03384,-57.13385,12.99115)
 SAborders = crop(SAborders,SOAextent)
-biasLayer = raster('D:/Anderson_Eduardo/Distribuicao de barbeiros com interacao com humanos/reduviidaeBiasLayer.grd')
+biasLayer = raster('/home/anderson/Projetos/Distribuicao de barbeiros com interacao com humanos/Ocorrencias/reduviidaeBiasLayer.grd')
+
+## #yavanna
+## envVarFolder = "D:/Anderson_Eduardo/Distribuicao de barbeiros com interacao com humanos/Variaveis Climaticas"
+## spOccFolder = "D:/Anderson_Eduardo/Distribuicao de barbeiros com interacao com humanos/Ocorrencias"
+## projectFolder = "D:/Anderson_Eduardo/Distribuicao de barbeiros com interacao com humanos"
+## AmSulShape = rgdal::readOGR("D:/Anderson_Eduardo/shapefiles/Am_Sul/borders.shp") #abrindo shape da America do Sul
+## SAborders = rgdal::readOGR('D:/Anderson_Eduardo/shapefiles/ne_50m_land/ne_50m_land.shp') #bordas de continentes
+## SOAextent = extent(-81.57551,-34.03384,-57.13385,12.99115)
+## SAborders = crop(SAborders,SOAextent)
+## biasLayer = raster('D:/Anderson_Eduardo/Distribuicao de barbeiros com interacao com humanos/reduviidaeBiasLayer.grd')
 
 
 
@@ -141,6 +141,8 @@ points(reduviidaeOcc[,c('lon','lat')],cex=0.5)
 ##abrindo conjunto de dados
 reduviidaeDataset = read.csv(file='/home/anderson/Projetos/Distribuicao de barbeiros com interacao com humanos/Ocorrencias/reduviidaeDataset.csv', header=TRUE, sep=',', dec='.', stringsAsFactors=FALSE, na.strings="")
 
+lucasDataset = read.csv('/home/anderson/Projetos/Distribuicao de barbeiros com interacao com humanos/Ocorrencias/Final dataset corrigido/Final_occurrences_dataset.csv', h=T, sep=',', dec='.')
+
 ##lista com o nome das especies
 spsNames = c("Panstrongylus_geniculatus",
              "Panstrongylus_lutzi",
@@ -164,7 +166,17 @@ reduviidaeDataset$sps =  gsub(pattern=' ', replacement='_', x=reduviidaeDataset$
 for(sp_i in spsNames){
     spLines = agrep(pattern=sp_i, x=reduviidaeDataset$sps, value=FALSE)
     spDataset = reduviidaeDataset[spLines,]
-    write.csv(spDataset, paste(spOccFolder,'/sps_occ/',sp_i,'.csv',sep=''), row.names=FALSE)
+
+    spLinesLucas = agrep(pattern=sp_i, x=lucasDataset$Species, value=FALSE)
+    spDatasetLucas = lucasDataset[spLinesLucas,]
+    names(spDatasetLucas) = names(spDataset)
+
+    spDatasetFinal = rbind(spDatasetLucas, spDataset)
+    spDatasetFinal = unique(spDatasetFinal)
+    
+    write.csv(spDatasetFinal, paste(spOccFolder,'/sps_occ/',sp_i,'.csv',sep=''), row.names=FALSE)
+
+    print(paste(sp_i, 'com', nrow(spDatasetFinal), 'registros' ))
 }
 
 
