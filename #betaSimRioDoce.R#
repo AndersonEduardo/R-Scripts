@@ -19,7 +19,7 @@ matFunc = read.table('/home/anderson/Projetos/Isaac - diversidade beta Rio Doce/
 matPres = read.table('/home/anderson/Projetos/Isaac - diversidade beta Rio Doce/Projeto_Rio_Doce/doce.comunidades.txt') #matriz pres-aus
 
 ##crindo objeto para armazenar os resultados e com os cenarios
-                                        #outputBetaDiv = list()
+##outputBetaDiv = list()
 scenarios = c(0.05, 0.25, 0.50, 0.75, 1.00)
 
 
