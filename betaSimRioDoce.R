@@ -155,40 +155,8 @@ betaDF = read.csv(file=file.path(diretorio,'betaData.csv'), header = TRUE)
 turnDF = read.csv(file=file.path(diretorio,'turnData.csv'), header = TRUE)
 pturnDF = read.csv(file=file.path(diretorio,'pturnData.csv'), header = TRUE)
 
+
 ##boxplots
-jpeg(file.path(diretorio,'boxplotNest.jpg'), width=600, height=600)
-par(family='times', mar=c(5,5,3,2), cex.axis=2, cex.lab=2.5)
-nestDF$scenario = factor(nestDF$scenario,
-                         levels=c('Nes0','Nes25','Nes50','Nes75','Nes95')) #controle da ordem dos fatores no eixo x
-boxplot(nestDF$Nestedness~nestDF$scenario,
-        xlim=c(0,6),
-        ylim=c(0,1.1),
-        outcol=rgb(0,0,0,0.2),
-        outcex=0.8,
-        outlwd=0.8,
-        lwd=2,
-        names=c('0%','25%','50%','75%','95%'),
-        ylab='Nestedness',
-        xlab='Extinction')
-text(x=0.2, y=1.05, labels='A', cex=3)
-dev.off()
-
-jpeg(file.path(diretorio,'boxplotTurn.jpg'), width=600, height=600)
-par(family='times', mar=c(5,5,3,2), cex.axis=2, cex.lab=2.5)
-turnDF$scenario = factor(turnDF$scenario,
-                         levels=c('Tur0','Tur25','Tur50','Tur75','Tur95')) #controle da ordem dos fatores no eixo x
-boxplot(turnDF$Turnover~turnDF$scenario,
-        xlim=c(0,6),
-        ylim=c(0,1.1),
-        outcol=rgb(0,0,0,0.2),
-        outcex=0.8,
-        outlwd=0.8,
-        lwd=2,
-        names=c('0%','25%','50%','75%','95%'),
-        ylab='Turnover', xlab='Extinction')
-text(x=0.2, y=1.05, labels='B', cex=3)
-dev.off()
-
 jpeg(file.path(diretorio,'boxplotBeta.jpg'), width=600, height=600)
 par(family='times', mar=c(5,5,3,2), cex.axis=2, cex.lab=2.5)
 betaDF$scenario = factor(betaDF$scenario,
@@ -200,11 +168,62 @@ boxplot(betaDF$Beta~betaDF$scenario,
         outcex=0.8,
         outlwd=0.8,
         lwd=2,
-        names=c('0%','25%','50%','75%','95%'),
+        names=c('0%','25%','50%','75%','100%'),
         ylab='Beta diversity',
         xlab='Extinction')
+text(x=0.2, y=1.05, labels='A', cex=3)
+dev.off()
+
+jpeg(file.path(diretorio,'boxplotNest.jpg'), width=600, height=600)
+par(family='times', mar=c(5,5,3,2), cex.axis=2, cex.lab=2.5)
+nestDF$scenario = factor(nestDF$scenario,
+                         levels=c('Nes0','Nes25','Nes50','Nes75','Nes95')) #controle da ordem dos fatores no eixo x
+boxplot(nestDF$Nestedness~nestDF$scenario,
+        xlim=c(0,6),
+        ylim=c(0,1.1),
+        outcol=rgb(0,0,0,0.2),
+        outcex=0.8,
+        outlwd=0.8,
+        lwd=2,
+        names=c('0%','25%','50%','75%','100%'),
+        ylab='Nestedness',
+        xlab='Extinction')
+text(x=0.2, y=1.05, labels='B', cex=3)
+dev.off()
+
+jpeg(file.path(diretorio,'boxplotTurn.jpg'), width=600, height=600)
+par(family='times', mar=c(5,5,3,2), cex.axis=2, cex.lab=2.5)
+turnDF$scenario = factor(turnDF$scenario,
+                         levels=c('Tur0','Tur25','Tur50','Tur75','Tur95')) #controle da ordem dos fatores no eixo x
+boxplot(turnDF$Turnover~turnDF$scenario,
+        xlim=c(0,6),
+        ylim=c(0,1.1),
+        outcol=rgb(0,0,0,0.5),
+        outcex=0.8,
+        outlwd=0.8,
+        lwd=2,
+        names=c('0%','25%','50%','75%','100%'),
+        ylab='Turnover', xlab='Extinction')
 text(x=0.2, y=1.05, labels='C', cex=3)
 dev.off()
+
+jpeg(file.path(diretorio,'boxplotPturn.jpg'), width=600, height=600)
+par(family='times', mar=c(5,5,3,2), cex.axis=2, cex.lab=2.5)
+pturnDF$scenario = factor(pturnDF$scenario,
+                         levels=c('Ptur0','Ptur25','Ptur50','Ptur75','Ptur95')) #controle da ordem dos fatores no eixo x
+boxplot(pturnDF$P_turnover~pturnDF$scenario,
+        xlim=c(0,6),
+        ylim=c(0,1.1),
+        outcol=rgb(0,0,0,0.5),
+        outcex=0.8,
+        outlwd=0.8,
+        lwd=2,
+        names=c('0%','25%','50%','75%','100%'),
+        ylab='P turnover',
+        xlab='Extinction')
+text(x=0.2, y=1.05, labels='D', cex=3)
+dev.off()
+
 
 ###densidades
 nestDens95 = density(nestDF[complete.cases(nestDF$Nestedness) & nestDF$scenario=='Nes95','Nestedness'])
@@ -224,6 +243,13 @@ turnDens75 = density(turnDF[complete.cases(turnDF$Turn) & turnDF$scenario=='Tur7
 turnDens50 = density(turnDF[complete.cases(turnDF$Turn) & turnDF$scenario=='Tur50','Turnover'])
 turnDens25 = density(turnDF[complete.cases(turnDF$Turn) & turnDF$scenario=='Tur25','Turnover'])
 turnDens0 = density(turnDF[complete.cases(turnDF$Turn) & turnDF$scenario=='Tur0','Turnover'])
+
+pturnDens95 = density(pturnDF[complete.cases(pturnDF$P_turnover) & pturnDF$scenario=='Ptur95','P_turnover'])
+pturnDens75 = density(pturnDF[complete.cases(pturnDF$P_turnover) & pturnDF$scenario=='Ptur75','P_turnover'])
+pturnDens50 = density(pturnDF[complete.cases(pturnDF$P_turnover) & pturnDF$scenario=='Ptur50','P_turnover'])
+pturnDens25 = density(pturnDF[complete.cases(pturnDF$P_turnover) & pturnDF$scenario=='Ptur25','P_turnover'])
+pturnDens0 = density(pturnDF[complete.cases(pturnDF$P_turnover) & pturnDF$scenario=='Ptur0','P_turnover'])
+
 
 ##graficos juntos
 jpeg(file.path(diretorio,'densidadeUni.jpg'), width=600, height=600)
@@ -246,20 +272,17 @@ lines(turnDens50, lty=4, lwd=2.5, col='green')
 lines(turnDens25, lty=4, lwd=2.5, col='blue')
 lines(turnDens0, lty=4, lwd=2.5, col='black')
                                         #
-legend(x='topright',legend=c('0%','25%','50%','75%','95%','Nestedness', 'Beta diversity', 'Turnover'), title='Extinction', pch=c(22,22,22,22,22,NA,NA,NA), col=c(0,0,0,0,0,1,1,1) , pt.bg=c('black','blue','green','purple','red','black','black','black'), lty=c(NA,NA,NA,NA,NA,3,2,4), lwd=c(NA,NA,NA,NA,NA,2,2,2), cex=1.5, ncol=1)
+lines(pturnDens95, lty=5, lwd=2.5, col='red')
+lines(pturnDens75, lty=5, lwd=2.5, col='purple')
+lines(pturnDens50, lty=5, lwd=2.5, col='green')
+lines(pturnDens25, lty=5, lwd=2.5, col='blue')
+lines(pturnDens0, lty=5, lwd=2.5, col='black')
+#
+legend(x='topright',legend=c('0%','25%','50%','75%','100%','Nestedness', 'Beta diversity', 'Turnover', 'P turnover'), title='Extinction', pch=c(22,22,22,22,22,NA,NA,NA,NA), col=c(0,0,0,0,0,1,1,1,1) , pt.bg=c('black','blue','green','purple','red','black','black','black','black'), lty=c(NA,NA,NA,NA,NA,3,2,4,5), lwd=c(NA,NA,NA,NA,NA,2,2,2,2), cex=1.5, ncol=1)
 dev.off()
+
 
 ##graficos separados
-jpeg(file.path(diretorio,'densidadeSep_Nest.jpg'), width=600, height=600)
-par(family='times', mar=c(4.5,5.5,2,2), cex.axis=2, cex.lab=2.5)
-plot(nestDens95, lty=1, lwd=2.5, col='red', ylim=c(0,5), main = '', ylab='Density', xlab='Nestedness')
-lines(nestDens75, lty=1, lwd=2.5, col='purple')
-lines(nestDens50, lty=1,lwd=2.5, col='green')
-lines(nestDens25, lty=1, lwd=2.5, col='blue')
-lines(nestDens0,lty=1, lwd=2.5, col='black')
-legend(x='topright',legend=c('0%','25%','50%','75%','95%'), title='Extinction', pch=c(22,22,22,22,22), col=c(0,0,0,0,0) , pt.bg=c('black','blue','green','purple','red'), cex=2, ncol=2)
-dev.off()
-
 jpeg(file.path(diretorio,'densidadeSep_Beta.jpg'), width=600, height=600)
 par(family='times', mar=c(4.5,5.5,2,2), cex.axis=2, cex.lab=2.5)
 plot(betaDens95, lty=1, lwd=2.5, col='red', ylim=c(0,6), main = '', ylab='Density', xlab='Beta Diversity')
@@ -267,7 +290,19 @@ lines(betaDens75, lty=1, lwd=2.5, col='purple')
 lines(betaDens50, lty=1, lwd=2.5, col='green')
 lines(betaDens25, lty=1, lwd=2.5, col='blue')
 lines(betaDens0, lty=1, lwd=2.5, col='black')
-legend(x='topright',legend=c('0%','25%','50%','75%','95%'), title='Extinction', pch=c(22,22,22,22,22), col=c(0,0,0,0,0) , pt.bg=c('black','blue','green','purple','red'), cex=2, ncol=2)
+legend(x='topright',legend=c('0%','25%','50%','75%','100%'), title='Extinction', pch=c(22,22,22,22,22), col=c(0,0,0,0,0) , pt.bg=c('black','blue','green','purple','red'), cex=2, ncol=2)
+text(x=0, y=5.8, labels='A', cex=3)
+dev.off()
+
+jpeg(file.path(diretorio,'densidadeSep_Nest.jpg'), width=600, height=600)
+par(family='times', mar=c(4.5,5.5,2,2), cex.axis=2, cex.lab=2.5)
+plot(nestDens95, lty=1, lwd=2.5, col='red', ylim=c(0,5), main = '', ylab='Density', xlab='Nestedness')
+lines(nestDens75, lty=1, lwd=2.5, col='purple')
+lines(nestDens50, lty=1,lwd=2.5, col='green')
+lines(nestDens25, lty=1, lwd=2.5, col='blue')
+lines(nestDens0,lty=1, lwd=2.5, col='black')
+legend(x='topright',legend=c('0%','25%','50%','75%','100%'), title='Extinction', pch=c(22,22,22,22,22), col=c(0,0,0,0,0) , pt.bg=c('black','blue','green','purple','red'), cex=2, ncol=2)
+text(x=-0.15, y=4.8, labels='B', cex=3)
 dev.off()
 
 jpeg(file.path(diretorio,'densidadeSep_Turn.jpg'), width=600, height=600)
@@ -277,9 +312,20 @@ lines(turnDens75, lty=1, lwd=2.5, col='purple')
 lines(turnDens50, lty=1, lwd=2.5, col='green')
 lines(turnDens25, lty=1, lwd=2.5, col='blue')
 lines(turnDens0, lty=1, lwd=2.5, col='black')
-legend(x='topright',legend=c('0%','25%','50%','75%','95%'), title='Extinction', pch=c(22,22,22,22,22), col=c(0,0,0,0,0) , pt.bg=c('black','blue','green','purple','red'), cex=2, ncol=2)
+legend(x='topright',legend=c('0%','25%','50%','75%','100%'), title='Extinction', pch=c(22,22,22,22,22), col=c(0,0,0,0,0) , pt.bg=c('black','blue','green','purple','red'), cex=2, ncol=2)
+text(x=-0.03, y=9.6, labels='C', cex=3)
 dev.off()
 
+jpeg(file.path(diretorio,'densidadeSep_Pturn.jpg'), width=600, height=600)
+par(family='times', mar=c(4.5,5.5,2,2), cex.axis=2, cex.lab=2.5)
+plot(pturnDens95, lty=1, lwd=2.5, col='red', ylim=c(0,10), main = '', ylab='Density', xlab='P turnover')
+lines(pturnDens75, lty=1, lwd=2.5, col='purple')
+lines(pturnDens50, lty=1, lwd=2.5, col='green')
+lines(pturnDens25, lty=1, lwd=2.5, col='blue')
+lines(pturnDens0, lty=1, lwd=2.5, col='black')
+legend(x='topright',legend=c('0%','25%','50%','75%','100%'), title='Extinction', pch=c(22,22,22,22,22), col=c(0,0,0,0,0) , pt.bg=c('black','blue','green','purple','red'), cex=2, ncol=2)
+text(x=-0.03, y=9.6, labels='D', cex=3)
+dev.off()
 
 ## graficos usando Standarlized Size Effect (SES), ou algo assim : ) ##
 
@@ -295,199 +341,105 @@ dev.off()
 ##importando arquivos csv
 diretorio = '/home/anderson/Projetos/Isaac - diversidade beta Rio Doce' #especificar diretorio onde salvar
 
-nestDF = read.csv(file=file.path(diretorio,'nestData.csv'), header = TRUE)
-betaDF = read.csv(file=file.path(diretorio,'betaData.csv'), header = TRUE)
-turnDF = read.csv(file=file.path(diretorio,'turnData.csv'), header = TRUE)
-pturnDF = read.csv(file=file.path(diretorio,'pturnData.csv'), header = TRUE)
+nestDFraw = read.csv(file=file.path(diretorio,'nestData.csv'), header = TRUE)
+betaDFraw = read.csv(file=file.path(diretorio,'betaData.csv'), header = TRUE)
+turnDFraw = read.csv(file=file.path(diretorio,'turnData.csv'), header = TRUE)
+pturnDFraw = read.csv(file=file.path(diretorio,'pturnData.csv'), header = TRUE)
+
+## ##correcao do numero de cenarios - os arquivos tinham 3 vezes o numero de simulacoes que deveriam ter (21*5*100=10500)...
+## idxNest = c( which(nestDFraw$scenario=='Nes0')[1:100], which(nestDFraw$scenario=='Nes25')[1:100], which(nestDFraw$scenario=='Nes50')[1:100], which(nestDFraw$scenario=='Nes75')[1:100], which(nestDFraw$scenario=='Nes95')[1:100] )
+## idxBeta = c( which(betaDFraw$scenario=='Beta0')[1:100], which(betaDFraw$scenario=='Beta25')[1:100], which(betaDFraw$scenario=='Beta50')[1:100], which(betaDFraw$scenario=='Beta75')[1:100], which(betaDFraw$scenario=='Beta95')[1:100] )
+## idxTurn = c( which(turnDFraw$scenario=='Tur0')[1:100], which(turnDFraw$scenario=='Tur25')[1:100], which(turnDFraw$scenario=='Tur50')[1:100], which(turnDFraw$scenario=='Tur75')[1:100], which(turnDFraw$scenario=='Tur95')[1:100] )
+## idxPturn = c( which(pturnDFraw$scenario=='Ptur0')[1:100], which(pturnDFraw$scenario=='Ptur25')[1:100], which(pturnDFraw$scenario=='Ptur50')[1:100], which(pturnDFraw$scenario=='Ptur75')[1:100], which(pturnDFraw$scenario=='Ptur95')[1:100] )
+
+## nestDF = nestDFraw[idxNest,]
+## betaDF = betaDFraw[idxBeta,]
+## turnDF = turnDFraw[idxTurn,]
+## pturnDF = pturnDFraw[idxPturn,]
+
+nestDF = nestDFraw
+betaDF = betaDFraw
+turnDF = turnDFraw
+pturnDF = pturnDFraw
 
 
-##SES nestedness##
-##95% de extincao
-nestNull95 = nestDF[which(nestDF$scenario == 'Nes95'),]
-nestNull95Mean = mean(nestNull95$Nestedness, na.rm=TRUE)
-nestNull95SD = sd(nestNull95$Nestedness, na.rm=TRUE)
-SESnest95 = ( nestDF[which(nestDF$scenario == 'Nes0'),'Nestedness'] - nestNull95Mean ) / nestNull95SD
+##valores observados
+rm(statsBeta)
+load(paste(diretorio,'/outputs/Observado/cenario_obseravdo',sep='')) #abrindo
+nestVecObs = as.vector(statsBeta$F_nest_res)
+betaVecObs = as.vector(statsBeta$F_beta)
+turnVecObs = as.vector(statsBeta$F_turn)
+pturnVecObs = as.vector(statsBeta$F_pturn)
 
-jpeg(paste(diretorio, '/SESnest95.jpg', sep=''))
-par(family='times', mar=c(4,4.5,2,2))
-hist(SESnest95, main='', xlab='Nestedness', cex.axis=1.5, cex.lab=2,, col='black', border='white')
-abline(v=0, lty=2, lwd=2, col='red')
+
+##SES nestedness
+nestDFmeans = aggregate(x=nestDF$Nestedness, by=list(Mean=nestDF$scenario), FUN=mean, na.rm=TRUE)
+nestDFsd = aggregate(x=nestDF$Nestedness, by=list(Mean=nestDF$scenario), FUN=sd, na.rm=TRUE)
+nestDFses = (mean(nestVecObs) - nestDFmeans$x) / nestDFsd$x
+SESnest = data.frame(Metric = rep('Nestedness',length(nestDFses)), Extinction=c(0,25,50,75,100), Observed=mean(nestVecObs), Null_mean=nestDFmeans$x, Null_SD=nestDFsd$x, SES=nestDFses)
+
+##SES Beta diversity
+betaDFmeans = aggregate(x=betaDF$Beta, by=list(Mean=betaDF$scenario), FUN=mean, na.rm=TRUE)
+betaDFsd = aggregate(x=betaDF$Beta, by=list(Mean=betaDF$scenario), FUN=sd, na.rm=TRUE)
+betaDFses = (mean(betaVecObs) - betaDFmeans$x) / betaDFsd$x
+SESbeta = data.frame(Metric = rep('Beta',length(betaDFses)), Extinction=c(0,25,50,75,100), Observed=mean(betaVecObs), Null_mean=betaDFmeans$x, Null_SD=betaDFsd$x, SES=betaDFses)
+
+##SES Turnover
+turnDFmeans = aggregate(x=turnDF$Turnover, by=list(Mean=turnDF$scenario), FUN=mean, na.rm=TRUE)
+turnDFsd = aggregate(x=turnDF$Turnover, by=list(Mean=turnDF$scenario), FUN=sd, na.rm=TRUE)
+turnDFses = (mean(turnVecObs) - turnDFmeans$x) / turnDFsd$x
+SESturn = data.frame(Metric = rep('Turnover',length(turnDFses)), Extinction=c(0,25,50,75,100), Observed=mean(turnVecObs), Null_mean=turnDFmeans$x, Null_SD=turnDFsd$x, SES=turnDFses)
+
+##SES pturnover
+pturnDFmeans = aggregate(x=pturnDF$P_turnover, by=list(Mean=pturnDF$scenario), FUN=mean, na.rm=TRUE)
+pturnDFsd = aggregate(x=pturnDF$P_turnover, by=list(Mean=pturnDF$scenario), FUN=sd, na.rm=TRUE)
+pturnDFses = (mean(pturnVecObs) - pturnDFmeans$x) / pturnDFsd$x
+SESpturn = data.frame(Metric = rep('Pturnover',length(pturnDFses)), Extinction=c(0,25,50,75,100), Observed=mean(pturnVecObs), Null_mean=pturnDFmeans$x, Null_SD=pturnDFsd$x, SES=pturnDFses)
+
+##tabela de output
+SEStab = rbind(SESnest, SESbeta, SESturn, SESpturn)
+write.csv(SEStab, paste(diretorio,'/SEStable.csv',sep=''), row.names=FALSE)
+
+##grafico de barras
+SEStabGraph = data.frame(Nestedness=nestDFses, Beta=betaDFses, Turnover=turnDFses, P_turnover=pturnDFses)
+rownames(SEStabGraph) = c("0%","25%","50%","75%","100%")
+
+jpeg(paste(diretorio,'/SESbarras.jpg', sep=''), width=600, height=600)
+par(family='times', mar=c(4,4.5,1,1), cex=1.4, cex.lab=1.6)
+barplot( t(SEStabGraph), beside=TRUE, xlab="Extinction", ylab="Metric", ylim=c(-3,3.5), col=c('black','darkgray','lightgray','white') )
+legend(x=17.5, y=-1.3, legend=c("Nestedness","Beta","Turnover","P turnover"), fill=c('black','darkgray','lightgray','white'), cex=1.2)
+abline(h=0, lwd=0.5)
 box()
 dev.off()
 
-##75% de extincao
-nestNull75 = nestDF[which(nestDF$scenario == 'Nes75'),]
-nestNull75Mean = mean(nestNull75$Nestedness, na.rm=TRUE)
-nestNull75SD = sd(nestNull75$Nestedness, na.rm=TRUE)
-SESnest75 = ( nestDF[which(nestDF$scenario == 'Nes0'),'Nestedness'] - nestNull75Mean ) / nestNull75SD
 
-jpeg(paste(diretorio, '/SESnest75.jpg', sep=''))
-par(family='times', mar=c(4,4.5,2,2))
-hist(SESnest75, main='', xlab='Nestedness', cex.axis=1.5, cex.lab=2,, col='black', border='white')
-abline(v=0, lty=2, lwd=2, col='red')
-box()
-dev.off()
 
-##50% de extincao
-nestNull50 = nestDF[which(nestDF$scenario == 'Nes50'),]
-nestNull50Mean = mean(nestNull50$Nestedness, na.rm=TRUE)
-nestNull50SD = sd(nestNull50$Nestedness, na.rm=TRUE)
-SESnest50 = ( nestDF[which(nestDF$scenario == 'Nes0'),'Nestedness'] - nestNull50Mean ) / nestNull50SD
+########################################
+######### observado ####################
 
-jpeg(paste(diretorio, '/SESnest50.jpg', sep=''))
-par(family='times', mar=c(4,4.5,2,2))
-hist(SESnest50, main='', xlab='Nestedness', cex.axis=1.5, cex.lab=2,, col='black', border='white')
-abline(v=0, lty=2, lwd=2, col='red')
-box()
-dev.off()
+setwd(paste(diretorio,'/outputs/Observado',sep=''))
 
-##25% de extincao
-nestNull25 = nestDF[which(nestDF$scenario == 'Nes25'),]
-nestNull25Mean = mean(nestNull25$Nestedness, na.rm=TRUE)
-nestNull25SD = sd(nestNull25$Nestedness, na.rm=TRUE)
-SESnest25 = ( nestDF[which(nestDF$scenario == 'Nes0'),'Nestedness'] - nestNull25Mean ) / nestNull25SD
+##carregando funcoes
+source('/home/anderson/Projetos/Isaac - diversidade beta Rio Doce/FD/__online_2017_02_01/functions/multidimFbetaD.R')
+source('/home/anderson/Projetos/Isaac - diversidade beta Rio Doce/FD/__online_2017_02_01/functions/quality_funct_space.R')
+source("http://villeger.sebastien.free.fr/R%20scripts/GFD_matcomm.R"); GFD<-GFD_matcomm
 
-jpeg(paste(diretorio, '/SESnest25.jpg', sep=''))
-par(family='times', mar=c(4,4.5,2,2))
-hist(SESnest25, main='', xlab='Nestedness', cex.axis=1.5, cex.lab=2,, col='black', border='white')
-abline(v=0, lty=2, lwd=2, col='red')
-box()
-dev.off()
+##dados
+matFunc = read.table('/home/anderson/Projetos/Isaac - diversidade beta Rio Doce/Projeto_Rio_Doce/doce_funcional_imputacao.txt') #matriz traits funcionais
+matPres = read.table('/home/anderson/Projetos/Isaac - diversidade beta Rio Doce/Projeto_Rio_Doce/doce.comunidades.txt') #matriz pres-aus
 
-##SES Beta diversity##
-##95% de extincao
-betaNull95 = betaDF[which(betaDF$scenario == 'Beta95'),]
-betaNull95Mean = mean(betaNull95$Beta, na.rm=TRUE)
-betaNull95SD = sd(betaNull95$Beta, na.rm=TRUE)
-SESbeta95 = ( betaDF[which(betaDF$scenario == 'Beta0'),'Beta'] - betaNull95Mean ) / betaNull95SD
+##matriz distancia funcional
+matDisFunc = quality_funct_space(mat_funct=matFunc, nbdim=3,metric='Gower', dendro=FALSE)$details_funct_space$mat_coord 
 
-jpeg(paste(diretorio, '/SESbeta95.jpg', sep=''))
-par(family='times', mar=c(4,4.5,2,2))
-hist(SESbeta95, main='', xlab='Beta diversity', cex.axis=1.5, cex.lab=2,, col='black', border='white')
-abline(v=0, lty=2, lwd=2, col='red')
-box()
-dev.off()
+##metricas da beta div
+indices = match(colnames(as.matrix(matPres)),rownames(matDisFunc)) #indices (para ajustar as duas matrizes)
+statsBeta = multidimFbetaD(coord=matDisFunc[indices,], occ=as.matrix(matPres), nm_asb_plot=row.names(matPres)) #calculo das metricas de beta-div
 
-##75% de extincao
-betaNull75 = betaDF[which(betaDF$scenario == 'Beta75'),]
-betaNull75Mean = mean(betaNull75$Beta, na.rm=TRUE)
-betaNull75SD = sd(betaNull75$Beta, na.rm=TRUE)
-SESbeta75 = ( betaDF[which(betaDF$scenario == 'Beta0'),'Beta'] - betaNull75Mean ) / betaNull75SD
+##salvando as metricas calculadas
+##outputBetaDiv[[i]] = statsBeta
+save(statsBeta, file='cenario_obseravdo') #salvando objetos em um .Rdata
+gc()
 
-jpeg(paste(diretorio, '/SESbeta75.jpg', sep=''))
-par(family='times', mar=c(4,4.5,2,2))
-hist(SESbeta75, main='', xlab='Beta diversity', cex.axis=1.5, cex.lab=2,, col='black', border='white')
-abline(v=0, lty=2, lwd=2, col='red')
-box()
-dev.off()
 
-##50% de extincao
-betaNull50 = betaDF[which(betaDF$scenario == 'Beta50'),]
-betaNull50Mean = mean(betaNull50$Beta, na.rm=TRUE)
-betaNull50SD = sd(betaNull50$Beta, na.rm=TRUE)
-SESbeta50 = ( betaDF[which(betaDF$scenario == 'Beta0'),'Beta'] - betaNull50Mean ) / betaNull50SD
-
-jpeg(paste(diretorio, '/SESbeta50.jpg', sep=''))
-par(family='times', mar=c(4,4.5,2,2))
-hist(SESbeta50, main='', xlab='Beta diversity', cex.axis=1.5, cex.lab=2,, col='black', border='white')
-abline(v=0, lty=2, lwd=2, col='red')
-box()
-dev.off()
-
-##25% de extincao
-betaNull25 = betaDF[which(betaDF$scenario == 'Beta25'),]
-betaNull25Mean = mean(betaNull25$Beta, na.rm=TRUE)
-betaNull25SD = sd(betaNull25$Beta, na.rm=TRUE)
-SESbeta25 = ( betaDF[which(betaDF$scenario == 'Beta0'),'Beta'] - betaNull25Mean ) / betaNull25SD
-
-jpeg(paste(diretorio, '/SESbeta25.jpg', sep=''))
-par(family='times', mar=c(4,4.5,2,2))
-hist(SESbeta25, main='', xlab='Beta diversity', cex.axis=1.5, cex.lab=2,, col='black', border='white')
-abline(v=0, lty=2, lwd=2, col='red')
-box()
-dev.off()
-
-##SES Turnover##
-##95% de extincao
-turnNull95 = turnDF[which(turnDF$scenario == 'Tur95'),]
-turnNull95Mean = mean(turnNull95$Turnover, na.rm=TRUE)
-turnNull95SD = sd(turnNull95$Turnover, na.rm=TRUE)
-SESturn95 = ( turnDF[which(turnDF$scenario == 'Tur0'),'Turnover'] - turnNull95Mean ) / turnNull95SD
-
-jpeg(paste(diretorio, '/SESturn95.jpg', sep=''))
-par(family='times', mar=c(4,4.5,2,2))
-hist(SESturn95, main='', xlab='Turnover', cex.axis=1.5, cex.lab=2,, col='black', border='white')
-abline(v=0, lty=2, lwd=2, col='red')
-box()
-dev.off()
-
-##75% de extincao
-turnNull75 = turnDF[which(turnDF$scenario == 'Tur75'),]
-turnNull75Mean = mean(turnNull75$Turnover, na.rm=TRUE)
-turnNull75SD = sd(turnNull75$Turnover, na.rm=TRUE)
-SESturn75 = ( turnDF[which(turnDF$scenario == 'Tur0'),'Turnover'] - turnNull75Mean ) / turnNull75SD
-
-jpeg(paste(diretorio, '/SESturn75.jpg', sep=''))
-par(family='times', mar=c(4,4.5,2,2))
-hist(SESturn75, main='', xlab='Turnover', cex.axis=1.5, cex.lab=2,, col='black', border='white')
-abline(v=0, lty=2, lwd=2, col='red')
-box()
-dev.off()
-
-##50% de extincao
-turnNull50 = turnDF[which(turnDF$scenario == 'Tur50'),]
-turnNull50Mean = mean(turnNull50$Turnover, na.rm=TRUE)
-turnNull50SD = sd(turnNull50$Turnover, na.rm=TRUE)
-SESturn50 = ( turnDF[which(turnDF$scenario == 'Tur0'),'Turnover'] - turnNull50Mean ) / turnNull50SD
-
-jpeg(paste(diretorio, '/SESturn50.jpg', sep=''))
-par(family='times', mar=c(4,4.5,2,2))
-hist(SESturn50, main='', xlab='Turnover', cex.axis=1.5, cex.lab=2,, col='black', border='white')
-abline(v=0, lty=2, lwd=2, col='red')
-box()
-dev.off()
-
-##25% de extincao
-turnNull25 = turnDF[which(turnDF$scenario == 'Tur25'),]
-turnNull25Mean = mean(turnNull25$Turnover, na.rm=TRUE)
-turnNull25SD = sd(turnNull25$Turnover, na.rm=TRUE)
-SESturn25 = ( turnDF[which(turnDF$scenario == 'Tur0'),'Turnover'] - turnNull25Mean ) / turnNull25SD
-
-jpeg(paste(diretorio, '/SESturn25.jpg', sep=''))
-par(family='times', mar=c(4,4.5,2,2))
-hist(SESturn25, main='', xlab='Turnover', cex.axis=1.5, cex.lab=2,, col='black', border='white')
-abline(v=0, lty=2, lwd=2, col='red')
-box()
-dev.off()
-
-##tabela
-
-SEStableBeta = data.frame( Metric = rep('Beta diversity', 4),
-                          Extinction_scenario = c('25','50','75','95'),
-                          Observed_mean = c(mean(betaDF$Beta, na.rm=TRUE), mean(betaDF$Beta, na.rm=TRUE), mean(betaDF$Beta, na.rm=TRUE), mean(betaDF$Beta, na.rm=TRUE)),
-                          Observed_var = c(var(betaDF$Beta, na.rm=TRUE), var(betaDF$Beta, na.rm=TRUE), var(betaDF$Beta, na.rm=TRUE), var(betaDF$Beta, na.rm=TRUE)),
-                          mean_SES = c(mean(SESbeta25, na.rm=TRUE), mean(SESbeta50, na.rm=TRUE), mean(SESbeta75, na.rm=TRUE), mean(SESbeta95, na.rm=TRUE)),
-                          var_SES =  c(var(SESbeta25, na.rm=TRUE), var(SESbeta50, na.rm=TRUE), var(SESbeta75, na.rm=TRUE), var(SESbeta95, na.rm=TRUE))
-                          )
-
-SEStableTurn = data.frame( Metric = rep('Turnover', 4),
-                          Extinction_scenario = c('25','50','75','95'),
-                          Observed_mean = c(mean(turnDF$Turnover, na.rm=TRUE), mean(turnDF$Turnover, na.rm=TRUE), mean(turnDF$Turnover, na.rm=TRUE), mean(turnDF$Turnover, na.rm=TRUE)),
-                          Observed_var = c(var(turnDF$Turnover, na.rm=TRUE), var(turnDF$Turnover, na.rm=TRUE), var(turnDF$Turnover, na.rm=TRUE), var(turnDF$Turnover, na.rm=TRUE)),
-                          mean_SES = c(mean(SESturn25, na.rm=TRUE), mean(SESturn50, na.rm=TRUE), mean(SESturn75, na.rm=TRUE), mean(SESturn95, na.rm=TRUE)),
-                          var_SES =  c(var(SESturn25, na.rm=TRUE), var(SESturn50, na.rm=TRUE), var(SESturn75, na.rm=TRUE), var(SESturn95, na.rm=TRUE))
-                          )
-
-SEStableNest = data.frame( Metric = rep('Nestedness', 4),
-                          Extinction_scenario = as.factor(c("25","50","75","95")),
-                          Observed_mean = c(mean(nestDF$Nestedness, na.rm=TRUE), mean(nestDF$Nestedness, na.rm=TRUE), mean(nestDF$Nestedness, na.rm=TRUE), mean(nestDF$Nestedness, na.rm=TRUE)),
-                          Observed_var = c(var(nestDF$Nestedness, na.rm=TRUE), var(nestDF$Nestedness, na.rm=TRUE), var(nestDF$Nestedness, na.rm=TRUE), var(nestDF$Nestedness, na.rm=TRUE)),
-                          mean_SES = c(mean(SESnest25, na.rm=TRUE), mean(SESnest50, na.rm=TRUE), mean(SESnest75, na.rm=TRUE), mean(SESnest95, na.rm=TRUE)),
-                          var_SES =  c(var(SESnest25, na.rm=TRUE), var(SESnest50, na.rm=TRUE), var(SESnest75, na.rm=TRUE), var(SESnest95, na.rm=TRUE))
-                          )
-
-##juntando numa tabela unica
-SEStable = rbind(SEStableBeta, SEStableTurn, SEStableNest)
-names(SEStable) = c('Metric', 'Extinction scenario (in %)', 'Observed (mean)', 'Observed (Var)', 'SES (mean)', 'SES (Var)') #ajustando nomes
-
-write.csv(SEStable, paste(diretorio,'/SEStable.csv',sep=''), row.names=TRUE)
+###############################################
+###############################################
