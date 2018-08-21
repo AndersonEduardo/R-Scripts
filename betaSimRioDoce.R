@@ -157,71 +157,58 @@ pturnDF = read.csv(file=file.path(diretorio,'pturnData.csv'), header = TRUE)
 
 
 ##boxplots
-jpeg(file.path(diretorio,'boxplotBeta.jpg'), width=600, height=600)
-par(family='times', mar=c(5,5,3,2), cex.axis=2, cex.lab=2.5)
-betaDF$scenario = factor(betaDF$scenario,
-                         levels=c('Beta0','Beta25','Beta50','Beta75','Beta95')) #controle da ordem dos fatores no eixo x
-boxplot(betaDF$Beta~betaDF$scenario,
-        xlim=c(0,6),
-        ylim=c(0,1.1),
-        outcol=rgb(0,0,0,0.2),
-        outcex=0.8,
-        outlwd=0.8,
-        lwd=2,
-        names=c('0%','25%','50%','75%','100%'),
-        ylab='Beta diversity',
-        xlab='Extinction')
-text(x=0.2, y=1.05, labels='A', cex=3)
-dev.off()
-
 jpeg(file.path(diretorio,'boxplotNest.jpg'), width=600, height=600)
-par(family='times', mar=c(5,5,3,2), cex.axis=2, cex.lab=2.5)
+par(family='times', mar=c(5,5.3,3,2), cex.axis=2.8, cex.lab=3.3)
 nestDF$scenario = factor(nestDF$scenario,
                          levels=c('Nes0','Nes25','Nes50','Nes75','Nes95')) #controle da ordem dos fatores no eixo x
 boxplot(nestDF$Nestedness~nestDF$scenario,
-        xlim=c(0,6),
+        xlim=c(0,14),
         ylim=c(0,1.1),
+        at=c(1,4,7,10,13),
+        boxwex = 2,
         outcol=rgb(0,0,0,0.2),
         outcex=0.8,
         outlwd=0.8,
         lwd=2,
         names=c('0%','25%','50%','75%','100%'),
-        ylab='Nestedness',
-        xlab='Extinction')
-text(x=0.2, y=1.05, labels='B', cex=3)
+        ylab='Nestedness')
+text(x=0.2, y=1.05, labels='A', cex=5)
 dev.off()
 
 jpeg(file.path(diretorio,'boxplotTurn.jpg'), width=600, height=600)
-par(family='times', mar=c(5,5,3,2), cex.axis=2, cex.lab=2.5)
+par(family='times', mar=c(5,5.3,3,2), cex.axis=2.8, cex.lab=3.3)
 turnDF$scenario = factor(turnDF$scenario,
                          levels=c('Tur0','Tur25','Tur50','Tur75','Tur95')) #controle da ordem dos fatores no eixo x
 boxplot(turnDF$Turnover~turnDF$scenario,
-        xlim=c(0,6),
+        xlim=c(0,14),
         ylim=c(0,1.1),
-        outcol=rgb(0,0,0,0.5),
+        at=c(1,4,7,10,13),
+        boxwex = 2,
+        outcol=rgb(0,0,0,0.2),
         outcex=0.8,
         outlwd=0.8,
         lwd=2,
         names=c('0%','25%','50%','75%','100%'),
-        ylab='Turnover', xlab='Extinction')
-text(x=0.2, y=1.05, labels='C', cex=3)
+        ylab='Turnover')
+text(x=0.2, y=1.05, labels='B', cex=5)
 dev.off()
 
-jpeg(file.path(diretorio,'boxplotPturn.jpg'), width=600, height=600)
-par(family='times', mar=c(5,5,3,2), cex.axis=2, cex.lab=2.5)
-pturnDF$scenario = factor(pturnDF$scenario,
-                         levels=c('Ptur0','Ptur25','Ptur50','Ptur75','Ptur95')) #controle da ordem dos fatores no eixo x
-boxplot(pturnDF$P_turnover~pturnDF$scenario,
-        xlim=c(0,6),
+jpeg(file.path(diretorio,'boxplotBeta.jpg'), width=600, height=600)
+par(family='times', mar=c(5,5.3,3,2), cex.axis=2.8, cex.lab=3.3)
+betaDF$scenario = factor(betaDF$scenario,
+                         levels=c('Beta0','Beta25','Beta50','Beta75','Beta95')) #controle da ordem dos fatores no eixo x
+boxplot(betaDF$Beta~betaDF$scenario,
+        xlim=c(0,14),
         ylim=c(0,1.1),
-        outcol=rgb(0,0,0,0.5),
+        at=c(1,4,7,10,13),
+        boxwex = 2,
+        outcol=rgb(0,0,0,0.2),
         outcex=0.8,
         outlwd=0.8,
         lwd=2,
         names=c('0%','25%','50%','75%','100%'),
-        ylab='P turnover',
-        xlab='Extinction')
-text(x=0.2, y=1.05, labels='D', cex=3)
+        ylab='Beta diversity')
+text(x=0.2, y=1.05, labels='C', cex=5)
 dev.off()
 
 
@@ -244,91 +231,69 @@ turnDens50 = density(turnDF[complete.cases(turnDF$Turn) & turnDF$scenario=='Tur5
 turnDens25 = density(turnDF[complete.cases(turnDF$Turn) & turnDF$scenario=='Tur25','Turnover'])
 turnDens0 = density(turnDF[complete.cases(turnDF$Turn) & turnDF$scenario=='Tur0','Turnover'])
 
-pturnDens95 = density(pturnDF[complete.cases(pturnDF$P_turnover) & pturnDF$scenario=='Ptur95','P_turnover'])
-pturnDens75 = density(pturnDF[complete.cases(pturnDF$P_turnover) & pturnDF$scenario=='Ptur75','P_turnover'])
-pturnDens50 = density(pturnDF[complete.cases(pturnDF$P_turnover) & pturnDF$scenario=='Ptur50','P_turnover'])
-pturnDens25 = density(pturnDF[complete.cases(pturnDF$P_turnover) & pturnDF$scenario=='Ptur25','P_turnover'])
-pturnDens0 = density(pturnDF[complete.cases(pturnDF$P_turnover) & pturnDF$scenario=='Ptur0','P_turnover'])
-
 
 ##graficos juntos
 jpeg(file.path(diretorio,'densidadeUni.jpg'), width=600, height=600)
-par(family='times', mar=c(4.5,5.5,2,2), cex.axis=2, cex.lab=2.5)
-plot(nestDens95, lty=3, lwd=2.5, col='red', ylim=c(0,10), main = '', ylab='Density', xlab='Beta Diversity')
+##par(family='times', mar=c(4.5,5.5,2,2), cex.axis=2, cex.lab=2.5)
+par(family='times', mar=c(5,5.3,3,2), cex.axis=2.8, cex.lab=3.3)
+plot(nestDens95, lty=3, lwd=2.5, col='red', ylim=c(0,10), main = '', ylab='Density', xlab='Metric')
 lines(nestDens75, lty=3, lwd=2.5, col='purple')
 lines(nestDens50, lty=3,lwd=2.5, col='green')
 lines(nestDens25, lty=3, lwd=2.5, col='blue')
 lines(nestDens0,lty=3, lwd=2.5, col='black')
-                                        #
-lines(betaDens95, lty=1, lwd=2.5, col='red')
-lines(betaDens75, lty=1, lwd=2.5, col='purple')
-lines(betaDens50, lty=1, lwd=2.5, col='green')
-lines(betaDens25, lty=1, lwd=2.5, col='blue')
-lines(betaDens0, lty=1, lwd=2.5, col='black')
-                                        #
+##
 lines(turnDens95, lty=4, lwd=2.5, col='red')
 lines(turnDens75, lty=4, lwd=2.5, col='purple')
 lines(turnDens50, lty=4, lwd=2.5, col='green')
 lines(turnDens25, lty=4, lwd=2.5, col='blue')
 lines(turnDens0, lty=4, lwd=2.5, col='black')
-                                        #
-lines(pturnDens95, lty=5, lwd=2.5, col='red')
-lines(pturnDens75, lty=5, lwd=2.5, col='purple')
-lines(pturnDens50, lty=5, lwd=2.5, col='green')
-lines(pturnDens25, lty=5, lwd=2.5, col='blue')
-lines(pturnDens0, lty=5, lwd=2.5, col='black')
-#
-legend(x='topright',legend=c('0%','25%','50%','75%','100%','Nestedness', 'Beta diversity', 'Turnover', 'P turnover'), title='Extinction', pch=c(22,22,22,22,22,NA,NA,NA,NA), col=c(0,0,0,0,0,1,1,1,1) , pt.bg=c('black','blue','green','purple','red','black','black','black','black'), lty=c(NA,NA,NA,NA,NA,3,2,4,5), lwd=c(NA,NA,NA,NA,NA,2,2,2,2), cex=1.5, ncol=1)
-dev.off()
-
-
-##graficos separados
-jpeg(file.path(diretorio,'densidadeSep_Beta.jpg'), width=600, height=600)
-par(family='times', mar=c(4.5,5.5,2,2), cex.axis=2, cex.lab=2.5)
-plot(betaDens95, lty=1, lwd=2.5, col='red', ylim=c(0,6), main = '', ylab='Density', xlab='Beta Diversity')
+##
+lines(betaDens95, lty=1, lwd=2.5, col='red')
 lines(betaDens75, lty=1, lwd=2.5, col='purple')
 lines(betaDens50, lty=1, lwd=2.5, col='green')
 lines(betaDens25, lty=1, lwd=2.5, col='blue')
 lines(betaDens0, lty=1, lwd=2.5, col='black')
-legend(x='topright',legend=c('0%','25%','50%','75%','100%'), title='Extinction', pch=c(22,22,22,22,22), col=c(0,0,0,0,0) , pt.bg=c('black','blue','green','purple','red'), cex=2, ncol=2)
-text(x=0, y=5.8, labels='A', cex=3)
+##
+legend(x='topright',legend=c('0%','25%','50%','75%','100%','Nestedness', 'Turnover','Beta diversity'), title='Extinction', pch=c(22,22,22,22,22,NA,NA,NA), col=c(0,0,0,0,0,1,1,1) , pt.bg=c('black','blue','green','purple','red','black','black','black'), lty=c(NA,NA,NA,NA,NA,3,4,1), lwd=c(NA,NA,NA,NA,NA,2,2,2), cex=1.5, ncol=1)
 dev.off()
 
+
+##graficos separados
 jpeg(file.path(diretorio,'densidadeSep_Nest.jpg'), width=600, height=600)
-par(family='times', mar=c(4.5,5.5,2,2), cex.axis=2, cex.lab=2.5)
-plot(nestDens95, lty=1, lwd=2.5, col='red', ylim=c(0,5), main = '', ylab='Density', xlab='Nestedness')
-lines(nestDens75, lty=1, lwd=2.5, col='purple')
-lines(nestDens50, lty=1,lwd=2.5, col='green')
-lines(nestDens25, lty=1, lwd=2.5, col='blue')
-lines(nestDens0,lty=1, lwd=2.5, col='black')
-legend(x='topright',legend=c('0%','25%','50%','75%','100%'), title='Extinction', pch=c(22,22,22,22,22), col=c(0,0,0,0,0) , pt.bg=c('black','blue','green','purple','red'), cex=2, ncol=2)
-text(x=-0.15, y=4.8, labels='B', cex=3)
+par(family='times', mar=c(5,5.3,3,2), cex.axis=2.8, cex.lab=3.3)
+plot(nestDens95, lty=1, lwd=4, col='red', ylim=c(0,5), main = '', ylab='Density', xlab='Nestedness')
+lines(nestDens75, lty=1, lwd=4, col='purple')
+lines(nestDens50, lty=1,lwd=4, col='green')
+lines(nestDens25, lty=1, lwd=4, col='blue')
+lines(nestDens0,lty=1, lwd=4, col='black')
+legend(x='topright',legend=c('0%','25%','50%','75%','100%'), title='Extinction', pch=c(22,22,22,22,22), col=c(0,0,0,0,0) , pt.bg=c('black','blue','green','purple','red'), cex=2.5, ncol=2)
+text(x=-0.15, y=4.8, labels='A', cex=5)
 dev.off()
 
 jpeg(file.path(diretorio,'densidadeSep_Turn.jpg'), width=600, height=600)
-par(family='times', mar=c(4.5,5.5,2,2), cex.axis=2, cex.lab=2.5)
-plot(turnDens95, lty=1, lwd=2.5, col='red', ylim=c(0,10), main = '', ylab='Density', xlab='Turnover')
-lines(turnDens75, lty=1, lwd=2.5, col='purple')
-lines(turnDens50, lty=1, lwd=2.5, col='green')
-lines(turnDens25, lty=1, lwd=2.5, col='blue')
-lines(turnDens0, lty=1, lwd=2.5, col='black')
-legend(x='topright',legend=c('0%','25%','50%','75%','100%'), title='Extinction', pch=c(22,22,22,22,22), col=c(0,0,0,0,0) , pt.bg=c('black','blue','green','purple','red'), cex=2, ncol=2)
-text(x=-0.03, y=9.6, labels='C', cex=3)
+par(family='times', mar=c(5,5.3,3,2), cex.axis=2.8, cex.lab=3.3)
+plot(turnDens95, lty=1, lwd=4, col='red', ylim=c(0,10), main = '', ylab='Density', xlab='Turnover')
+lines(turnDens75, lty=1, lwd=4, col='purple')
+lines(turnDens50, lty=1, lwd=4, col='green')
+lines(turnDens25, lty=1, lwd=4, col='blue')
+lines(turnDens0, lty=1, lwd=4, col='black')
+legend(x='topright',legend=c('0%','25%','50%','75%','100%'), title='Extinction', pch=c(22,22,22,22,22), col=c(0,0,0,0,0) , pt.bg=c('black','blue','green','purple','red'), cex=2.5, ncol=2)
+text(x=-0.03, y=9.6, labels='B', cex=5)
 dev.off()
 
-jpeg(file.path(diretorio,'densidadeSep_Pturn.jpg'), width=600, height=600)
-par(family='times', mar=c(4.5,5.5,2,2), cex.axis=2, cex.lab=2.5)
-plot(pturnDens95, lty=1, lwd=2.5, col='red', ylim=c(0,10), main = '', ylab='Density', xlab='P turnover')
-lines(pturnDens75, lty=1, lwd=2.5, col='purple')
-lines(pturnDens50, lty=1, lwd=2.5, col='green')
-lines(pturnDens25, lty=1, lwd=2.5, col='blue')
-lines(pturnDens0, lty=1, lwd=2.5, col='black')
-legend(x='topright',legend=c('0%','25%','50%','75%','100%'), title='Extinction', pch=c(22,22,22,22,22), col=c(0,0,0,0,0) , pt.bg=c('black','blue','green','purple','red'), cex=2, ncol=2)
-text(x=-0.03, y=9.6, labels='D', cex=3)
+jpeg(file.path(diretorio,'densidadeSep_Beta.jpg'), width=600, height=600)
+par(family='times', mar=c(5,5.3,3,2), cex.axis=2.8, cex.lab=3.3)
+plot(betaDens95, lty=1, lwd=4, col='red', ylim=c(0,6), main = '', ylab='Density', xlab='Beta Diversity')
+lines(betaDens75, lty=1, lwd=4, col='purple')
+lines(betaDens50, lty=1, lwd=4, col='green')
+lines(betaDens25, lty=1, lwd=4, col='blue')
+lines(betaDens0, lty=1, lwd=4, col='black')
+legend(x='topright',legend=c('0%','25%','50%','75%','100%'), title='Extinction', pch=c(22,22,22,22,22), col=c(0,0,0,0,0) , pt.bg=c('black','blue','green','purple','red'), cex=2.5, ncol=2)
+text(x=0, y=5.8, labels='C', cex=5)
 dev.off()
+
 
 ## graficos usando Standarlized Size Effect (SES), ou algo assim : ) ##
-
 
 ##SES = (Xobs - mean (Xnull)) / SD (Xnull)
 ##
@@ -401,13 +366,13 @@ SEStab = rbind(SESnest, SESbeta, SESturn, SESpturn)
 write.csv(SEStab, paste(diretorio,'/SEStable.csv',sep=''), row.names=FALSE)
 
 ##grafico de barras
-SEStabGraph = data.frame(Nestedness=nestDFses, Beta=betaDFses, Turnover=turnDFses, P_turnover=pturnDFses)
+SEStabGraph = data.frame(Nestedness=nestDFses, Turnover=turnDFses, Beta=betaDFses)
 rownames(SEStabGraph) = c("0%","25%","50%","75%","100%")
 
 jpeg(paste(diretorio,'/SESbarras.jpg', sep=''), width=600, height=600)
-par(family='times', mar=c(4,4.5,1,1), cex=1.4, cex.lab=1.6)
-barplot( t(SEStabGraph), beside=TRUE, xlab="Extinction", ylab="Metric", ylim=c(-3,3.5), col=c('black','darkgray','lightgray','white') )
-legend(x=17.5, y=-1.3, legend=c("Nestedness","Beta","Turnover","P turnover"), fill=c('black','darkgray','lightgray','white'), cex=1.2)
+par(family='times', mar=c(5,5.3,3,2), cex.axis=2.5, cex.lab=3.3)
+barplot( t(SEStabGraph), beside=TRUE, ylab="Metric", ylim=c(-1,0.5), col=c('black','darkgray','lightgray'))
+legend('topleft', legend=c("Nestedness","Beta Diversity","Turnover"), fill=c('black','darkgray','lightgray'), cex=1.5)
 abline(h=0, lwd=0.5)
 box()
 dev.off()
@@ -439,6 +404,60 @@ statsBeta = multidimFbetaD(coord=matDisFunc[indices,], occ=as.matrix(matPres), n
 ##outputBetaDiv[[i]] = statsBeta
 save(statsBeta, file='cenario_obseravdo') #salvando objetos em um .Rdata
 gc()
+
+
+###############################################
+###############################################
+
+
+################################################
+######### beta diversidade taxonomica ##########
+
+
+diretorio = '/home/anderson/Projetos/Isaac - diversidade beta Rio Doce' #especificar diretorio onde salvar
+
+taxdata = read.csv("/home/anderson/Downloads/taxonomic.results.csv", header=TRUE)
+
+taxdata[,1] = NULL
+names(taxdata)
+
+
+jpeg(file.path(diretorio,'boxplotTaxonomicNestedness.jpg'), width=600, height=600)
+par(family='times', mar=c(5,5.3,3,2), cex.axis=2.8, cex.lab=3.3)
+boxplot(taxdata[,c("ssne0","ssne35","ssne70","ssne104","ssne139")],
+        names=c('0%','25%','50%','75%','100%'),
+        ylab="Nestedness",
+        xlim=c(0,21),
+        at=c(1,5,10,15,20),
+        boxwex=3,
+        lwd=2)
+text(x=0.7, y=0.166, labels='A', cex=5)
+dev.off()
+
+
+jpeg(file.path(diretorio,'boxplotTaxonomicTurnover.jpg'), width=600, height=600)
+par(family='times', mar=c(5,5.3,3,2), cex.axis=2.8, cex.lab=3.3)
+boxplot(taxdata[,c("ssim0","ssim35","ssim70","ssim104","ssim139")],
+        names=c('0%','25%','50%','75%','100%'),
+        ylab="Turnover",
+        xlim=c(0,21),
+        at=c(1,5,10,15,20),
+        boxwex=3,
+        lwd=2)
+text(x=1, y=0.679, labels='B', cex=5)
+dev.off()
+
+jpeg(file.path(diretorio,'boxplotTaxonomicBeta.jpg'), width=600, height=600)
+par(family='times', mar=c(5,5.3,3,2), cex.axis=2.8, cex.lab=3.3)
+boxplot(taxdata[,c("ssor0","ssor35","ssor70","ssor104","ssor139")],
+        names=c('0%','25%','50%','75%','100%'),
+        ylab="Beta diversity",
+        xlim=c(0,21),
+        at=c(1,5,10,15,20),
+        boxwex=3,
+        lwd=2)
+text(x=0.7, y=0.818, labels='C', cex=5)
+dev.off()
 
 
 ###############################################
