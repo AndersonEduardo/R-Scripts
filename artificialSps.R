@@ -22,6 +22,16 @@ projectFolder = "J:/Anderson_Eduardo/spsArtificiais/" #pasta do projeto
 AmSulShape = rgdal::readOGR("J:/Anderson_Eduardo/shapefiles/Am_Sul/borders.shp") #shape da America do Sul
 ############################
 
+
+ynorm = (dnorm(temp,230,10) - min(dnorm(temp,230,10)))/( max(dnorm(temp,230,10)) - min(dnorm(temp,230,10)) )
+plot(ynorm ~ temp)
+points(betaTemp ~ temp, t='l')
+
+ynorm = (dnorm(prec,2750,300) - min(dnorm(prec,2750,300)))/( max(dnorm(prec,2750,300)) - min(dnorm(prec,2750,300)) )
+plot(ynorm ~ prec)
+points(betaPrec ~ prec, t='l')
+
+
 for (i in 1:length(caminhosCamadasTemp)){
 
     ##variaveis preditoras

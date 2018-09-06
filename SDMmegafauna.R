@@ -1,6 +1,10 @@
 
 ##abrindo pacores necessarios
 library(raster)
+library(hypervolume)
+source('/home/anderson/R-Scripts/paleoextract.R')
+source('/home/anderson/R-Scripts/strings2na.R')
+source('/home/anderson/R-Scripts/dataInstance.R')
 
 
 ##definindo parametros e variaveis globais
@@ -17,67 +21,62 @@ dataSetRaw = read.csv(file='/home/anderson/Projetos/SDM megafauna Sul-Americana/
 ##subset do banco de dados
 pts = dataSetRaw[,c('Species','Longitude','Latitude','Cal..Mean','Min.','Max.')]
 
-##ajustando coordenadas
-ptsCoords = apply(pts[,c('Longitude','Latitude')],1, as.numeric) #transforma informacao de texto em NA (ex.: gruta azul -> NA)
-ptsCoords = data.frame(t(ptsCoords)) #transformando em data.frame
-pts = data.frame(sp=pts$Species, lon=ptsCoords[,1], lat=ptsCoords[,2], mean=pts$Cal..Mean, min=pts$Min, max=pts$Max) #consolidando os dados
+sp_i = 'Catonyx cuvieri'
 
-##ajustando as idades
-ptsAge = apply(pts[,c("mean","min","max")], 1, as.numeric) #transforma informacao de texto em NA (ex.: pleistocene -> NA)
-ptsAge = data.frame(t(ptsAge)) #consolidando os dados
-ptsAgeMeanNA = apply( ptsAge, 1, function(x) ifelse(is.na(x[1]), mean(x[2:3]), x[1]) ) #qdo media=NA, obtem a partir do intervalo (max e min)
-ptsAgeMinNA = apply( ptsAge, 1, function(x) ifelse(is.na(x[2]) & is.na(x[3]), x[1], x[2]) ) #qdo min=NA, min=mean (i.e. data altamente precisa)
-ptsAgeMaxNA = apply( ptsAge, 1, function(x) ifelse(is.na(x[2]) & is.na(x[3]), x[1], x[3]) ) #qdo max=NA, max=mean (i.e. data altamente precisa)
-ptsAge = data.frame(cbind(ptsAgeMeanNA,ptsAgeMinNA,ptsAgeMaxNA)) #consolidando os dados de idade
+pts = pts[which(pts$Species == sp_i),]
+
+##ajustando dados
+pts = strings2na(pts, 'Species') #transformando strings ao longo do dateset em NA
+pts = dataInstance(pts, c('Cal..Mean','Min.','Max.'), n=10) #criando instancias de dados (i.e. definindo idades a partir dos itervalos)
 
 ##consolidando dos dados
-dataSet = data.frame( sp=pts$sp, lon=pts$lon, lat=pts$lat, mean=ptsAge$ptsAgeMeanNA, min=ptsAge$ptsAgeMinNA, max=ptsAge$ptsAgeMaxNA )
-dataSet[,c('lat','lon')] = round(dataSet[,c('lat','lon')], 2) #arredondando para duas casas decimais
-dataSet = dataSet[complete.cases(dataSet),] #retirando dados incompletos
-dataSet = unique(dataSet) #retirando dados repetidos
+##pts = as.data.frame(pts[[1]]) #pegando somente a primeira instancia dos dados
+pts = lapply(seq(length(pts)), function(x) data.frame(sps=pts[[x]]$Species, round(pts[[x]][,c('Longitude','Latitude')], 2), age=pts[[x]]$age )) #arredondando para duas casas decimais
+pts = lapply( seq(length(pts)), function(x) pts[[x]][complete.cases(pts[[x]]),] ) #retirando dados incompletos
+pts = lapply( seq(length(pts)), function(x) unique(pts[[x]]) ) #retirando dados incompletos
 
-## plot(AmSulBorders)
-## points(pts[,c('lon','lat')], pch=20, cex=1.5, col=as.factor(pts$sp))
-## table(pts$sp)
+plot(AmSulBorders)
+points(pts[[1]][,c('Longitude','Latitude')], pch=20, cex=1.5, col=as.factor(pts[[1]]$sps))
 
 
 ##funcao para testar sensibilidade do hipervolume do nicho ao intervalo de erro nas idades dos registros fosseis
 
 
-sp_i = dataSet$sp[2]
 
-currentDataSet = dataSet[grep(pattern=sp_i, x=dataSet$sp), ]
-currentDataSet$age = apply( currentDataSet[,c('min','max')], 1, function(x) runif(1, min=x[1], max=x[2]) )
-currentDataSet$age = round(currentDataSet$age/1000)
-currentDataSet = currentDataSet[!base::duplicated(currentDataSet[,c('lon','lat','age')]), ]
+dataSetList = list()
 
-paleoextract = function(x, y) {
+currentDataSet = pts
+currentDataSet = lapply( seq(length(currentDataSet)), function(x) data.frame(sps=currentDataSet[[x]]$sps, lon=currentDataSet[[x]]$Longitude, lat=currentDataSet[[x]]$Latitude, age=currentDataSet[[x]]$age) )
 
-    if( ncol(x)!=3 | class(x) != "data.frame" | any(names(x)!=c('lon','lat','age')) ){
-        stop("O conjunto de dados de entrada deve ser um data.frame contendo as respectivas \n \t colunas: lon (longitude, lat (latitude), age (idade)")
-    }
+dataSet_i =  paleoextract( currentDataSet[[1]][c('lon','lat','age')], envFolder )
 
-    if( any( is.na( match(unique(x$min), as.integer(list.files(y))) ) ) ){
-        stop("As idades no conjunto de dados devem corresponder à pastas com variaveis ambientais para cada uma das idades.")
-    }
+dataSet_i = dataSet_i[complete.cases(dataSet_i), ]
 
-    currentDataSet = x
+dataSetList[[1]] = dataSet_i
 
-    agesVector = sort( unique(currentDataSet$age) )
-    predictorsData = data.frame()
+##global hypervolume
+globaldataSet = do.call("rbind", dataSetList)
+globaldataSet = unique(globaldataSet)
+globalPC = prcomp(globaldataSet[,-1], center=TRUE, scale.=TRUE)
+idx = which(summary(globalPC)$importance['Cumulative Proportion',] >= 0.95)[1]
+globalHypvol = hypervolume_gaussian(globalPC$x[,1:idx])
 
-    for (age_i in agesVector){
+PC = prcomp(dataSet_i[,-1], center=TRUE, scale.=TRUE)
+idx = which(summary(PC)$importance['Cumulative Proportion',] >= 0.95)[1]
+hypvol = hypervolume_gaussian(PC$x[,1:idx])
 
-        currentPredictors = stack( list.files(file.path(y,i),pattern='asc', full.names=TRUE) )
-        crs(currentPredictors) = crs(raster())
-        currentVals = extract(x=currentPredictors, y=currentDataSet[ currentDataSet$age == age_i, c('lon','lat')])
-        currentVals = data.frame(currentVals)
+marginality = hypervolume_distance(globalHypvol, hypvol)
+propSize =  get_volume(hypvol) / get_volume(globalHypvol)
 
-        predictorsData = rbind(predictorsData, currentVals)
+outputData = rbind( outputData,
+                   data.frame(marginality = marginality, propSize=propSize, matrix(dataSet_i$age,1,length(dataSet_i$age))) )
 
-    
-        
-}
+names(outputData) = c('marginality','propSize', paste('point_',seq(length(dataSet_i$age)),sep=''))
+rownames(outputData) = NULL
+
+
+#### PROXIMO PASSO: 1o) voltar la no comeco e dar um jeito para que as informacoes de cada ponto (ID, coordenadas e idade) possam ser recuperadas no output final; 2o) implementar o teste de sensibilidade do nicho (ou hipervolume) a incerteza em cada um dos pontos. ####
+
 
 
 
