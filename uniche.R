@@ -59,7 +59,7 @@ uniche = function(x){
     ## globalHypvol = hypervolume_gaussian(globalPC$x[,1:3]) #criando o hipervolume global para os dados
 
     for (i in seq(length(currentDataSet))){
-        tryCatch({
+#        tryCatch({
 
             ##hipervolume do i-esimo dataset
             dataSet_i = currentDataSet[[i]]
@@ -83,7 +83,7 @@ uniche = function(x){
             outputData = rbind( outputData,
                                data.frame(marginality=marginality, volume=volume, rawline, row.names=NULL) )
 
-        }, error=function(e){cat("ERROR :",conditionMessage(e), "\n")})
+#        }, error=function(e){cat("ERROR :",conditionMessage(e), "\n")})
     }
 
     ##pcc - partial correlation coefficients
@@ -92,11 +92,12 @@ uniche = function(x){
     colIdx = which(apply( inputFactors, 2, sd ) == 0) #indice das colunas sem variancia
     rowIdx = sample(nrow(inputFactors),round(0.5*nrow(inputFactors))) #sorteio de linhas para adicionar uma variancia minima (se nao da erro)
     inputFactors[rowIdx,colIdx] = inputFactors[rowIdx,colIdx]+1 #garantindo que nao haja variancia zero
-    pccOutput = pcc(inputFactors, inputResponse[,1], nboot=1000) #PCC
+    pccOutputMarginality = pcc(inputFactors, inputResponse[,'marginality'], nboot=1000) #PCC
+    pccOutputVolume = pcc(inputFactors, inputResponse[,'volume'], nboot=1000) #PCC
     
     ##output da funcao
     outputDataset = currentDataSet[[1]][c('lon','lat','age','id')]
-    output = list(dataset=outputDataset, uniche=pccOutput)
+    output = list(dataset=outputDataset, uniche.marginality=pccOutputMarginality, uniche.volume=pccOutputVolume)
     class(output) = 'uniche'
     return(output)
 

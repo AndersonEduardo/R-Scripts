@@ -3,7 +3,7 @@
 ##Anderson Aires Eduardo
 
 
-dataInstance = function(x, col_names, tempRes=1000, n=1){
+dataInstance = function(x, col_names, tempRes=1000, n=2*nrow(x)){
 
     if (class(x) != "data.frame"){
         stop("O dataset de entrada precisa ser um objeto da classe 'data.frame'.")

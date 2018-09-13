@@ -5,15 +5,15 @@
 paleoextract = function(x, cols=names(x), path) {
 
     if( ncol(x) < 3 | class(x) != "data.frame" | sum(cols %in% c('lon','lat','age')) < 3 ){
-        stop("ERRO: o conjunto de dados de entrada deve ser um data.frame contendo (no mínimo) as respectivas \n \t colunas: lon (longitude), lat (latitude), age (idade)")
+        stop("O conjunto de dados de entrada deve ser um data.frame contendo (no mínimo) as respectivas \n \t colunas: lon (longitude), lat (latitude), age (idade)")
     }
 
     if( any( is.na( match(unique(x$age), as.integer(list.files(path))) ) ) ){
-        warning("\n ATENÇÃO: as idades no conjunto de dados devem corresponder à pastas com variaveis ambientais para cada uma das idades. NAs produzidos. \n")
+        warning("ATENÇÃO: as idades no conjunto de dados devem corresponder à pastas com variaveis ambientais para cada uma das idades. NAs produzidos. \n")
     }
 
     if("ID" %in% names(x)){
-        stop("ERRO: desculpe, mas infelizmente o nome de coluna 'ID' não é permitido para esta funcao. Por favor, renomeie ou exclua do dataset de entrada desta funcao.")
+        stop("Desculpe, mas infelizmente o nome de coluna 'ID' não é permitido para esta funcao. Por favor, renomeie ou exclua do dataset de entrada desta funcao.")
     }
 
     ##variaveis locais
@@ -61,7 +61,9 @@ paleoextract = function(x, cols=names(x), path) {
         predictorsData = predictorsData[order(predictorsData$ID),] #recuperando a organizacao original
         predictorsData$ID = NULL #apagando ID helper
 
-        ##output da funcao
-        return(predictorsData)
     }
+
+    ##output da funcao
+    return(predictorsData)
+
 }
