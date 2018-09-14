@@ -2,6 +2,8 @@
 
 uniche = function(x){
 
+    cat('\n Inicializando função... \n')
+
     ##pacotes necessarios
     require(sensitivity)
     require(hypervolume)
@@ -33,6 +35,7 @@ uniche = function(x){
     outputData = data.frame()
 
     ##extraindo dados ambientais nos pontos de ocorrencia
+    cat(' Rodando paleoextract... \n')
     currentDataSet = lapply( seq(length(currentDataSet)), function(x) paleoextract(x=currentDataSet[[x]], cols=c('lon','lat','age'), path=envFolder) )
     cols = names(currentDataSet[[1]])[!names(currentDataSet[[1]]) %in% c('lon','lat','age','id')] #pegando os nomes das variaveis ambintais
 
@@ -58,9 +61,10 @@ uniche = function(x){
     ## ## globalHypvol = hypervolume_gaussian(globalPC$x[,1:idx]) #criando o hipervolume global para os dados
     ## globalHypvol = hypervolume_gaussian(globalPC$x[,1:3]) #criando o hipervolume global para os dados
 
+    cat(' Criando hipervolumes a partir dos dados... \n')
     for (i in seq(length(currentDataSet))){
 #        tryCatch({
-
+            cat(' -Hipervolume', i,'\n')
             ##hipervolume do i-esimo dataset
             dataSet_i = currentDataSet[[i]]
             dataSet_i =  dataSet_i[complete.cases(dataSet_i),]
@@ -87,18 +91,21 @@ uniche = function(x){
     }
 
     ##pcc - partial correlation coefficients
+    cat(' Rodando PCC... \n')
     inputFactors = outputData[,grep('point',names(outputData))] #dados de entrada para o pcc (variaveis preditoras)
     inputResponse = outputData[,c('marginality','volume')] #dados de entrada para o pcc (variavel resposta)
-    colIdx = which(apply( inputFactors, 2, sd ) == 0) #indice das colunas sem variancia
+    colIdx = which(apply( inputFactors, 2, sd ) < 1) #indice das colunas sem variancia
     rowIdx = sample(nrow(inputFactors),round(0.5*nrow(inputFactors))) #sorteio de linhas para adicionar uma variancia minima (se nao da erro)
     inputFactors[rowIdx,colIdx] = inputFactors[rowIdx,colIdx]+1 #garantindo que nao haja variancia zero
     pccOutputMarginality = pcc(inputFactors, inputResponse[,'marginality'], nboot=1000) #PCC
     pccOutputVolume = pcc(inputFactors, inputResponse[,'volume'], nboot=1000) #PCC
     
     ##output da funcao
-    outputDataset = currentDataSet[[1]][c('lon','lat','age','id')]
+    cat(' Ajustando outputs... \n')
+    outputDataset = currentDataSet[[1]][c('lon','lat','id')]
     output = list(dataset=outputDataset, uniche.marginality=pccOutputMarginality, uniche.volume=pccOutputVolume)
     class(output) = 'uniche'
+    cat(' Ô rapaz!! Análise finalizada com sucesso! Pelo menos assim espero...  : ) \n')
     return(output)
 
 }

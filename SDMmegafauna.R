@@ -1,5 +1,5 @@
 
-##abrindo pacores necessarios
+##abrindo pacotes e funcoes necessarias##
 library(raster)
 library(hypervolume)
 source('/home/anderson/R-Scripts/paleoextract.R')
@@ -10,50 +10,87 @@ source('/home/anderson/R-Scripts/uniche.R')
 source('/home/anderson/R-Scripts/cleanData.R')
 
 
-##definindo parametros e variaveis globais
-projectFolder = "/home/anderson/Projetos/SDM megafauna Sul-Americana"
-envFolder = "/home/anderson/gridfiles/dados_projeto"
-AmSulBorders = rgdal::readOGR('/home/anderson/shapefiles/Am_Sul/borders.shp')
+##definindo parametros e variaveis globais##
+projectFolder = "/home/anderson/Projetos/SDM megafauna Sul-Americana" #pasta de trabalho do projeto
+envFolder = "/home/anderson/gridfiles/dados_projeto" #pasta das variaveis ambientais
+AmSulBorders = rgdal::readOGR('/home/anderson/shapefiles/Am_Sul/borders.shp') #shapefile da Am. do Sul
 
 
-##abrindo e tratando o banco de dados
+##abrindo e tratando o banco de dados##
 
 ##arquivo do banco de dados
 dataSetRaw = read.csv(file='/home/anderson/Projetos/SDM megafauna Sul-Americana/dataset_clean.csv', header=TRUE, dec='.', sep=',')
 
 ##subset do banco de dados
 pts = dataSetRaw[,c('Species','Longitude','Latitude','Cal..Mean','Min.','Max.')]
-
-sp_i = 'Eremotherium laurillardi'
-
+sp_i =  'Catonyx cuvieri'
 pts = pts[which(pts$Species == sp_i),]
 
 ##ajustando dados
 pts = strings2na(pts, 'Species') #transformando strings ao longo do dateset em NA
 pts = dataInstance(pts, c('Cal..Mean','Min.','Max.'), n=2*nrow(pts)) #criando instancias de dados (i.e. definindo idades a partir dos itervalos)
-pts = cleanData(pts, c('Longitude','Latitude','age'), 2) #arredondando coords, limpando NAs e dados duplicados
+pts = cleanData(pts, c('Longitude','Latitude','age'), p=2) #arredondando coords, limpando NAs e dados duplicados
 
-## plot(AmSulBorders)
-## points(pts[[1]][,c('Longitude','Latitude')], pch=20, cex=1.5, col=as.factor(pts[[1]]$sps))
+##inspeção visual dos dados
+plot(AmSulBorders)
+points(pts[[1]][,c('lon','lat')], pch=20, cex=1.5, col='red')
 
 
 ##analise de incerteza e sensibilidade##
+analise.incerteza = uniche(xxdat) #analise de incerteza e sensibilidade
 
+uplot(xx, AmSulBorders, legend=FALSE) #inspecao visual - opcao 1
 
-#xxdat = lapply( seq(length(pts)), function(x) pts[[x]][,2:4] ) #data.frames somente com colunas longitude, latitude e idade (necessario pra funcao)
-xxdat = pts[[1]]
-
-xx = uniche(xxdat) #analise de incerteza e sensibilidade
-
-uplot(xx, AmSulBorders, legend=FALSE) #inspecao visual
-
-plot(AmSulBorders)
-uplot(x=xx, shape=NULL, niche.metric='volume')
+plot(AmSulBorders) #inspecao visual - opcao 2
+uplot(x=xx, shape=NULL, niche.metric='marginality')
 
 
 
-plot(xx$uniche.marginality)
-abline(h=0, col='red', lty=2)
+#### rodando para todas as espécies do banco de dados - somente um teste ainda ####
 
-plot(xx$uniche.volume)
-abline(h=0, col='red', lty=2)
+
+
+##abrindo e tratando o banco de dados##
+
+##arquivo do banco de dados
+dataSetRaw = read.csv(file='/home/anderson/Projetos/SDM megafauna Sul-Americana/dataset_clean.csv', header=TRUE, dec='.', sep=',')
+
+##subset do banco de dados
+dataSetRaw = dataSetRaw[,c('Species','Longitude','Latitude','Cal..Mean','Min.','Max.')]
+
+##lista dos nomes das especies
+sps = as.character( unique(dataSetRaw$Species) )
+
+for (i in seq(length(sps))){
+
+    ##dataset da especie atual
+    pts = dataSetRaw[which(dataSetRaw$Species == sps[i]),]
+
+    if (nrow(pts) <= 5){
+        cat("\n ATENÇÃO: A espécie", sps[i], "possui menos que 5 registros, por isso não foi analisada. \n")
+        next
+    }
+
+    ##ajustando dados
+    pts = strings2na(pts, 'Species') #transformando strings ao longo do dateset em NA
+    pts = dataInstance(pts, c('Cal..Mean','Min.','Max.'), n=2*nrow(pts)) #criando instancias de dados (i.e. definindo idades a partir dos itervalos)
+    pts = cleanData(pts, c('Longitude','Latitude','age'), p=2) #arredondando coords, limpando NAs e dados duplicados
+
+    ##inspeção visual dos dados
+    plot(AmSulBorders)
+    points(pts[[1]][,c('lon','lat')], pch=20, cex=1.5, col='red')
+
+    ##analise de incerteza e sensibilidade
+    analise.incerteza = uniche(xxdat) #analise de incerteza e sensibilidade
+
+    ##salvando output da analise
+    save(analise.incerteza, file=paste(projectFolder,'/Analise de sensibilidade e incerteza/',sps[i],'.R',sep=''))
+
+    ##salvando output grafico
+    jpeg(paste(projectFolder,'/Analise de sensibilidade e incerteza/',sps[i],'.jpeg',sep=''), 600, 600)
+    uplot(analise.incerteza, AmSulBorders, legend=FALSE)
+    dev.off()
+
+    gc()
+
+}
