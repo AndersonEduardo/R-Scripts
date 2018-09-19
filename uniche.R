@@ -1,8 +1,8 @@
 ##funcao para analise avaliar a influencia incerteza na idade dos registros de ocorrencia sobre nicho modelado. O dataset de entrada deve ser um objeto da classe 'data.frame' ou uma lista (objeto da classe 'list') de data.frame's. Esses data.frame's devem ter as respectivas colunas (nesta ordem): (i) longitude, (ii) latitude, (iii) idade do registro. Essa funcao depende dos pacotes 'sensitivity' e 'hypervolume', além da funcao 'paleoextract'.
 
-uniche = function(x){
+uniche = function(x, envFolder){
 
-    cat('\n Inicializando função... \n')
+    cat('\n uniche-status | Inicializando função... \n')
 
     ##pacotes necessarios
     require(sensitivity)
@@ -11,6 +11,11 @@ uniche = function(x){
     if (!class(x) %in% c('list','data.frame')){
         stop("O dataset de entrada deve ser um objeto da classe 'data.frame' ou uma lista (objeto da classe 'list') de data.frame's.")
     }
+
+    if (class(envFolder) != "character"){
+        stop("O argumento 'envFolder' deve ser um objeto da classe 'character' e deve ser o endereço da pasta com as variáveis ambientais.")
+    }
+
 
     if (class(x) == "list"){
         if ( !any(sapply(seq(length(x)), function(i) class(x[[i]])=="data.frame")) ){
@@ -30,13 +35,14 @@ uniche = function(x){
     if( class(currentDataSet) != "list" ){
         currentDataSet = list(x)
     }
+    envFolder = envFolder
     currentDataSet = lapply( seq(length(currentDataSet)), function(x) data.frame(lon=currentDataSet[[x]][,1], lat=currentDataSet[[x]][,2], age=currentDataSet[[x]][,3]) ) #ajustando nomes dos data.frames
     currentDataSet = lapply( seq(length(currentDataSet)), function(x) data.frame( currentDataSet[[x]], id=seq(nrow(currentDataSet[[x]]))) ) #criando um ID para os pontos de ocorrencia
     outputData = data.frame()
 
     ##extraindo dados ambientais nos pontos de ocorrencia
-    cat(' Rodando paleoextract... \n')
-    currentDataSet = lapply( seq(length(currentDataSet)), function(x) paleoextract(x=currentDataSet[[x]], cols=c('lon','lat','age'), path=envFolder) )
+    cat(' uniche-status | Rodando paleoextract... \n')
+    currentDataSet = lapply( seq(length(currentDataSet)), function(x) paleoextract(x=currentDataSet[[x]], path=envFolder) )
     cols = names(currentDataSet[[1]])[!names(currentDataSet[[1]]) %in% c('lon','lat','age','id')] #pegando os nomes das variaveis ambintais
 
     
@@ -61,10 +67,10 @@ uniche = function(x){
     ## ## globalHypvol = hypervolume_gaussian(globalPC$x[,1:idx]) #criando o hipervolume global para os dados
     ## globalHypvol = hypervolume_gaussian(globalPC$x[,1:3]) #criando o hipervolume global para os dados
 
-    cat(' Criando hipervolumes a partir dos dados... \n')
+    cat(' uniche-status | Criando hipervolumes a partir dos dados... \n')
     for (i in seq(length(currentDataSet))){
-#        tryCatch({
-            cat(' -Hipervolume', i,'\n')
+        tryCatch({
+            cat(' uniche-status | -Hipervolume', i,'\n')
             ##hipervolume do i-esimo dataset
             dataSet_i = currentDataSet[[i]]
             dataSet_i =  dataSet_i[complete.cases(dataSet_i),]
@@ -87,25 +93,27 @@ uniche = function(x){
             outputData = rbind( outputData,
                                data.frame(marginality=marginality, volume=volume, rawline, row.names=NULL) )
 
-#        }, error=function(e){cat("ERROR :",conditionMessage(e), "\n")})
+        }, error=function(e){cat("ERROR PONTUAL COM UM DOS HIPERVOLUMES :",conditionMessage(e), "\n")})
     }
 
     ##pcc - partial correlation coefficients
-    cat(' Rodando PCC... \n')
+    cat(' uniche-status | Rodando PCC... \n')
     inputFactors = outputData[,grep('point',names(outputData))] #dados de entrada para o pcc (variaveis preditoras)
     inputResponse = outputData[,c('marginality','volume')] #dados de entrada para o pcc (variavel resposta)
-    colIdx = which(apply( inputFactors, 2, sd ) < 1) #indice das colunas sem variancia
-    rowIdx = sample(nrow(inputFactors),round(0.5*nrow(inputFactors))) #sorteio de linhas para adicionar uma variancia minima (se nao da erro)
-    inputFactors[rowIdx,colIdx] = inputFactors[rowIdx,colIdx]+1 #garantindo que nao haja variancia zero
+    while( any(apply(inputFactors, 2, sd) < 1) ){
+        colIdx = which(apply( inputFactors, 2, sd ) < 1) #indice das colunas sem variancia
+        rowIdx = sample(nrow(inputFactors),round(0.5*nrow(inputFactors))) #sorteio de linhas para adicionar uma variancia minima (se nao da erro)
+        inputFactors[rowIdx,colIdx] = inputFactors[rowIdx,colIdx]+1 #garantindo que nao haja variancia zero
+    }
     pccOutputMarginality = pcc(inputFactors, inputResponse[,'marginality'], nboot=1000) #PCC
     pccOutputVolume = pcc(inputFactors, inputResponse[,'volume'], nboot=1000) #PCC
     
     ##output da funcao
-    cat(' Ajustando outputs... \n')
+    cat(' uniche-status | Ajustando outputs... \n')
     outputDataset = currentDataSet[[1]][c('lon','lat','id')]
     output = list(dataset=outputDataset, uniche.marginality=pccOutputMarginality, uniche.volume=pccOutputVolume)
     class(output) = 'uniche'
-    cat(' Ô rapaz!! Análise finalizada com sucesso! Pelo menos assim espero...  : ) \n')
+    cat(' uniche-status | Ô rapaz!! Análise finalizada com sucesso! Pelo menos assim espero...  : ) \n')
     return(output)
 
 }

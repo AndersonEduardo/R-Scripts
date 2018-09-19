@@ -25,7 +25,7 @@ uplot = function(x, shape=NULL, niche.metric=NULL, legend=TRUE){
         if (niche.metric == 'marginality'){
 
             sensitivity = rgb(abs(x$uniche.marginality$PCC$original),1-abs(x$uniche.marginality$PCC$original),0,0.9)
-            tempUncert = 2.5 + 2 * apply( xx$uniche.marginality$X, 2, sd) / max(apply( xx$uniche.marginality$X, 2, sd)) 
+            tempUncert = 2.5 + 2 * apply( x$uniche.marginality$X, 2, sd) / max(apply( x$uniche.marginality$X, 2, sd)) 
             
             points(x$dataset[,c('lon','lat')], col=sensitivity, cex=tempUncert, pch=20)
             text(x$dataset[,c('lon','lat')], labels=x$dataset$id, cex= 0.7)
@@ -37,7 +37,7 @@ uplot = function(x, shape=NULL, niche.metric=NULL, legend=TRUE){
         }else{
 
             sensitivity = rgb(abs(x$uniche.volume$PCC$original),1-abs(x$uniche.volume$PCC$original),0,0.9)
-            tempUncert = 2.5 + 2 * apply( xx$uniche.volume$X, 2, sd) / max(apply( xx$uniche.volume$X, 2, sd)) 
+            tempUncert = 2.5 + 2 * apply( x$uniche.volume$X, 2, sd) / max(apply( x$uniche.volume$X, 2, sd)) 
             
             points(x$dataset[,c('lon','lat')], col=rgb(abs(x$uniche.volume$PCC$original),1-abs(x$uniche.volume$PCC$original),0,0.9), cex=1+3*abs(x$uniche.volume$PCC$original), pch=20)
             text(x$dataset[,c('lon','lat')], labels=x$dataset$id, cex= 0.7)
@@ -54,7 +54,7 @@ uplot = function(x, shape=NULL, niche.metric=NULL, legend=TRUE){
 
         ##
         
-        tempUncert = 2.5 + 2 * apply( xx$uniche.marginality$X, 2, sd) / max(apply( xx$uniche.marginality$X, 2, sd)) 
+        tempUncert = 2.5 + 2 * apply( x$uniche.marginality$X, 2, sd) / max(apply( x$uniche.marginality$X, 2, sd)) 
         sensitivity = rgb(abs(x$uniche.marginality$PCC$original),1-abs(x$uniche.marginality$PCC$original),0,0.9)
 
         ## plot(x$uniche.marginality)
@@ -76,7 +76,7 @@ uplot = function(x, shape=NULL, niche.metric=NULL, legend=TRUE){
         
         ##
 
-        tempUncert = 2.5 + 2 * apply( xx$uniche.volume$X, 2, sd) / max(apply( xx$uniche.volume$X, 2, sd)) 
+        tempUncert = 2.5 + 2 * apply( x$uniche.volume$X, 2, sd) / max(apply( x$uniche.volume$X, 2, sd)) 
         sensitivity = rgb(abs(x$uniche.volume$PCC$original),1-abs(x$uniche.volume$PCC$original),0,0.9)
         
         plot(seq(ncol(x$uniche.volume$X)), apply( x$uniche.volume$PCC[,c('min. c.i.','max. c.i.')], 1, sum)/2, xaxt="n", xlab='Points', ylab='PCC', main='Volume', ylim=c(-1,1), pch=20, cex=tempUncert-1.5, col=sensitivity)
