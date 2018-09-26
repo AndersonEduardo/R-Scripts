@@ -27,7 +27,7 @@ paleoextract = function(x, cols=names(x), path) {
     currentDataSet$ID = seq(nrow(currentDataSet))
     idNA = sapply( seq(nrow(currentDataSet)), function(x) currentDataSet[x,]$age  %in% as.numeric(list.files(path)) )
     ageNA = sapply( seq(length(age)), function(x) age[x]  %in% as.numeric(list.files(path)) )
-    
+
     ##loop para coletar os dados ambientais dos pontos    
     infoData = do.call("rbind", lapply( X=age[ageNA], FUN=function(age_i)
         currentDataSet[grep(paste(age_i, collapse ='|'), currentDataSet$age), ] ) )
@@ -66,10 +66,13 @@ paleoextract = function(x, cols=names(x), path) {
         naData = cbind(currentDataSet[!idNA,], as.data.frame(matrixNA)) #dados associados a matriz de NAs
         names(naData) = names(predictorsData) #ajuste de nomes das colunas
         predictorsData = rbind(predictorsData, naData) #juntando NAs e dados obtidos ("nao-NAs")
-        predictorsData = predictorsData[order(predictorsData$ID),] #recuperando a organizacao original
-        predictorsData$ID = NULL #apagando ID helper
-
     }
+
+    if( nrow(predictorsData) > 1 ){
+        predictorsData = predictorsData[order(predictorsData$ID),] #recuperando a organizacao original
+    }
+    
+    predictorsData$ID = NULL #apagando ID helper
 
     ##output da funcao
     return(predictorsData)

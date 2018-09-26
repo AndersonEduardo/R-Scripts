@@ -28,7 +28,7 @@ uplot = function(x, shape=NULL, niche.metric=NULL, legend=TRUE){
             tempUncert = 2.5 + 2 * apply( x$uniche.marginality$X, 2, sd) / max(apply( x$uniche.marginality$X, 2, sd)) 
             
             points(x$dataset[,c('lon','lat')], col=sensitivity, cex=tempUncert, pch=20)
-            text(x$dataset[,c('lon','lat')], labels=x$dataset$id, cex= 0.7)
+            text(x$dataset[,c('lon','lat')], labels=x$dataset$ID, cex= 0.7)
             title('Marginality')
 
             if (legend==TRUE){
@@ -40,7 +40,7 @@ uplot = function(x, shape=NULL, niche.metric=NULL, legend=TRUE){
             tempUncert = 2.5 + 2 * apply( x$uniche.volume$X, 2, sd) / max(apply( x$uniche.volume$X, 2, sd)) 
             
             points(x$dataset[,c('lon','lat')], col=rgb(abs(x$uniche.volume$PCC$original),1-abs(x$uniche.volume$PCC$original),0,0.9), cex=1+3*abs(x$uniche.volume$PCC$original), pch=20)
-            text(x$dataset[,c('lon','lat')], labels=x$dataset$id, cex= 0.7)
+            text(x$dataset[,c('lon','lat')], labels=x$dataset$ID, cex= 0.7)
             
             if (legend==TRUE){
                 legend('topright', legend=c('High','Intermediate','Low'), fill=rgb(c(1,0.5,0),c(0,0.5,1),0,0.9), border=NA, title='Sensitivity', bty='n')
@@ -68,7 +68,7 @@ uplot = function(x, shape=NULL, niche.metric=NULL, legend=TRUE){
 
         plot(shape, main='Marginality')
         points(x$dataset[,c('lon','lat')], col=sensitivity, cex=tempUncert, pch=20)
-        text(x$dataset[,c('lon','lat')], labels=x$dataset$id, cex= 0.7)
+        text(x$dataset[,c('lon','lat')], labels=x$dataset$ID, cex= 0.7)
 
         if (legend==TRUE){
             legend('topright', legend=c('High sensitivity','Intermediate sensitivity','Low sensitivity', 'Temporal uncertainity'), fill=rgb(c(1,0.5,0,1),c(0,0.5,1,1),c(0,0,0,1),c(0.9,0.9,0.9,0)), pch=c(NA,NA,NA,1), pt.cex=2, border=NA, bty='n')
@@ -86,7 +86,7 @@ uplot = function(x, shape=NULL, niche.metric=NULL, legend=TRUE){
         
         plot(shape, main='Volume')
         points(x$dataset[,c('lon','lat')], col=sensitivity, cex=tempUncert, pch=20)
-        text(x$dataset[,c('lon','lat')], labels=x$dataset$id, cex= 0.7)
+        text(x$dataset[,c('lon','lat')], labels=x$dataset$ID, cex= 0.7)
 
         if (legend==TRUE){
             legend('topright', legend=c('High sensitivity','Intermediate sensitivity','Low sensitivity', 'Temporal uncertainity'), fill=rgb(c(1,0.5,0,1),c(0,0.5,1,1),c(0,0,0,1),c(0.9,0.9,0.9,0)), pch=c(NA,NA,NA,1), pt.cex=2, border=NA, bty='n')

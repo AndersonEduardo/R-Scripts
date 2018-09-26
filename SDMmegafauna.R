@@ -6,7 +6,8 @@ source('/home/anderson/R-Scripts/paleoextract.R')
 source('/home/anderson/R-Scripts/strings2na.R')
 source('/home/anderson/R-Scripts/dataInstance.R')
 source('/home/anderson/R-Scripts/uplot.R')
-source('/home/anderson/R-Scripts/uniche.R')
+##source('/home/anderson/R-Scripts/uniche.R')
+source('/home/anderson/R-Scripts/uniche2.R') #uniche2
 source('/home/anderson/R-Scripts/cleanData.R')
 
 
@@ -14,6 +15,7 @@ source('/home/anderson/R-Scripts/cleanData.R')
 projectFolder = "/home/anderson/Projetos/SDM megafauna Sul-Americana" #pasta de trabalho do projeto
 envFolder = "/home/anderson/gridfiles/dados_projeto" #pasta das variaveis ambientais
 AmSulBorders = rgdal::readOGR('/home/anderson/shapefiles/Am_Sul/borders.shp') #shapefile da Am. do Sul
+
 
 
 ##abrindo e tratando o banco de dados##
@@ -43,6 +45,31 @@ uplot(analise.incerteza, AmSulBorders, legend=FALSE) #inspecao visual - opcao 1
 
 plot(AmSulBorders) #inspecao visual - opcao 2
 uplot(x=xx, shape=NULL, niche.metric='marginality')
+
+
+
+
+#### rodando com o uniche2 ####
+
+
+
+##abrindo e tratando o banco de dados##
+
+##arquivo do banco de dados
+dataSetRaw = read.csv(file='/home/anderson/Projetos/SDM megafauna Sul-Americana/dataset_clean.csv', header=TRUE, dec='.', sep=',')
+
+##subset do banco de dados
+pts = dataSetRaw[,c('Species','Longitude','Latitude','Cal..Mean','Min.','Max.')]
+sp_i = 'Notiomastodon platensis' #'Catonyx cuvieri'
+pts = pts[which(pts$Species == sp_i),]
+
+##ajustando dados
+pts = strings2na(pts, 'Species') #transformando strings ao longo do dateset em NA
+
+##analise de incerteza e sensibilidade##
+analise.incerteza = uniche2(pts, cols=c("Longitude","Latitude", "Cal..Mean","Min.","Max."), envFolder=envFolder) #analise de incerteza e sensibilidade - uniche2
+
+uplot(analise.incerteza, AmSulBorders, legend=FALSE) #inspecao visual - opcao 1
 
 
 
