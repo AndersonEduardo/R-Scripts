@@ -681,7 +681,7 @@ dev.off()
 ###DADOS DO PAPER DO ARTIGO "Large-scale patterns in morphological diversity, and species assembly in Neotropical Triatominae (Heteroptera: Reduviidae)"
 ##Link: https://figshare.com/articles/Geographical_patterns_of_Triatominae_Heteroptera_Reduviidae_their_distribution_richness_and_morphology_in_the_Neotropics/653959
 
-tabar = read.csv('/home/anderson/Documentos/Projetos/macroecologia_de_chagas/Pasta sem título/653959/Triatomines_-_Pres__Abs_115_sp__Ricness_2736_Cels_-_Scale_1x1.csv',header=TRUE)
+tabar = read.csv('/home/anderson/Projetos/macroecologia_de_chagas/Pasta sem título/653959/Triatomines_-_Pres__Abs_115_sp__Ricness_2736_Cels_-_Scale_1x1.csv',header=TRUE)
 barRiq = tabar[,c('Longitude','Latitude','Richness.Selected.sp')]
 
 library(sp)

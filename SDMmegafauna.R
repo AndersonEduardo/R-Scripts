@@ -60,7 +60,7 @@ dataSetRaw = read.csv(file='/home/anderson/Projetos/SDM megafauna Sul-Americana/
 
 ##subset do banco de dados
 pts = dataSetRaw[,c('Species','Longitude','Latitude','Cal..Mean','Min.','Max.')]
-sp_i = 'Notiomastodon platensis' #'Catonyx cuvieri'
+sp_i = 'Glyptodon clavipes' #'Notiomastodon platensis' #'Catonyx cuvieri'
 pts = pts[which(pts$Species == sp_i),]
 
 ##ajustando dados

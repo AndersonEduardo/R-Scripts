@@ -16,10 +16,16 @@ library(phyloclim) #para funcao niche.overlap()
 
 
 ###Parametros necessarios###
-envVarFolder = "J:/Anderson_Eduardo/dados_projeto" #pasta com as variaveis ambientais
+##Workstation
+## envVarFolder = "J:/Anderson_Eduardo/dados_projeto" #pasta com as variaveis ambientais
+## caminhosCamadasTemp = list.files(path=envVarFolder, full.names=T) #lista com os caminhos das camadas no sistema (comp.)
+## projectFolder = "J:/Anderson_Eduardo/spsArtificiais/" #pasta do projeto
+## AmSulShape = rgdal::readOGR("J:/Anderson_Eduardo/shapefiles/Am_Sul/borders.shp") #shape da America do Sul
+##Meu notebook
+envVarFolder = "/home/anderson/gridfiles/dados_projeto" #pasta com as variaveis ambientais
 caminhosCamadasTemp = list.files(path=envVarFolder, full.names=T) #lista com os caminhos das camadas no sistema (comp.)
-projectFolder = "J:/Anderson_Eduardo/spsArtificiais/" #pasta do projeto
-AmSulShape = rgdal::readOGR("J:/Anderson_Eduardo/shapefiles/Am_Sul/borders.shp") #shape da America do Sul
+projectFolder = "/home/anderson/Projetos/Sps artificiais/" #pasta do projeto
+AmSulShape = rgdal::readOGR("/home/anderson/shapefiles/Am_Sul/borders.shp") #shape da America do Sul
 ############################
 
 
@@ -628,7 +634,9 @@ for (h in 1:length(sdmTypes)){
 print(Sys.time() - timeStart)
 
 
+
 ### QUINTA PARTE: construindo graficos dos resultados ###
+
 
 
 ## ##definindo parametros e variaveis (LORIEN)
@@ -641,7 +649,7 @@ print(Sys.time() - timeStart)
 spsTypes = c('spHW', 'spCD') #c('spHW', 'spHD', 'spCD') #nomes das especies
 outputData = list() #tabela de dados de saida
 vetor.nomes = vector()
-projectFolder = "/home/anderson/Documentos/Projetos/Sps artificiais" #pasta do projeto
+projectFolder = "/home/anderson/Projetos/Sps artificiais" #pasta do projeto
 #projectFolder = '/media/anderson/PIBi/ANDERSON EDUARDO/Sps artificiais'
 
 ### AUC e TSS dos modelos
@@ -834,36 +842,94 @@ plot(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spCD',
 dev.off()
 
 ## Schoener X sample size X tempo - spHW
-jpeg('/home/anderson/Documentos/Projetos/Sps artificiais/graficos - resultados oficiais/SchoenerXtempoXsample_spHW.jpeg', width=1200, height=1200)
+jpeg('/home/anderson/Projetos/Sps artificiais/graficos - resultados oficiais/SchoenerXtempoXsample_spHW.jpeg', width=1200, height=1200)
 par(mfrow=c(3,2), pch=1, mar=c(7,7,3,3), cex=1.5, cex.lab=2, cex.axis=2, cex.main=2)
-plot(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spHW' & outputData$sampleSize == 10,]$Schoeners_D_simi ~ as.factor(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spHW' & outputData$sampleSize == 10,]$kyrBP),type='p',ylab="Schoener's D",xlab="Time (kyr BP)", main='10 pts', ylim=c(0,1), col=rgb(0,0,0,alpha=0.5))
+plot(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spHW' & outputData$sampleSize == 10,]$Schoeners_D_simi ~ as.factor(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spHW' & outputData$sampleSize == 10,]$kyrBP),type='p',ylab="Schoener's D",xlab="Time (kyr BP)", main='10 pts', ylim=c(0,1), col=rgb(0,0,0,alpha=0.5), yaxt='n')
+axis(side=2, seq(0,1,by=0.1), labels=c(0,NA,NA,NA,NA,0.5,NA,NA,NA,NA,1))
 #
-plot(outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spHW' & outputData$sampleSize == 10,]$Schoeners_D_simi ~ as.factor(outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spHW' & outputData$sampleSize == 10,]$kyrBP),type='p',ylab="Schoener's D",xlab="Time (kyr BP)", main='10 pts', ylim=c(0,1), col=rgb(0,0,0,alpha=0.5))
+plot(outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spHW' & outputData$sampleSize == 10,]$Schoeners_D_simi ~ as.factor(outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spHW' & outputData$sampleSize == 10,]$kyrBP),type='p',ylab="Schoener's D",xlab="Time (kyr BP)", main='10 pts', ylim=c(0,1), col=rgb(0,0,0,alpha=0.5), yaxt='n')
+axis(side=2, seq(0,1,by=0.1), labels=c(0,NA,NA,NA,NA,0.5,NA,NA,NA,NA,1))
 #
-plot(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spHW' & outputData$sampleSize == 50,]$Schoeners_D_simi ~ as.factor(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spHW' & outputData$sampleSize == 50,]$kyrBP),type='p',ylab="Schoener's D",xlab="Time (kyr BP)", main='50 pts', ylim=c(0,1), col=rgb(0,0,0,alpha=0.5))
+plot(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spHW' & outputData$sampleSize == 50,]$Schoeners_D_simi ~ as.factor(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spHW' & outputData$sampleSize == 50,]$kyrBP),type='p',ylab="Schoener's D",xlab="Time (kyr BP)", main='50 pts', ylim=c(0,1), col=rgb(0,0,0,alpha=0.5), yaxt='n')
+axis(side=2, seq(0,1,by=0.1), labels=c(0,NA,NA,NA,NA,0.5,NA,NA,NA,NA,1))
 #
-plot(outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spHW' & outputData$sampleSize == 50,]$Schoeners_D_simi ~ as.factor(outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spHW' & outputData$sampleSize == 50,]$kyrBP),type='p',ylab="Schoener's D",xlab="Time (kyr BP)", main='50 pts', ylim=c(0,1), col=rgb(0,0,0,alpha=0.5))
+plot(outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spHW' & outputData$sampleSize == 50,]$Schoeners_D_simi ~ as.factor(outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spHW' & outputData$sampleSize == 50,]$kyrBP),type='p',ylab="Schoener's D",xlab="Time (kyr BP)", main='50 pts', ylim=c(0,1), col=rgb(0,0,0,alpha=0.5), yaxt='n')
+axis(side=2, seq(0,1,by=0.1), labels=c(0,NA,NA,NA,NA,0.5,NA,NA,NA,NA,1))
 #
-plot(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spHW' & outputData$sampleSize == 100,]$Schoeners_D_simi ~ as.factor(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spHW' & outputData$sampleSize == 100,]$kyrBP),type='p',ylab="Schoener's D",xlab="Time (kyr BP)", main='100 pts', ylim=c(0,1), col=rgb(0,0,0,alpha=0.5))
+plot(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spHW' & outputData$sampleSize == 100,]$Schoeners_D_simi ~ as.factor(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spHW' & outputData$sampleSize == 100,]$kyrBP),type='p',ylab="Schoener's D",xlab="Time (kyr BP)", main='100 pts', ylim=c(0,1), col=rgb(0,0,0,alpha=0.5), yaxt='n')
+axis(side=2, seq(0,1,by=0.1), labels=c(0,NA,NA,NA,NA,0.5,NA,NA,NA,NA,1))
 #
-plot(outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spHW' & outputData$sampleSize == 100,]$Schoeners_D_simi ~ as.factor(outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spHW' & outputData$sampleSize == 100,]$kyrBP),type='p',ylab="Schoener's D",xlab="Time (kyr BP)", main='100 pts', ylim=c(0,1), col=rgb(0,0,0,alpha=0.5))
+plot(outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spHW' & outputData$sampleSize == 100,]$Schoeners_D_simi ~ as.factor(outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spHW' & outputData$sampleSize == 100,]$kyrBP),type='p',ylab="Schoener's D",xlab="Time (kyr BP)", main='100 pts', ylim=c(0,1), col=rgb(0,0,0,alpha=0.5), yaxt='n')
+axis(side=2, seq(0,1,by=0.1), labels=c(0,NA,NA,NA,NA,0.5,NA,NA,NA,NA,1))
 dev.off()
 
 ## Schoener X sample size X tempo - spCD
-jpeg('/home/anderson/Documentos/Projetos/Sps artificiais/graficos - resultados oficiais/SchoenerXtempoXsample_spCD.jpeg', width=1200, height=1200)
+jpeg('/home/anderson/Projetos/Sps artificiais/graficos - resultados oficiais/SchoenerXtempoXsample_spCD.jpeg', width=1200, height=1200)
 par(mfrow=c(3,2), pch=1, mar=c(7,7,3,3), cex=1.5, cex.lab=2, cex.axis=2, cex.main=2)
-plot(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spCD' & outputData$sampleSize == 10,]$Schoeners_D_simi ~ as.factor(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spCD' & outputData$sampleSize == 10,]$kyrBP),type='p',ylab="Schoener's D",xlab="Time (kyr BP)", main='10 pts', ylim=c(0,1), col=rgb(0,0,0,alpha=0.5))
+plot(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spCD' & outputData$sampleSize == 10,]$Schoeners_D_simi ~ as.factor(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spCD' & outputData$sampleSize == 10,]$kyrBP),type='p',ylab="Schoener's D",xlab="Time (kyr BP)", main='10 pts', ylim=c(0,1), col=rgb(0,0,0,alpha=0.5), yaxt='n')
+axis(side=2, seq(0,1,by=0.1), labels=c(0,NA,NA,NA,NA,0.5,NA,NA,NA,NA,1))
 #
-plot(outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spCD' & outputData$sampleSize == 10,]$Schoeners_D_simi ~ as.factor(outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spCD' & outputData$sampleSize == 10,]$kyrBP),type='p',ylab="Schoener's D",xlab="Time (kyr BP)", main='10 pts', ylim=c(0,1), col=rgb(0,0,0,alpha=0.5))
+plot(outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spCD' & outputData$sampleSize == 10,]$Schoeners_D_simi ~ as.factor(outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spCD' & outputData$sampleSize == 10,]$kyrBP),type='p',ylab="Schoener's D",xlab="Time (kyr BP)", main='10 pts', ylim=c(0,1), col=rgb(0,0,0,alpha=0.5), yaxt='n')
+axis(side=2, seq(0,1,by=0.1), labels=c(0,NA,NA,NA,NA,0.5,NA,NA,NA,NA,1))
 #
-plot(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spCD' & outputData$sampleSize == 50,]$Schoeners_D_simi ~ as.factor(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spCD' & outputData$sampleSize == 50,]$kyrBP),type='p',ylab="Schoener's D",xlab="Time (kyr BP)", main='50 pts', ylim=c(0,1), col=rgb(0,0,0,alpha=0.5))
+plot(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spCD' & outputData$sampleSize == 50,]$Schoeners_D_simi ~ as.factor(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spCD' & outputData$sampleSize == 50,]$kyrBP),type='p',ylab="Schoener's D",xlab="Time (kyr BP)", main='50 pts', ylim=c(0,1), col=rgb(0,0,0,alpha=0.5), yaxt='n')
+axis(side=2, seq(0,1,by=0.1), labels=c(0,NA,NA,NA,NA,0.5,NA,NA,NA,NA,1))
 #
-plot(outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spCD' & outputData$sampleSize == 50,]$Schoeners_D_simi ~ as.factor(outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spCD' & outputData$sampleSize == 50,]$kyrBP),type='p',ylab="Schoener's D",xlab="Time (kyr BP)", main='50 pts', ylim=c(0,1), col=rgb(0,0,0,alpha=0.5))
+plot(outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spCD' & outputData$sampleSize == 50,]$Schoeners_D_simi ~ as.factor(outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spCD' & outputData$sampleSize == 50,]$kyrBP),type='p',ylab="Schoener's D",xlab="Time (kyr BP)", main='50 pts', ylim=c(0,1), col=rgb(0,0,0,alpha=0.5), yaxt='n')
+axis(side=2, seq(0,1,by=0.1), labels=c(0,NA,NA,NA,NA,0.5,NA,NA,NA,NA,1))
 #
-plot(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spCD' & outputData$sampleSize == 100,]$Schoeners_D_simi ~ as.factor(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spCD' & outputData$sampleSize == 100,]$kyrBP),type='p',ylab="Schoener's D",xlab="Time (kyr BP)", main='100 pts', ylim=c(0,1), col=rgb(0,0,0,alpha=0.5))
+plot(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spCD' & outputData$sampleSize == 100,]$Schoeners_D_simi ~ as.factor(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spCD' & outputData$sampleSize == 100,]$kyrBP),type='p',ylab="Schoener's D",xlab="Time (kyr BP)", main='100 pts', ylim=c(0,1), col=rgb(0,0,0,alpha=0.5), yaxt='n')
+axis(side=2, seq(0,1,by=0.1), labels=c(0,NA,NA,NA,NA,0.5,NA,NA,NA,NA,1))
 #
-plot(outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spCD' & outputData$sampleSize == 100,]$Schoeners_D_simi ~ as.factor(outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spCD' & outputData$sampleSize == 100,]$kyrBP),type='p',ylab="Schoener's D",xlab="Time (kyr BP)", main='100 pts', ylim=c(0,1), col=rgb(0,0,0,alpha=0.5))
+plot(outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spCD' & outputData$sampleSize == 100,]$Schoeners_D_simi ~ as.factor(outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spCD' & outputData$sampleSize == 100,]$kyrBP),type='p',ylab="Schoener's D",xlab="Time (kyr BP)", main='100 pts', ylim=c(0,1), col=rgb(0,0,0,alpha=0.5), yaxt='n')
+axis(side=2, seq(0,1,by=0.1), labels=c(0,NA,NA,NA,NA,0.5,NA,NA,NA,NA,1))
 dev.off()
+
+
+## Hellinger X sample size X tempo - spHW
+jpeg('/home/anderson/Projetos/Sps artificiais/graficos - resultados oficiais/HellingerXtempoXsample_spHW.jpeg', width=1200, height=1200)
+par(mfrow=c(3,2), pch=1, mar=c(7,7,3,3), cex=1.5, cex.lab=2, cex.axis=2, cex.main=2)
+plot(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spHW' & outputData$sampleSize == 10,]$Hellinger_I_equiv ~ as.factor(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spHW' & outputData$sampleSize == 10,]$kyrBP),type='p',ylab="Hellinger's I",xlab="Time (kyr BP)", main='10 pts', ylim=c(0,1), col=rgb(0,0,0,alpha=0.5), yaxt='n')
+axis(side=2, seq(0,1,by=0.1), labels=c(0,NA,NA,NA,NA,0.5,NA,NA,NA,NA,1))
+#
+plot(outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spHW' & outputData$sampleSize == 10,]$Hellinger_I_equiv ~ as.factor(outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spHW' & outputData$sampleSize == 10,]$kyrBP),type='p',ylab="Hellinger's I",xlab="Time (kyr BP)", main='10 pts', ylim=c(0,1), col=rgb(0,0,0,alpha=0.5), yaxt='n')
+axis(side=2, seq(0,1,by=0.1), labels=c(0,NA,NA,NA,NA,0.5,NA,NA,NA,NA,1))
+#
+plot(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spHW' & outputData$sampleSize == 50,]$Hellinger_I_equiv ~ as.factor(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spHW' & outputData$sampleSize == 50,]$kyrBP),type='p',ylab="Hellinger's I",xlab="Time (kyr BP)", main='50 pts', ylim=c(0,1), col=rgb(0,0,0,alpha=0.5), yaxt='n')
+axis(side=2, seq(0,1,by=0.1), labels=c(0,NA,NA,NA,NA,0.5,NA,NA,NA,NA,1))
+#
+plot(outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spHW' & outputData$sampleSize == 50,]$Hellinger_I_equiv ~ as.factor(outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spHW' & outputData$sampleSize == 50,]$kyrBP),type='p',ylab="Hellinger's I",xlab="Time (kyr BP)", main='50 pts', ylim=c(0,1), col=rgb(0,0,0,alpha=0.5), yaxt='n')
+axis(side=2, seq(0,1,by=0.1), labels=c(0,NA,NA,NA,NA,0.5,NA,NA,NA,NA,1))
+#
+plot(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spHW' & outputData$sampleSize == 100,]$Hellinger_I_equiv ~ as.factor(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spHW' & outputData$sampleSize == 100,]$kyrBP),type='p',ylab="Hellinger's I",xlab="Time (kyr BP)", main='100 pts', ylim=c(0,1), col=rgb(0,0,0,alpha=0.5), yaxt='n')
+axis(side=2, seq(0,1,by=0.1), labels=c(0,NA,NA,NA,NA,0.5,NA,NA,NA,NA,1))
+#
+plot(outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spHW' & outputData$sampleSize == 100,]$Hellinger_I_equiv ~ as.factor(outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spHW' & outputData$sampleSize == 100,]$kyrBP),type='p',ylab="Hellinger's I",xlab="Time (kyr BP)", main='100 pts', ylim=c(0,1), col=rgb(0,0,0,alpha=0.5), yaxt='n')
+axis(side=2, seq(0,1,by=0.1), labels=c(0,NA,NA,NA,NA,0.5,NA,NA,NA,NA,1))
+dev.off()
+
+## Hellinger X sample size X tempo - spCD
+jpeg('/home/anderson/Projetos/Sps artificiais/graficos - resultados oficiais/HellingerXtempoXsample_spCD.jpeg', width=1200, height=1200)
+par(mfrow=c(3,2), pch=1, mar=c(7,7,3,3), cex=1.5, cex.lab=2, cex.axis=2, cex.main=2)
+plot(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spCD' & outputData$sampleSize == 10,]$Hellinger_I_equiv ~ as.factor(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spCD' & outputData$sampleSize == 10,]$kyrBP),type='p',ylab="Hellinger's I",xlab="Time (kyr BP)", main='10 pts', ylim=c(0,1), col=rgb(0,0,0,alpha=0.5), yaxt='n')
+axis(side=2, seq(0,1,by=0.1), labels=c(0,NA,NA,NA,NA,0.5,NA,NA,NA,NA,1))
+#
+plot(outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spCD' & outputData$sampleSize == 10,]$Hellinger_I_equiv ~ as.factor(outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spCD' & outputData$sampleSize == 10,]$kyrBP),type='p',ylab="Hellinger's I",xlab="Time (kyr BP)", main='10 pts', ylim=c(0,1), col=rgb(0,0,0,alpha=0.5), yaxt='n')
+axis(side=2, seq(0,1,by=0.1), labels=c(0,NA,NA,NA,NA,0.5,NA,NA,NA,NA,1))
+#
+plot(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spCD' & outputData$sampleSize == 50,]$Hellinger_I_equiv ~ as.factor(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spCD' & outputData$sampleSize == 50,]$kyrBP),type='p',ylab="Hellinger's I",xlab="Time (kyr BP)", main='50 pts', ylim=c(0,1), col=rgb(0,0,0,alpha=0.5), yaxt='n')
+axis(side=2, seq(0,1,by=0.1), labels=c(0,NA,NA,NA,NA,0.5,NA,NA,NA,NA,1))
+#
+plot(outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spCD' & outputData$sampleSize == 50,]$Hellinger_I_equiv ~ as.factor(outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spCD' & outputData$sampleSize == 50,]$kyrBP),type='p',ylab="Hellinger's I",xlab="Time (kyr BP)", main='50 pts', ylim=c(0,1), col=rgb(0,0,0,alpha=0.5), yaxt='n')
+axis(side=2, seq(0,1,by=0.1), labels=c(0,NA,NA,NA,NA,0.5,NA,NA,NA,NA,1))
+#
+plot(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spCD' & outputData$sampleSize == 100,]$Hellinger_I_equiv ~ as.factor(outputData[outputData$sdmType == 'multitemporal' & outputData$sp == 'spCD' & outputData$sampleSize == 100,]$kyrBP),type='p',ylab="Hellinger's I",xlab="Time (kyr BP)", main='100 pts', ylim=c(0,1), col=rgb(0,0,0,alpha=0.5), yaxt='n')
+axis(side=2, seq(0,1,by=0.1), labels=c(0,NA,NA,NA,NA,0.5,NA,NA,NA,NA,1))
+#
+plot(outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spCD' & outputData$sampleSize == 100,]$Hellinger_I_equiv ~ as.factor(outputData[outputData$sdmType == 'monotemporal' & outputData$sp == 'spCD' & outputData$sampleSize == 100,]$kyrBP),type='p',ylab="Hellinger's I",xlab="Time (kyr BP)", main='100 pts', ylim=c(0,1), col=rgb(0,0,0,alpha=0.5), yaxt='n')
+axis(side=2, seq(0,1,by=0.1), labels=c(0,NA,NA,NA,NA,0.5,NA,NA,NA,NA,1))
+dev.off()
+
 
 
 ## Tamanho amostral - dados totais
@@ -911,7 +977,7 @@ dev.off()
 
 ##graficos para clamping
 
-projectFolder = "/home/anderson/Documentos/Projetos/Sps artificiais/"
+projectFolder = "/home/anderson/Projetos/Sps artificiais/"
 sdmTypes = c("multitemporal", "monotemporal")
 spsTypes = c("spHW", "spCD")
 sampleSizes = c(10, 50, 100)
@@ -919,22 +985,39 @@ numRep = 5
 clampList = list()
 territory = list()
 
+
 for(h in 1:length(sdmTypes)){
     for(i in 1:length(spsTypes)){
         for(m in 1:length(sampleSizes)){
             for(n in 1:numRep){
                 for(l in 1:24){
+                    ##mapa de clamping
                     sdmClampPath = paste(projectFolder,'maxent/',sdmTypes[h],'/',spsTypes[i],'/',spsTypes[i],'.sample',sampleSizes[m],'.replica',n,'/proj_',l-1,'kyr/','proj_',l-1,'kyr_ClampingMask.grd',sep='') #caminho do mapa de suitability gerado por SDM
-                    layer_i = raster(sdmClampPath)
+                    clampLayer_i = raster(sdmClampPath)
                     scenName = paste(sdmTypes[h],'_proj_',l-1,'kyr_',spsTypes[i],'.sample',sampleSizes[m],'.replica',n,sep='')
-                    clampList[[scenName]] = layer_i
-                    ##
-                    territory[[scenName]] = ( sum(getValues(layer_i)>0, na.rm=TRUE)/ncell(getValues(layer_i)) ) * 100
+                    clampList[[scenName]] = clampLayer_i
+                    clamping = (sum(getValues(clampLayer_i)>0, na.rm=TRUE)/ncell(getValues(clampLayer_i))) * 100
+                    ##mapa de distribuicao da especie
+                    sdmDistPath = paste(projectFolder,'maxent/',sdmTypes[h],'/',spsTypes[i],'/',spsTypes[i],'.sample',sampleSizes[m],'.replica',n,'/proj_',l-1,'kyr/','proj_',l-1,'kyr_',spsTypes[i],'.sample',sampleSizes[m],'.replica',n,'_TSSbin.grd',sep='') #caminho do mapa de suitability gerado por SDM
+                    distLayer_i = raster(sdmDistPath)
+                    ##calculo da porporcao de clamping na area de distribuicao modelada
+                    distUnderClamp = (clampLayer_i + distLayer_i)==2
+                    distUnderClamp = ( freq(distUnderClamp, value=1)/sum(freq(distUnderClamp)[1:2,2]) ) * 100
+                    ##tabela de dados final
+                    outputDF = outputData[ which(outputData$sdmType==sdmTypes[h] & outputData$sp==spsTypes[i] & outputData$sampleSize==sampleSizes[m] & outputData$replicate==n & outputData$kyrBP==l-1 ), ]
+                    if(nrow(outputDF)>0){
+                        territory[[scenName]] = data.frame( outputDF,
+                                                           clamping = clamping,
+                                                           distUnderClamp = distUnderClamp )
+                    }
                 }
             }
         }
     }
 }
+
+
+
 
 ##tranformando a lista em stack de gridfiles
 clampStack = stack(clampList)
@@ -1070,25 +1153,263 @@ dev.off()
 
 
 
-##clamping X tempo - multitemporal, spHW, sample 50pts
+
+### graficos de tendencia ###
 
 
 
-dataClamp = data.frame(clamping=as.numeric(territory), scenario=names(territory))
+##dataClamp = data.frame(clamping=as.numeric(territory), scenario=names(territory))
+dataClamp = do.call('rbind', territory)
+dataClamp$scenario = names(territory)
+rownames(dataClamp) = NULL
+
+## ##
+## dataClamp$sdm = NA
+## dataClamp[ grep('monotemporal', dataClamp$scenario), ]$sdm = 'monotemporal'
+## dataClamp[ grep('multitemporal', dataClamp$scenario), ]$sdm = 'multitemporal'
+## dataClamp$kyr = c(0:23)
+## dataClamp$sp = NA
+## dataClamp[grep('spHW', dataClamp$scenario),]$sp = 'spHW'
+## dataClamp[grep('spCD', dataClamp$scenario),]$sp = 'spCD'
+## dataClamp$sample = NA
+## dataClamp[grep('10.replica', dataClamp$scenario),]$sample = 10
+## dataClamp[grep('50.replica', dataClamp$scenario),]$sample = 50
+## dataClamp[grep('100.replica', dataClamp$scenario),]$sample = 100
+
+
+
+## clamping na America do Sul X Schoener's D (D = sobreposicao distribuicao real X distribuicao modelada) ##
+
+jpeg('/home/anderson/Projetos/Sps artificiais/graficos - resultados oficiais/clampAmSulXschoenerXsampleXsps.jpeg', width=1200, height=1200)
+par(mfrow=c(2,2), pch=1, mar=c(5,5,3,2), cex=1.5, cex.lab=1.5, cex.axis=2, cex.main=2)
 ##
-dataClamp$sdm = NA
-dataClamp[ grep('monotemporal', dataClamp$scenario), ]$sdm = 'monotemporal'
-dataClamp[ grep('multitemporal', dataClamp$scenario), ]$sdm = 'multitemporal'
-dataClamp$kyr = c(0:23)
-dataClamp$sp = NA
-dataClamp[grep('spHW', dataClamp$scenario),]$sp = 'spHW'
-dataClamp[grep('spCD', dataClamp$scenario),]$sp = 'spCD'
+##spCD monotemporal
+##
+plot(dataClamp[which(dataClamp$clamping>0 & dataClamp$sdmType == 'monotemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize == 10),]$Schoeners_D_equiv ~ log(dataClamp[which(dataClamp$clamping>0 & dataClamp$sdmType == 'monotemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize == 10),]$clamping), ylim=c(0,1), pch=20, ylab="Schoener's D", xlab="log(Clamping in modeled distribution (in %))", main=expression("CD species - SDM"["mono"]), col='red')
+##
+abline(lm(dataClamp[which(dataClamp$clamping>0 & dataClamp$sdmType == 'monotemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize == 10),]$Schoeners_D_equiv ~ log(dataClamp[which(dataClamp$clamping>0 & dataClamp$sdmType == 'monotemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize == 10),]$clamping)), lty=2, col='red')
+##
+points(dataClamp[which(dataClamp$clamping>0 & dataClamp$sdmType == 'monotemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize == 50),]$Schoeners_D_equiv ~ log(dataClamp[which(dataClamp$clamping>0 & dataClamp$sdmType == 'monotemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize == 50),]$clamping), ylim=c(0,1), pch=20, col='blue')
+##
+abline(lm(dataClamp[which(dataClamp$clamping>0 & dataClamp$sdmType == 'monotemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize == 50),]$Schoeners_D_equiv ~ log(dataClamp[which(dataClamp$clamping>0 & dataClamp$sdmType == 'monotemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize == 50),]$clamping)), lty=2, col='blue')
+##
+points(dataClamp[which(dataClamp$clamping>0 & dataClamp$sdmType == 'monotemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize == 100),]$Schoeners_D_equiv ~ log(dataClamp[which(dataClamp$clamping>0 & dataClamp$sdmType == 'monotemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize == 100),]$clamping), ylim=c(0,1), pch=20, col='black')
+##
+abline(lm(dataClamp[which(dataClamp$clamping>0 & dataClamp$sdmType == 'monotemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize == 100),]$Schoeners_D_equiv ~ log(dataClamp[which(dataClamp$clamping>0 & dataClamp$sdmType == 'monotemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize == 100),]$clamping)), lty=2, col='black')
+##
+##spCD multitemporal
+##
+plot(dataClamp[which(dataClamp$clamping>0 & dataClamp$sdmType == 'multitemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize == 10),]$Schoeners_D_equiv ~ log(dataClamp[which(dataClamp$clamping>0 & dataClamp$sdmType == 'multitemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize == 10),]$clamping), ylim=c(0,1), pch=20, ylab="Schoener's D", xlab="log(South America area (in %))", main=expression("CD species - SDM"["multi"]), col='red')
+##
+abline(lm(dataClamp[which(dataClamp$clamping>0 & dataClamp$sdmType == 'multitemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize == 10),]$Schoeners_D_equiv ~ log(dataClamp[which(dataClamp$clamping>0 & dataClamp$sdmType == 'multitemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize == 10),]$clamping)), lty=2, col='red')
+##
+points(dataClamp[which(dataClamp$clamping>0 & dataClamp$sdmType == 'multitemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize == 50),]$Schoeners_D_equiv ~ log(dataClamp[which(dataClamp$clamping>0 & dataClamp$sdmType == 'multitemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize == 50),]$clamping), ylim=c(0,1), pch=20, col='blue')
+##
+abline(lm(dataClamp[which(dataClamp$clamping>0 & dataClamp$sdmType == 'multitemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize == 50),]$Schoeners_D_equiv ~ log(dataClamp[which(dataClamp$clamping>0 & dataClamp$sdmType == 'multitemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize == 50),]$clamping)), lty=2, col='blue')
+##
+points(dataClamp[which(dataClamp$clamping>0 & dataClamp$sdmType == 'multitemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize == 100),]$Schoeners_D_equiv ~ log(dataClamp[which(dataClamp$clamping>0 & dataClamp$sdmType == 'multitemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize == 100),]$clamping), ylim=c(0,1), pch=20, col='black')
+##
+abline(lm(dataClamp[which(dataClamp$clamping>0 & dataClamp$sdmType == 'multitemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize == 100),]$Schoeners_D_equiv ~ log(dataClamp[which(dataClamp$clamping>0 & dataClamp$sdmType == 'multitemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize == 100),]$clamping)), lty=2, col='black')
+##
+##spHW monotemporal
+##
+plot(dataClamp[which(dataClamp$clamping>0 & dataClamp$sdmType == 'monotemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize == 10),]$Schoeners_D_equiv ~ log(dataClamp[which(dataClamp$clamping>0 & dataClamp$sdmType == 'monotemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize == 10),]$clamping), ylim=c(0,1), pch=20, ylab="Schoener's D", xlab="log(South America area (in %))", main=expression("HW species - SDM"["mono"]), col='red')
+##
+abline(lm(dataClamp[which(dataClamp$clamping>0 & dataClamp$sdmType == 'monotemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize == 10),]$Schoeners_D_equiv ~ log(dataClamp[which(dataClamp$clamping>0 & dataClamp$sdmType == 'monotemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize == 10),]$clamping)), lty=2, col='red')
+##
+points(dataClamp[which(dataClamp$clamping>0 & dataClamp$sdmType == 'monotemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize == 50),]$Schoeners_D_equiv ~ log(dataClamp[which(dataClamp$clamping>0 & dataClamp$sdmType == 'monotemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize == 50),]$clamping), pch=20, col='blue')
+##
+abline(lm(dataClamp[which(dataClamp$clamping>0 & dataClamp$sdmType == 'monotemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize == 50),]$Schoeners_D_equiv ~ log(dataClamp[which(dataClamp$clamping>0 & dataClamp$sdmType == 'monotemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize == 50),]$clamping)), lty=2, col='blue')
+##
+points(dataClamp[which(dataClamp$clamping>0 & dataClamp$sdmType == 'monotemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize == 100),]$Schoeners_D_equiv ~ log(dataClamp[which(dataClamp$clamping>0 & dataClamp$sdmType == 'monotemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize == 100),]$clamping), pch=20, col='black')
+##
+abline(lm(dataClamp[which(dataClamp$clamping>0 & dataClamp$sdmType == 'monotemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize == 100),]$Schoeners_D_equiv ~ log(dataClamp[which(dataClamp$clamping>0 & dataClamp$sdmType == 'monotemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize == 100),]$clamping)), lty=2, col='black')
+##
+##spHW multitemporal
+##
+plot(dataClamp[which(dataClamp$clamping>0 & dataClamp$sdmType == 'multitemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize == 10),]$Schoeners_D_equiv ~ log(dataClamp[which(dataClamp$clamping>0 & dataClamp$sdmType == 'multitemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize == 10),]$clamping), ylim=c(0,1), pch=20, ylab="Schoener's D", xlab="log(South America area (in %))", main=expression("HW species - SDM"["multi"]), col='red')
+##
+abline(lm(dataClamp[which(dataClamp$clamping>0 & dataClamp$sdmType == 'multitemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize == 10),]$Schoeners_D_equiv ~ log(dataClamp[which(dataClamp$clamping>0 & dataClamp$sdmType == 'multitemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize == 10),]$clamping)), lty=2, col='red')
+##
+points(dataClamp[which(dataClamp$clamping>0 & dataClamp$sdmType == 'multitemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize == 50),]$Schoeners_D_equiv ~ log(dataClamp[which(dataClamp$clamping>0 & dataClamp$sdmType == 'multitemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize == 50),]$clamping), pch=20, col='blue')
+##
+abline(lm(dataClamp[which(dataClamp$clamping>0 & dataClamp$sdmType == 'multitemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize == 50),]$Schoeners_D_equiv ~ log(dataClamp[which(dataClamp$clamping>0 & dataClamp$sdmType == 'multitemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize == 50),]$clamping)), lty=2, col='blue')
+##
+points(dataClamp[which(dataClamp$clamping>0 & dataClamp$sdmType == 'multitemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize == 100),]$Schoeners_D_equiv ~ log(dataClamp[which(dataClamp$clamping>0 & dataClamp$sdmType == 'multitemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize == 100),]$clamping), pch=20, col='black')
+##
+abline(lm(dataClamp[which(dataClamp$clamping>0 & dataClamp$sdmType == 'multitemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize == 100),]$Schoeners_D_equiv ~ log(dataClamp[which(dataClamp$clamping>0 & dataClamp$sdmType == 'multitemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize == 100),]$clamping)), lty=2, col='black')
+##
+dev.off()
+
+
+
+## proporcao de clamping na distribuicao modelada X Schoener's D (D = sobreposicao distribuicao real X distribuicao modelada) ##
+
+jpeg('/home/anderson/Projetos/Sps artificiais/graficos - resultados oficiais/clampSpsDistXschoenerXsampleXsps.jpeg', width=1200, height=1200)
+par(mfrow=c(2,2), pch=1, mar=c(5,5,3,2), cex=1.5, cex.lab=1.5, cex.axis=2, cex.main=2)
+##
+##spCD monotemporal
+##
+plot(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'monotemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize == 10),]$Schoeners_D_equiv ~ log(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'monotemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize == 10),]$distUnderClamp), xlim=c(-3,1), ylim=c(0,1), pch=20, ylab="Schoener's D", xlab="log(Clamping in modeled distribution (in %))", main=expression("CD species - SDM"["mono"]), col='red')
+##
+abline(lm(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'monotemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize == 10),]$Schoeners_D_equiv ~ log(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'monotemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize == 10),]$distUnderClamp)), lty=2, col='red')
+##
+points(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'monotemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize == 50),]$Schoeners_D_equiv ~ log(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'monotemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize == 50),]$distUnderClamp), pch=20, col='blue')
+##
+abline(lm(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'monotemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize == 50),]$Schoeners_D_equiv ~ log(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'monotemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize == 50),]$distUnderClamp)), lty=2, col='blue')
+##
+points(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'monotemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize == 100),]$Schoeners_D_equiv ~ log(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'monotemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize == 100),]$distUnderClamp), pch=20, col='black')
+##
+abline(lm(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'monotemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize == 100),]$Schoeners_D_equiv ~ log(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'monotemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize == 100),]$distUnderClamp)), lty=2, col='black')
+##
+##spCD multitemporal
+##
+plot(dataClamp[which(dataClamp$distUnderClamp>=0 & dataClamp$sdmType == 'multitemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize == 10),]$Schoeners_D_equiv ~ log(dataClamp[which(dataClamp$distUnderClamp>=0 & dataClamp$sdmType == 'multitemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize == 10),]$distUnderClamp), xlim=c(-6.5,0), ylim=c(0,1), pch=20, ylab="Schoener's D", xlab="log(Clamping in modeled distribution (in %))", main=expression("CD species - SDM"["multi"]), col='red')
+##
+abline(lm(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'multitemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize == 10),]$Schoeners_D_equiv ~ log(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'multitemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize == 10),]$distUnderClamp)), lty=2, col='red')
+##
+points(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'multitemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize == 50),]$Schoeners_D_equiv ~ log(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'multitemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize == 50),]$distUnderClamp), pch=20, col='blue')
+##
+abline(lm(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'multitemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize == 50),]$Schoeners_D_equiv ~ log(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'multitemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize == 50),]$distUnderClamp)), lty=2, col='blue')
+##
+points(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'multitemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize == 100),]$Schoeners_D_equiv ~ log(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'multitemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize == 100),]$distUnderClamp), pch=20, ylab="Schoener's D", col='black')
+##
+abline(lm(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'multitemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize == 100),]$Schoeners_D_equiv ~ log(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'multitemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize == 100),]$distUnderClamp)), lty=2, col='black')
+##
+##spHW monotemporal
+##
+plot(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'monotemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize == 10),]$Schoeners_D_equiv ~ log(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'monotemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize == 10),]$distUnderClamp), xlim=c(-10,5), ylim=c(0,1), pch=20, ylab="Schoener's D", xlab="log(Clamping in modeled distribution (in %))", main=expression("HW species - SDM"["mono"]), col='red')
+##
+abline(lm(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'monotemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize == 10),]$Schoeners_D_equiv ~ log(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'monotemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize == 10),]$distUnderClamp)), lty=2, col='red')
+##
+points(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'monotemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize == 50),]$Schoeners_D_equiv ~ log(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'monotemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize == 50),]$distUnderClamp), pch=20, col='blue')
+##
+abline(lm(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'monotemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize == 50),]$Schoeners_D_equiv ~ log(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'monotemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize == 50),]$distUnderClamp)), lty=2, col='blue')
+##
+points(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'monotemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize == 100),]$Schoeners_D_equiv ~ log(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'monotemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize == 100),]$distUnderClamp), pch=20, col='black')
+##
+abline(lm(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'monotemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize == 100),]$Schoeners_D_equiv ~ log(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'monotemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize == 100),]$distUnderClamp)), lty=2, col='black')
+##
+##spHW multitemporal
+##
+plot(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'multitemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize == 10),]$Schoeners_D_equiv ~ log(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'multitemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize == 10),]$distUnderClamp), xlim=c(-10,0), ylim=c(0,1), pch=20, ylab="Schoener's D", xlab="log(Clamping in modeled distribution (in %))", main=expression("HW species - SDM"["multi"]), col='red')
+##
+abline(lm(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'multitemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize == 10),]$Schoeners_D_equiv ~ log(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'multitemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize == 10),]$distUnderClamp)), lty=2, col='red')
+##
+points(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'multitemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize == 50),]$Schoeners_D_equiv ~ log(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'multitemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize == 50),]$distUnderClamp), pch=20, col='blue')
+##
+abline(lm(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'multitemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize == 50),]$Schoeners_D_equiv ~ log(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'multitemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize == 50),]$distUnderClamp)), lty=2, col='blue')
+##
+points(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'multitemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize == 100),]$Schoeners_D_equiv ~ log(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'multitemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize == 100),]$distUnderClamp), pch=20, col='black')
+##
+abline(lm(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'multitemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize == 100),]$Schoeners_D_equiv ~ log(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'multitemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize == 100),]$distUnderClamp)), lty=2, col='black')
+dev.off()
+
+
+
+## Area de clamping total na America do Sul X porporcao de clamping na distribuicao modelada ##
+jpeg('/home/anderson/Projetos/Sps artificiais/graficos - resultados oficiais/clampSpsDistXclampAmSul.jpeg', width=1200, height=1200)
+par(mfrow=c(2,2), pch=1, mar=c(5,5,3,2), cex=1.5, cex.lab=1.5, cex.axis=2, cex.main=2)
+##
+##spCD monotemporal
+##
+plot(log(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'monotemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize == 10),]$clamping) ~ log(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'monotemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize == 10),]$distUnderClamp), xlim=c(-3.5,1), ylim=c(-2,3), pch=20, ylab="log(Clamping in modeled distribution (in %))", xlab="log(South America area (in %))", main=expression("CD species - SDM"["mono"]), col='red')
+##
+abline(lm(log(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'monotemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize == 10),]$clamping) ~ log(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'monotemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize == 10),]$distUnderClamp)), lty=2, col='red')
+##
+points(log(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'monotemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize == 50),]$clamping) ~ log(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'monotemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize == 50),]$distUnderClamp), ylim=c(0,1), pch=20, ylab="log(Clamping in modeled distribution (in %))", xlab="South America area (in %)", main=expression("SDM"["mono"]), col='blue')
+##
+abline(lm(log(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'monotemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize == 50),]$clamping) ~ log(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'monotemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize == 50),]$distUnderClamp)), lty=2, col='blue')
+##
+points(log(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'monotemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize == 100),]$clamping) ~ log(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'monotemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize == 100),]$distUnderClamp), ylim=c(0,1), pch=20, ylab="log(Clamping in modeled distribution (in %))", xlab="South America area (in %)", main=expression("SDM"["mono"]), col='black')
+##
+abline(lm(log(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'monotemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize == 100),]$clamping) ~ log(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'monotemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize == 100),]$distUnderClamp)), lty=2, col='black')
+##
+##spCD multitemporal
+##
+plot(log(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'multitemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize == 10),]$clamping) ~ log(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'multitemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize == 10),]$distUnderClamp), xlim=c(-6.5,-0.5), ylim=c(-3,0.5), pch=20, ylab="log(Clamping in modeled distribution (in %))", xlab="log(South America area (in %))", main=expression("CD species - SDM"["multi"]), col='red')
+##
+abline(lm(log(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'multitemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize == 10),]$clamping) ~ log(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'multitemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize == 10),]$distUnderClamp)), lty=2, col='red')
+##
+points(log(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'multitemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize == 50),]$clamping) ~ log(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'multitemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize == 50),]$distUnderClamp), ylim=c(0,1), pch=20, ylab="log(Clamping in modeled distribution (in %))", xlab="South America area (in %)", main=expression("SDM"["multi"]), col='blue')
+##
+abline(lm(log(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'multitemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize == 50),]$clamping) ~ log(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'multitemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize == 50),]$distUnderClamp)), lty=2, col='blue')
+##
+points(log(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'multitemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize == 100),]$clamping) ~ log(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'multitemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize == 100),]$distUnderClamp), ylim=c(0,1), pch=20, ylab="log(Clamping in modeled distribution (in %))", xlab="South America area (in %)", main=expression("SDM"["multi"]), col='black')
+##
+abline(lm(log(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'multitemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize == 100),]$clamping) ~ log(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'multitemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize == 100),]$distUnderClamp)), lty=2, col='black')
+##
+##spHW monotemporal
+##
+plot(log(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'monotemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize == 10),]$clamping) ~ log(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'monotemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize == 10),]$distUnderClamp), xlim=c(-3.5,1), ylim=c(-2,3), pch=20, ylab="log(Clamping in modeled distribution (in %))", xlab="log(South America area (in %))", main=expression("HW species - SDM"["mono"]), col='red')
+##
+abline(lm(log(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'monotemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize == 10),]$clamping) ~ log(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'monotemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize == 10),]$distUnderClamp)), lty=2, col='red')
+##
+points(log(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'monotemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize == 50),]$clamping) ~ log(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'monotemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize == 50),]$distUnderClamp), ylim=c(0,1), pch=20, ylab="log(Clamping in modeled distribution (in %))", xlab="South America area (in %)", main=expression("SDM"["mono"]), col='blue')
+##
+abline(lm(log(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'monotemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize == 50),]$clamping) ~ log(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'monotemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize == 50),]$distUnderClamp)), lty=2, col='blue')
+##
+points(log(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'monotemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize == 100),]$clamping) ~ log(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'monotemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize == 100),]$distUnderClamp), ylim=c(0,1), pch=20, ylab="log(Clamping in modeled distribution (in %))", xlab="South America area (in %)", main=expression("SDM"["mono"]), col='black')
+##
+abline(lm(log(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'monotemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize == 100),]$clamping) ~ log(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'monotemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize == 100),]$distUnderClamp)), lty=2, col='black')
+##
+##spHW multitemporal
+##
+plot(log(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'multitemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize == 10),]$clamping) ~ log(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'multitemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize == 10),]$distUnderClamp), xlim=c(-6.5,-0.5), ylim=c(-3,0.5), pch=20, ylab="log(Clamping in modeled distribution (in %))", xlab="log(South America area (in %))", main=expression("HW species - SDM"["multi"]), col='red')
+##
+abline(lm(log(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'multitemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize == 10),]$clamping) ~ log(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'multitemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize == 10),]$distUnderClamp)), lty=2, col='red')
+##
+points(log(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'multitemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize == 50),]$clamping) ~ log(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'multitemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize == 50),]$distUnderClamp), ylim=c(0,1), pch=20, ylab="log(Clamping in modeled distribution (in %))", xlab="South America area (in %)", main=expression("SDM"["multi"]), col='blue')
+##
+abline(lm(log(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'multitemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize == 50),]$clamping) ~ log(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'multitemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize == 50),]$distUnderClamp)), lty=2, col='blue')
+##
+points(log(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'multitemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize == 100),]$clamping) ~ log(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'multitemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize == 100),]$distUnderClamp), ylim=c(0,1), pch=20, ylab="log(Clamping in modeled distribution (in %))", xlab="South America area (in %)", main=expression("SDM"["multi"]), col='black')
+##
+abline(lm(log(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'multitemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize == 100),]$clamping) ~ log(dataClamp[which(dataClamp$distUnderClamp>0 & dataClamp$sdmType == 'multitemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize == 100),]$distUnderClamp)), lty=2, col='black')
+##
+dev.off()
+
+
+
+## tendencia do clamping no tempo
+
 
 jpeg('/home/anderson/Documentos/Projetos/Sps artificiais/graficos - resultados oficiais/clampXtempo.jpeg', width=900)
 par(mfrow=c(1,2))
 plot(dataClamp[which(dataClamp$sdm=='multitemporal'),]$clamping ~ as.factor(dataClamp[which(dataClamp$sdm=='multitemporal'),]$kyr), ylim=c(0,15), xlab='Time (in kyr BP)',  ylab='South América area (in %)', main='Multitemporal')
 plot(dataClamp[which(dataClamp$sdm=='monotemporal'),]$clamping ~ as.factor(dataClamp[which(dataClamp$sdm=='monotemporal'),]$kyr), ylim=c(0,15), xlab='Time (in kyr BP)',  ylab='South América area (in %)', main='Monotemporal')
 dev.off()
+
+
+
+
+## tendencia do clamping no tempo, considerando sps, sample size e tipo de calibracao
+
+## graficos para spCD
+jpeg('/home/anderson/Projetos/Sps artificiais/graficos - resultados oficiais/clampXtempoXsample_spCD.jpeg', width=1200, height=1200)
+par(mfrow=c(3,2), pch=1, mar=c(5,5,3,2), cex=1.5, cex.lab=1.7, cex.axis=2, cex.main=2)
+plot(dataClamp[which(dataClamp$sdm=='monotemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize==10),]$clamping ~ as.factor(dataClamp[which(dataClamp$sdm=='monotemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize==10),]$kyr), ylim=c(0,15), xlab='',  ylab='', main=expression('SDM'['mono']), col=rgb(0,0,0,alpha=0.5))
+plot(dataClamp[which(dataClamp$sdm=='multitemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize==10),]$clamping ~ as.factor(dataClamp[which(dataClamp$sdm=='multitemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize==10),]$kyr), ylim=c(0,15), xlab='',  ylab='', main=expression('SDM'['multi']), col=rgb(0,0,0,alpha=0.5))
+plot(dataClamp[which(dataClamp$sdm=='monotemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize==50),]$clamping ~ as.factor(dataClamp[which(dataClamp$sdm=='monotemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize==50),]$kyr), ylim=c(0,15), xlab='',  ylab='South América area (in %)', main='', col=rgb(0,0,0,alpha=0.5))
+plot(dataClamp[which(dataClamp$sdm=='multitemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize==50),]$clamping ~ as.factor(dataClamp[which(dataClamp$sdm=='multitemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize==50),]$kyr), ylim=c(0,15), xlab='',  ylab='', main='', col=rgb(0,0,0,alpha=0.5))
+plot(dataClamp[which(dataClamp$sdm=='monotemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize==100),]$clamping ~ as.factor(dataClamp[which(dataClamp$sdm=='monotemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize==100),]$kyr), ylim=c(0,15), xlab='Time (in kyr BP)',  ylab='', main='', col=rgb(0,0,0,alpha=0.5))
+plot(dataClamp[which(dataClamp$sdm=='multitemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize==100),]$clamping ~ as.factor(dataClamp[which(dataClamp$sdm=='multitemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize==100),]$kyr), ylim=c(0,15), xlab='Time (in kyr BP)',  ylab='', main='', col=rgb(0,0,0,alpha=0.5))
+dev.off()
+
+
+## graficos para spHW
+jpeg('/home/anderson/Projetos/Sps artificiais/graficos - resultados oficiais/clampXtempoXsample_spHW.jpeg', width=1200, height=1200)
+par(mfrow=c(3,2), pch=1, mar=c(5,5,3,2), cex=1.5, cex.lab=1.7, cex.axis=2, cex.main=2)
+plot(dataClamp[which(dataClamp$sdm=='monotemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize==10),]$clamping ~ as.factor(dataClamp[which(dataClamp$sdm=='monotemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize==10),]$kyr), ylim=c(0,15), xlab='',  ylab='', main=expression('SDM'['mono']), col=rgb(0,0,0,alpha=0.5))
+plot(dataClamp[which(dataClamp$sdm=='multitemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize==10),]$clamping ~ as.factor(dataClamp[which(dataClamp$sdm=='multitemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize==10),]$kyr), ylim=c(0,15), xlab='',  ylab='', main=expression('SDM'['multi']), col=rgb(0,0,0,alpha=0.5))
+plot(dataClamp[which(dataClamp$sdm=='monotemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize==50),]$clamping ~ as.factor(dataClamp[which(dataClamp$sdm=='monotemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize==50),]$kyr), ylim=c(0,15), xlab='',  ylab='South América area (in %)', main='', col=rgb(0,0,0,alpha=0.5))
+plot(dataClamp[which(dataClamp$sdm=='multitemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize==50),]$clamping ~ as.factor(dataClamp[which(dataClamp$sdm=='multitemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize==50),]$kyr), ylim=c(0,15), xlab='',  ylab='', main='', col=rgb(0,0,0,alpha=0.5))
+plot(dataClamp[which(dataClamp$sdm=='monotemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize==100),]$clamping ~ as.factor(dataClamp[which(dataClamp$sdm=='monotemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize==100),]$kyr), ylim=c(0,15), xlab='Time (in kyr BP)',  ylab='', main='', col=rgb(0,0,0,alpha=0.5))
+plot(dataClamp[which(dataClamp$sdm=='multitemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize==100),]$clamping ~ as.factor(dataClamp[which(dataClamp$sdm=='multitemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize==100),]$kyr), ylim=c(0,15), xlab='Time (in kyr BP)',  ylab='', main='', col=rgb(0,0,0,alpha=0.5))
+dev.off()
+
+
+
 
 ## boxplot clamping (full dataset e sps)
 jpeg('/home/anderson/Documentos/Projetos/Sps artificiais/graficos - resultados oficiais/BoxplotClamp.jpeg', width=1200)
@@ -1101,47 +1422,75 @@ boxplot(log(dataClamp[which(dataClamp$sp == 'spCD'),]$clamping) ~ dataClamp[whic
 dev.off()
 
 
-##correlacao entre clamping e niche overlap
 
-scenNamesMulti = grep(pattern='multitemporal.*spHW.*sample50', x=names(territory), value=TRUE)
-plot( outputData[outputData$sdmType=='multitemporal' &
-                     outputData$sp=='spHW' &
-                     outputData$sampleSize==50,]$Schoeners_D_simi ~ as.numeric(territory[which(scenNamesMulti==names(territory))]), xlim=c(0,1), ylim=c(0.2,1), pch=20, col='black' )
-##
-abline(lm( outputData[outputData$sdmType=='multitemporal' &
-                     outputData$sp=='spHW' &
-                     outputData$sampleSize==50,]$Schoeners_D_simi ~ as.numeric(territory[which(scenNamesMulti==names(territory))])))
-##
-scenNamesMono =  grep(pattern='monotemporal.*spHW.*sample50', x=names(territory), value=TRUE)
-points( outputData[outputData$sdmType=='monotemporal' &
-                     outputData$sp=='spHW' &
-                     outputData$sampleSize==50,]$Schoeners_D_simi ~ as.numeric(territory[which(scenNamesMono==names(territory))]), xlim=c(0,1), ylim=c(0.2,1), pch=2, col='blue' )
-##
-abline(lm(outputData[outputData$sdmType=='monotemporal' &
-                     outputData$sp=='spHW' &
-                     outputData$sampleSize==50,]$Schoeners_D_simi ~ as.numeric(territory[which(scenNamesMono==names(territory))]), col= 'red'), col='blue')
+##correlacao entre Schoener X % de clamping na distribuicao da especie
+
+##monotemporal - spCD
+corSpCDmono10 = cor.test(dataClamp[ which(dataClamp$sdm=='monotemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize==10),]$Schoeners_D_simi,
+                         dataClamp[ which(dataClamp$sdm=='monotemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize==10),]$distUnderClamp, method='pearson')
+
+corSpCDmono50 = cor.test(dataClamp[ which(dataClamp$sdm=='monotemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize==50),]$Schoeners_D_simi,
+                         dataClamp[ which(dataClamp$sdm=='monotemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize==50),]$distUnderClamp, method='pearson')
+
+corSpCDmono100 = cor.test(dataClamp[ which(dataClamp$sdm=='monotemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize==100),]$Schoeners_D_simi,
+                         dataClamp[ which(dataClamp$sdm=='monotemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize==100),]$distUnderClamp, method='pearson')
+
+##monotemporal - spHW
+corSpHWmono10 = cor.test(dataClamp[ which(dataClamp$sdm=='monotemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize==10),]$Schoeners_D_simi,
+                         dataClamp[ which(dataClamp$sdm=='monotemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize==10),]$distUnderClamp, method='pearson')
+
+corSpHWmono50 = cor.test(dataClamp[ which(dataClamp$sdm=='monotemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize==50),]$Schoeners_D_simi,
+                         dataClamp[ which(dataClamp$sdm=='monotemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize==50),]$distUnderClamp, method='pearson')
+
+corSpHWmono100 = cor.test(dataClamp[ which(dataClamp$sdm=='monotemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize==100),]$Schoeners_D_simi,
+                         dataClamp[ which(dataClamp$sdm=='monotemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize==100),]$distUnderClamp, method='pearson')
+
+##multitemporal - spCD
+corSpCDmulti10 = cor.test(dataClamp[ which(dataClamp$sdm=='multitemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize==10),]$Schoeners_D_simi,
+                         dataClamp[ which(dataClamp$sdm=='multitemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize==10),]$distUnderClamp, method='pearson')
+
+corSpCDmulti50 = cor.test(dataClamp[ which(dataClamp$sdm=='multitemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize==50),]$Schoeners_D_simi,
+                         dataClamp[ which(dataClamp$sdm=='multitemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize==50),]$distUnderClamp, method='pearson')
+
+corSpCDmulti100 = cor.test(dataClamp[ which(dataClamp$sdm=='multitemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize==100),]$Schoeners_D_simi,
+                         dataClamp[ which(dataClamp$sdm=='multitemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize==100),]$distUnderClamp, method='pearson')
+
+##multitemporal - spHW
+corSpHWmulti10 = cor.test(dataClamp[ which(dataClamp$sdm=='multitemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize==10),]$Schoeners_D_simi,
+                         dataClamp[ which(dataClamp$sdm=='multitemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize==10),]$distUnderClamp, method='pearson')
+
+corSpHWmulti50 = cor.test(dataClamp[ which(dataClamp$sdm=='multitemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize==50),]$Schoeners_D_simi,
+                         dataClamp[ which(dataClamp$sdm=='multitemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize==50),]$distUnderClamp, method='pearson')
+
+corSpHWmulti100 = cor.test(dataClamp[ which(dataClamp$sdm=='multitemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize==100),]$Schoeners_D_simi,
+                         dataClamp[ which(dataClamp$sdm=='multitemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize==100),]$distUnderClamp, method='pearson')
 
 
-##correlacao entre Schoener X % de clamping na Am. Sul - sample size 100 pts
-cor(outputData[outputData$sdmType=='multitemporal' &
-                     outputData$sp=='spHW' &
-                     outputData$sampleSize==100 &
-                     outputData$replica==1,]$Schoeners_D_simi, as.numeric(territory[which(scenNames==names(territory))]), method='pearson')
 
-##correlacao entre Schoener X % de clamping na Am. Sul - sample size 50 pts
-cor(outputData[outputData$sdmType=='multitemporal' &
-                     outputData$sp=='spHW' &
-                     outputData$sampleSize==50 &
-                     outputData$replica==1,]$Schoeners_D_simi, as.numeric(territory[which(scenNames==names(territory))]), method='pearson')
+##correlacao geral (so por exploracao)
 
-##correlacao entre Schoener X % de clamping na Am. Sul - sample size 10 pts
-cor(outputData[outputData$sdmType=='multitemporal' &
-                     outputData$sp=='spHW' &
-                     outputData$sampleSize==10 &
-                     outputData$replica==1,]$Schoeners_D_simi, as.numeric(territory[which(scenNames==names(territory))]), method='pearson')
+corFullDataset = cor.test(dataClamp$Schoeners_D_simi,
+                          dataClamp$distUnderClamp, method='pearson')
+
+corMulti = cor.test(dataClamp[ which(dataClamp$sdm=='multitemporal'),]$Schoeners_D_simi,
+                    dataClamp[ which(dataClamp$sdm=='multitemporal'),]$distUnderClamp, method='pearson')
+
+corMono = cor.test(dataClamp[ which(dataClamp$sdm=='monotemporal'),]$Schoeners_D_simi,
+                    dataClamp[ which(dataClamp$sdm=='monotemporal'),]$distUnderClamp, method='pearson')
+
+##tabela
+corTable = data.frame( scenario = c('corFullDataset','corMulti','corMono','corSpCDmono10','corSpCDmono50','corSpCDmono100','corSpHWmono10','corSpHWmono50','corSpHWmono100','corSpCDmulti10','corSpCDmulti50','corSpCDmulti100','corSpHWmulti10','corSpHWmulti50','corSpHWmulti100'),
+                      correlation = c(as.numeric(corFullDataset$estimate),as.numeric(corMulti$estimate),as.numeric(corMono$estimate),as.numeric(corSpCDmono10$estimate),as.numeric(corSpCDmono50$estimate),as.numeric(corSpCDmono100$estimate),as.numeric(corSpHWmono10$estimate),as.numeric(corSpHWmono50$estimate),as.numeric(corSpHWmono100$estimate),as.numeric(corSpCDmulti10$estimate),as.numeric(corSpCDmulti50$estimate),as.numeric(corSpCDmulti100$estimate),as.numeric(corSpHWmulti10$estimate),as.numeric(corSpHWmulti50$estimate),as.numeric(corSpHWmulti100$estimate)),
+                      p.value = c(as.numeric(corFullDataset$p.value),as.numeric(corMulti$p.value),as.numeric(corMono$p.value),as.numeric(corSpCDmono10$p.value),as.numeric(corSpCDmono50$p.value),as.numeric(corSpCDmono100$p.value),as.numeric(corSpHWmono10$p.value),as.numeric(corSpHWmono50$p.value),as.numeric(corSpHWmono100$p.value),as.numeric(corSpCDmulti10$p.value),as.numeric(corSpCDmulti50$p.value),as.numeric(corSpCDmulti100$p.value),as.numeric(corSpHWmulti10$p.value),as.numeric(corSpHWmulti50$p.value),as.numeric(corSpHWmulti100$p.value)) )
+
+corTable[,'p.value'] = round(corTable[,'p.value'], 3)
+
+write.csv(corTable, paste(projectFolder,'correlationTable.csv'), row.names=FALSE)
+
 
 
 ### mapas para comparar condicoes do presente com 22 kyrBP
+
 
 temp0kyr = raster('/home/anderson/PosDoc/dados_ambientais/dados_projeto/000/bioclim_01.asc')
 temp0kyr = mask(temp0kyr, AmSulShape)
