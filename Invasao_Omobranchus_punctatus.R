@@ -711,12 +711,18 @@ anova(modelSuit, modelGohi, test='Chisq')
 anova(modelSuit, modelOccXSuitXGohi, test='Chisq') 
 anova(modelGohi, modelOccXSuitXGohi, test='Chisq') 
 
+##pseudo R-squared para GLM
+modelSuitR2 = DescTools::PseudoR2(modelSuit)
+modelGohiR2 = DescTools::PseudoR2(modelGohi)
+modelOccXSuitXGohiR2 = DescTools::PseudoR2(modelOccXSuitXGohi)
+
 
 
 statModelsOutput = data.frame( responseVariable = c('occurrence','occurrence','occurrence'),
                          predictorVariable = c('GOHI','suitability','GOHI+suitability'),
                          degree_freedom = c(modelGohi$df.residual, modelSuit$df.residual, modelOccXSuitXGohi$df.residual),
                          deviance = c(modelGohi$deviance, modelSuit$deviance, modelOccXSuitXGohi$deviance),
+                         PseudoR2 = c(modelGohiR2, modelSuitR2, modelOccXSuitXGohiR2),
                          aic = c(modelGohi$aic, modelSuit$aic, modelOccXSuitXGohi$aic) )
 
 write.csv(statModelsOutput, paste(projectFolder,'/statModelsOutput.csv',sep='' ), row.names=FALSE)
