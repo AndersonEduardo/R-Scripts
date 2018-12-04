@@ -422,7 +422,7 @@ bestModel = bestModel[1,]
 
 ##importancia das variaveis
 modelPars = SDMeval@models[[bestModel$settings]]
-write.csv(var.importance(modelPars), paste(projectFolder,'/maxent/omobranchus_variablesImportance.csv',sep=''), row.names=FALSE)
+##write.csv(var.importance(modelPars), paste(projectFolder,'/maxent/omobranchus_variablesImportance.csv',sep=''), row.names=FALSE)
 varNames = as.vector(var.importance(modelPars)[which(var.importance(modelPars)$permutation.importance > 0),'variable'])
 varNames = gsub(pattern='predAreaNat_', replacement='', x=varNames)
 
@@ -451,6 +451,12 @@ SDMmaxent = maxent(x = dataSet[which(dataSet$area!='inv'),grep(pattern=paste(as.
 
 ##salvando modelo no HD
 save(SDMmaxent, file=paste(projectFolder,'/maxent/SDMmaxent.R',sep=''))
+
+
+##variableimportance final model
+varImportOutput = rowMeans(SDMmaxent@results[grep("importance", rownames(SDMmaxent@results)), ])
+varImportTable = data.frame(names(varImportOutput), permutation.importance=varImportOutput)
+write.csv(varImportTable, paste(projectFolder,'/maxent/omobranchus_variablesImportance_finalModel.csv',sep=''), row.names=FALSE)
 
 
 ##predicao AREA NATIVA
