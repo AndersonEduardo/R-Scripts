@@ -253,8 +253,8 @@ for (i in seq(length(sps))){
           models.options = myBiomodOption,
           NbRunEval = 1,
           DataSplit = 100,
-          SaveObj = FALSE,
-          rescal.all.models = FALSE,
+          SaveObj = TRUE,
+          rescal.all.models = TRUE,
           do.full.models = TRUE,
           modeling.id = myRespName) #paste(myRespName,'_FULL',sep=''))
         
