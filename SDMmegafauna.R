@@ -13,6 +13,7 @@ library(dismo)
 # ##source('/home/anderson/R-Scripts/uniche.R')
 # source('/home/anderson/R-Scripts/uniche2.R') #uniche2
 # source('/home/anderson/R-Scripts/cleanData.R')
+# source('/home/anderson/R-Scripts/paleobg.R')
 ##Yavanna
 source('D:/Anderson_Eduardo/R/paleoextract.R')
 source('D:/Anderson_Eduardo/R/strings2na.R')
@@ -23,6 +24,8 @@ source('D:/Anderson_Eduardo/R/uplot2.R')
 source('D:/Anderson_Eduardo/R/uniche2.R') #uniche2
 source('D:/Anderson_Eduardo/R/uniche3.R') #uniche3
 source('D:/Anderson_Eduardo/R/cleanData.R')
+source('D:/Anderson_Eduardo/R/paleobg.R')
+
 
 
 ##definindo parametros e variaveis globais##
@@ -92,8 +95,19 @@ for (i in seq(length(sps))){
 ## SDM ##
 
 
-
+##working directory
 setwd(paste(projectFolder,'/SDMs',sep=''))
+
+##dataset
+#dataSetRaw = read.csv(file='/home/anderson/Projetos/SDM megafauna Sul-Americana/dataset_clean.csv', header=TRUE, dec='.', sep=',')
+dataSetRaw = read.csv(file='D:/Anderson_Eduardo/SDM megafauna Sul-Americana/dataset_clean.csv', header=TRUE, dec='.', sep=',') #abrindo e tratando o banco de dados
+maxentFolder = 'D:/Anderson_Eduardo/maxent'
+
+##subset from the dataset
+dataSetRaw = dataSetRaw[,c('Species','Longitude','Latitude','Cal..Mean','Min.','Max.')]
+
+##list of species names
+sps = as.character( unique(dataSetRaw$Species) )
 
 ##pts choosed to be excluded
 ptsToExclude = list(
@@ -149,16 +163,16 @@ for (i in seq(length(sps))){
       
       gc() #hoping to clean some computer memory...
       
-      names(occDataList[[iter]]) = c("lon","lat","originalID","age")
+      names(occDataList[[j]]) = c("lon","lat","originalID","age")
       
-      current_occData = paleoextract(x=occDataList[[iter]], path=envFolder)
+      current_occData = paleoextract(x=occDataList[[j]], path=envFolder)
       current_occData = current_occData[complete.cases(current_occData),]
       
       ##cross-temporal background points
       current_bgData = paleobg(x=current_occData, colNames=c('lon','lat','age'), envFolder=envFolder, n=10000) #sanpling bg points
       
-      current_bgData[,c('x','y')] = round(current_bgData[,c('x','y')], 2) #round data
-      current_bgData = current_bgData[!duplicated(current_bgData[,c('x','y','age')]), ] #excluding duplicated points (in a same age)
+      current_bgData[,c('lon','lat')] = round(current_bgData[,c('lon','lat')], 2) #round data
+      current_bgData = current_bgData[!duplicated(current_bgData[,c('lon','lat','age')]), ] #excluding duplicated points (in a same age)
       current_bgData$originalID = NA #adjusting to fit occ data.frame
       idxOrdem = match(names(current_occData), names(current_bgData)) #adjusting to fit occ data.frame
       current_bgData = current_bgData[,idxOrdem] #adjusting to fit occ data.frame
@@ -200,11 +214,11 @@ for (i in seq(length(sps))){
         myBiomodData,
         models = c('MAXENT.Phillips'),
         models.options = myBiomodOption,
-        NbRunEval = 100,
+        NbRunEval = 50,
         DataSplit = 75,
         VarImport = 10,
         models.eval.meth = c('TSS','ROC'),
-        SaveObj = FALSE,
+        SaveObj = TRUE,
         rescal.all.models = TRUE,
         do.full.models = FALSE,
         modeling.id = myRespName)
@@ -234,15 +248,15 @@ for (i in seq(length(sps))){
         crs(predictors) = CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0') #ajustando CRS
         
         myBiomodModelFull <- BIOMOD_Modeling(
-          data = myBiomodData,
+          myBiomodData,
           models = c('MAXENT.Phillips'),
           models.options = myBiomodOption,
           NbRunEval = 1,
           DataSplit = 100,
           SaveObj = FALSE,
-          rescal.all.models = TRUE,
+          rescal.all.models = FALSE,
           do.full.models = TRUE,
-          modeling.id = paste(myRespName,'_FULL',sep=''))
+          modeling.id = myRespName) #paste(myRespName,'_FULL',sep=''))
         
         ##rodando algortmo de projecao (i.e. rodando a projecao)
         myBiomodProj <- BIOMOD_Projection(
@@ -250,62 +264,11 @@ for (i in seq(length(sps))){
           new.env = predictors,
           proj.name = paste(l-1,'kyr',sep=''),
           selected.models = 'all',
+          binary.meth = c('TSS','ROC'),
           compress = 'TRUE',
           build.clamping.mask = 'TRUE',
           output.format = '.grd')
-        
       }
     }
   }, error=function(e){cat("ERROR :",conditionMessage(e), "\n")})
 }
-
-
-
-
-########################################################
-
-
-
-
-##function for cross-temporal background points
-
-paleobg = function(x, colNames=names(x), envFolder, n=10000){
-  
-  ### parameters ###
-  ##x = data.frame with (at least) occurrences (lon, lat) and age
-  ##colNames = names of the columns in x for lon, lat and age
-  ##envFolder = path to predictor variables' folder
-  ##n = desired number of background points
-  ################
-
-  colNames = colNames
-  envFolder = envFolder
-  occTable = x[,colNames]
-  names(occTable) = c('lon','lat','age')
-  ages = unique(occTable$age)
-  ages = sample(ages, n, replace=TRUE)
-  bgData = data.frame()
-  
-  for (age_i in unique(ages)){
-    sampleSize = length(grep(age_i, ages))
-    current_occPts = occTable[age_i, c('lon','lat')]
-    
-    if(age_i %in% as.numeric(list.files(envFolder))){
-      envData = list.files(paste(envFolder,'/',age_i,sep=''), full.names=TRUE)
-    }
-    
-    envData = stack(envData)
-    crs(envData) = CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0')
-    
-    bgData_i = dismo::randomPoints(mask=envData[[1]], n=sampleSize, p=current_occPts)
-    bgData_i = data.frame(bgData_i)
-    bgData_i$age = age_i
-    names(bgData_i) = c('lon','lat','age')
-    bgData_i = data.frame(bgData_i, extract(envData, bgData_i[,c('lon','lat')]))
-    bgData = rbind(bgData, bgData_i)
-  }
-  return(bgData)
-}
-
-
-
