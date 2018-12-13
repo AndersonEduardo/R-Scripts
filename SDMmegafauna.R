@@ -184,7 +184,7 @@ for (i in seq(length(sps))){
       current_dataSet = current_dataSet[complete.cases(current_dataSet[, grep(pattern='originalID', x=names(current_dataSet), invert=TRUE) ]), ]
       
       ##variaveis e parametros locais especificos para o biomod2
-      myRespName <- paste( gsub(pattern=' ',x=sps[i], replacement='_'), '_instance_',j, sep='') # nome do cenario atual (para biomod2)
+      myRespName <- paste( 'instance_',j, sep='') # nome do cenario atual (para biomod2)
       myResp <- data.frame(type=as.integer(current_dataSet[,c('type')] == 'occ')) # variavel resposta (para biomod2)
       myRespXY <- current_dataSet[,c('lon','lat')] # coordenadas associadas a variavel resposta (para biomod2)
       myExpl = current_dataSet[,grep(pattern="lon|lat|originalID|age|type", x=names(current_dataSet),invert=TRUE)]  #variavel preditora (para biomod2)
@@ -219,10 +219,11 @@ for (i in seq(length(sps))){
         VarImport = 10,
         models.eval.meth = c('TSS','ROC'),
         SaveObj = TRUE,
-        rescal.all.models = TRUE,
+        rescal.all.models = FALSE,
         do.full.models = FALSE,
         modeling.id = myRespName)
       
+
       ##My output data
       evaluationScores = get_evaluations(myBiomodModelOut)
     
@@ -231,8 +232,8 @@ for (i in seq(length(sps))){
       
       ##variableimportance final model
       varImport = get_variables_importance(myBiomodModelOut)
-      varImportMean = rowMeans(varImport[,,1:100,], na.rm=TRUE)
-      varImportSD = apply(varImport[,,1:100,],1, sd )
+      varImportMean = rowMeans(varImport[,,1:50,], na.rm=TRUE)
+      varImportSD = apply(varImport[,,1:50,],1, sd )
       varImportDF = data.frame(variables=names(varImportMean), importance.mean=varImportMean, impotance.sd=varImportSD)
       write.csv(varImportDF, paste(projectFolder,'/SDMs/',sps[i],'/',gsub(pattern=' ',replacement='_',x=sps[i]),'_VariableImportance.csv',sep=''), row.names=FALSE)
       
@@ -253,10 +254,10 @@ for (i in seq(length(sps))){
           models.options = myBiomodOption,
           NbRunEval = 1,
           DataSplit = 100,
-          SaveObj = TRUE,
-          rescal.all.models = TRUE,
+          SaveObj = FALSE,
+          rescal.all.models = FALSE,
           do.full.models = TRUE,
-          modeling.id = myRespName) #paste(myRespName,'_FULL',sep=''))
+          modeling.id = paste(myRespName,'_FULL',sep=''))
         
         ##rodando algortmo de projecao (i.e. rodando a projecao)
         myBiomodProj <- BIOMOD_Projection(

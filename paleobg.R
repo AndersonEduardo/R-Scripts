@@ -16,15 +16,20 @@ paleobg = function(x, colNames=names(x), envFolder, n=10000){
   ages = unique(occTable$age)
   ages = sample(ages, n, replace=TRUE)
   bgData = data.frame()
+  vecNA = vector()
   
-  for (age_i in unique(ages)){
+  for ( age_i in unique(ages) ){
     sampleSize = length(grep(age_i, ages))
     current_occPts = occTable[ match(age_i, occTable$age), c('lon','lat')]
     
     if(age_i %in% as.numeric(list.files(envFolder))){
       envData = list.files(paste(envFolder,'/',age_i,sep=''), full.names=TRUE)
+    }else{
+      warning("Atenção: algumas idades não possuem dados ambientais no directório. NAs produzidos.")
+      vecNA = append( vecNA, age_i )
+      next
     }
-    if( length(agrep("maxent", basename(envData), value = T)) > 0 ){
+    if( (length(agrep("maxent", basename(envData), value = T)) > 0) ){
       envData = envData[-c(agrep("maxent", basename(envData)))]
     }
     
@@ -38,5 +43,17 @@ paleobg = function(x, colNames=names(x), envFolder, n=10000){
     bgData_i = data.frame(bgData_i, extract(envData, bgData_i[,c('lon','lat')]))
     bgData = rbind(bgData, bgData_i)
   }
+  
+  #dealing with unexistnt ages
+  if ( length(vecNA) > 0 ){
+    matrixNA = matrix( data=rep(NA, length(vecNA)*max(2,ncol(bgData))), nrow=length(vecNA), ncol=max(2,ncol(bgData)) )
+    matrixNA = data.frame(matrixNA)
+    names(matrixNA) = unlist( list('data', names(bgData) )[ifelse(length(names(bgData))==0, 1, 2)] )
+    idxForAge = ifelse( ncol(matrixNA)==2, 1, grep('age', names(matrixNA)))
+    matrixNA[ ,idxForAge] = vecNA
+    bgData = rbind(bgData, matrixNA)
+  }
+  
+  #output
   return(bgData)
 }
