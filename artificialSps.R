@@ -29,47 +29,81 @@ AmSulShape = rgdal::readOGR("/home/anderson/shapefiles/Am_Sul/borders.shp") #sha
 ############################
 
 
-ynorm = (dnorm(temp,230,10) - min(dnorm(temp,230,10)))/( max(dnorm(temp,230,10)) - min(dnorm(temp,230,10)) )
-plot(ynorm ~ temp)
-points(betaTemp ~ temp, t='l')
+# ynorm = (dnorm(temp,230,10) - min(dnorm(temp,230,10)))/( max(dnorm(temp,230,10)) - min(dnorm(temp,230,10)) )
+# plot(ynorm ~ temp)
+# points(betaTemp ~ temp, t='l')
+# 
+# ynorm = (dnorm(prec,2750,300) - min(dnorm(prec,2750,300)))/( max(dnorm(prec,2750,300)) - min(dnorm(prec,2750,300)) )
+# plot(ynorm ~ prec)
+# points(betaPrec ~ prec, t='l')
+# 
+# 
+# for (i in 1:length(caminhosCamadasTemp)){
+# 
+#     ##variaveis preditoras
+#     predictors = stack(paste(caminhosCamadasTemp[i],'/bioclim_01.asc',sep=''),paste(caminhosCamadasTemp[i],'/bioclim_12.asc',sep='')) #carregando as variaveis ambientais
+#     predictors = mask(predictors,AmSulShape) #recortando as variaveis ambientais
+#     nameScenario = basename(caminhosCamadasTemp[i])
+#     
+#     ##funcoes especie de clima quente e umido
+#     parametersHW <- formatFunctions(bioclim_01=c(fun='betaFun',p1=200,p2=295,alpha=1,gamma=1),bioclim_12=c(fun='betaFun',p1=2000,p2=3500,alpha=1,gamma=1)) #criando as respostas da especie às variaveis ambientais
+# 
+#     ##funcoes especie de clima quente e seco
+#     parametersHD <- formatFunctions(bioclim_01=c(fun='betaFun',p1=200,p2=260,alpha=1,gamma=1),bioclim_12=c(fun='betaFun',p1=50,p2=1800,alpha=1,gamma=1)) #criando as respostas da especie às variaveis ambientais
+#  
+#     ##funcoes especie de clima frio e seco
+#     parametersCD <- formatFunctions(bioclim_01=c(fun='betaFun',p1=50,p2=220,alpha=1,gamma=1),bioclim_12=c(fun='betaFun',p1=50,p2=1800,alpha=1,gamma=1)) #criando as respostas da especie às variaveis ambientais
+# 
+#     ##criando distribuicao geografica das sps
+#     spHW <- generateSpFromFun(predictors, parametersHW) #criando a especie artifical (clima quente e umido)
+#     spHD <- generateSpFromFun(predictors, parametersHD) #criando a especie artifical (clima quente e seco)
+#     spCD <- generateSpFromFun(predictors, parametersCD) #criando a especie artifical (clima frio e seco)
+# 
+#     ##empilhando distribuicoes geradas
+#     auxVector=stack(c(spHW$suitab.raster,spHD$suitab.raster,spCD$suitab.raster))
+#     names(auxVector) = c('spHW', 'spHD', 'spCD')
+# 
+#     ##ajustando o raster e salvando
+#     for(j in 1:dim(auxVector)[3]){
+#         projection(auxVector[[j]]) = CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0') #ajustando CRS
+#         writeRaster(auxVector[[j]], filename=paste(projectFolder,'NichoReal/',names(auxVector[[j]]),'/',nameScenario,'.asc',sep=""), overwrite=TRUE,prj=TRUE) #salvando o raster do mapa da sp
+#         
+#     }
+# }
 
-ynorm = (dnorm(prec,2750,300) - min(dnorm(prec,2750,300)))/( max(dnorm(prec,2750,300)) - min(dnorm(prec,2750,300)) )
-plot(ynorm ~ prec)
-points(betaPrec ~ prec, t='l')
+# ##definindo prametros e variaveis globais (NOTEBOOK)
+envVarFolder = "/home/anderson/gridfiles/dados_projeto" #pasta com as variaveis ambientais
+envVarPaths = list.files(path=envVarFolder, full.names=TRUE) #lista com os caminhos das camadas no sistema (comp.)
+AmSulShape = rgdal::readOGR("/home/anderson/shapefiles/Am_Sul/borders.shp") #shape da America do Sul
+# maxentFolder = '/home/anderson/R/x86_64-pc-linux-gnu-library/3.4/dismo/java/maxent.jar' #pasta para resultados do maxent
+# ## spsTypes = c('spHW', 'spHD', 'spCD') #nomes das especies
+# ## sdmTypes = c('normal','optimized')
+# sampleSizes = c(10,20,40,80,160)
+# NumRep = 10 #numero de replicas (de cada cenario amostral)
+# vies_levels = 5
+# ##variaveis preditoras
+# ## elevation = raster('/home/anderson/PosDoc/dados_ambientais/DEM/DEM.tif')
+predictors = stack(list.files(path=envVarPaths[1],full.names=TRUE, pattern='.asc')) #predictors com todas as variaveis (presente)
+predictors = predictors[[c('bioclim_01','bioclim_12')]]
+predictors = stack(mask(x=predictors, mask=AmSulShape))
+crs(predictors) = CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0') #ajustando CRS
+# Nsp = NumRep #numero de especies a serem criadas e trabalhadas igual ao numero de replicas
+# statResultsSDMnormal = data.frame() #tabela de estatisticas basicas do modelo
+# statResultsSDMimproved = data.frame()
+
+## funcoes autorais :-) #NOTEBOOK
+source('/home/anderson/R-Scripts/makeSpecies.R')
+source('/home/anderson/R-Scripts/rangeByACcontinuous.R')
+source('/home/anderson/R-Scripts/makeOutput.R')
+source('/home/anderson/R-Scripts/bestModel.R')
 
 
-for (i in 1:length(caminhosCamadasTemp)){
 
-    ##variaveis preditoras
-    predictors = stack(paste(caminhosCamadasTemp[i],'/bioclim_01.asc',sep=''),paste(caminhosCamadasTemp[i],'/bioclim_12.asc',sep='')) #carregando as variaveis ambientais
-    predictors = mask(predictors,AmSulShape) #recortando as variaveis ambientais
-    nameScenario = basename(caminhosCamadasTemp[i])
-    
-    ##funcoes especie de clima quente e umido
-    parametersHW <- formatFunctions(bioclim_01=c(fun='betaFun',p1=200,p2=295,alpha=1,gamma=1),bioclim_12=c(fun='betaFun',p1=2000,p2=3500,alpha=1,gamma=1)) #criando as respostas da especie às variaveis ambientais
+SpDistAC = makeSpecies(predictors, 1)
+plot(SpDistAC)
+plot(AmSulShape, add=T)
 
-    ##funcoes especie de clima quente e seco
-    parametersHD <- formatFunctions(bioclim_01=c(fun='betaFun',p1=200,p2=260,alpha=1,gamma=1),bioclim_12=c(fun='betaFun',p1=50,p2=1800,alpha=1,gamma=1)) #criando as respostas da especie às variaveis ambientais
- 
-    ##funcoes especie de clima frio e seco
-    parametersCD <- formatFunctions(bioclim_01=c(fun='betaFun',p1=50,p2=220,alpha=1,gamma=1),bioclim_12=c(fun='betaFun',p1=50,p2=1800,alpha=1,gamma=1)) #criando as respostas da especie às variaveis ambientais
 
-    ##criando distribuicao geografica das sps
-    spHW <- generateSpFromFun(predictors, parametersHW) #criando a especie artifical (clima quente e umido)
-    spHD <- generateSpFromFun(predictors, parametersHD) #criando a especie artifical (clima quente e seco)
-    spCD <- generateSpFromFun(predictors, parametersCD) #criando a especie artifical (clima frio e seco)
-
-    ##empilhando distribuicoes geradas
-    auxVector=stack(c(spHW$suitab.raster,spHD$suitab.raster,spCD$suitab.raster))
-    names(auxVector) = c('spHW', 'spHD', 'spCD')
-
-    ##ajustando o raster e salvando
-    for(j in 1:dim(auxVector)[3]){
-        projection(auxVector[[j]]) = CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0') #ajustando CRS
-        writeRaster(auxVector[[j]], filename=paste(projectFolder,'NichoReal/',names(auxVector[[j]]),'/',nameScenario,'.asc',sep=""), overwrite=TRUE,prj=TRUE) #salvando o raster do mapa da sp
-        
-    }
-}
 
 
 ###SEGUNDA PARTE: amostragem de pontos de ocorrencia em diferentes camadas de tempo###
