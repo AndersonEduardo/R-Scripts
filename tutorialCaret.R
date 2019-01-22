@@ -1,7 +1,37 @@
 ## pequeno tutorial de machine learning com pacote Caret (em R) com exemplo
 
+## EXEMPLO 1 - KNN ##
 
-## EXEMPLO 1 ##
+library(caret)
+
+dataurl <- "https://archive.ics.uci.edu/ml/machine-learning-databases/wine/wine.data"
+download.file(url = dataurl, destfile = "wine.data")
+wine_df <- read.csv("wine.data", header = FALSE)
+str(wine_df)
+anyNA(wine_df)
+summary(wine_df)
+
+set.seed(3033)
+intrain <- createDataPartition(y = wine_df$V1, p= 0.7, list = FALSE)
+training <- wine_df[intrain,]
+testing <- wine_df[-intrain,]
+training[["V1"]] = factor(training[["V1"]])
+
+trctrl <- trainControl(method = "repeatedcv", number = 10, repeats = 3)
+set.seed(3333)
+knn_fit <- train(V1 ~., 
+                 data = training, 
+                 method = "knn",
+                 trControl = trctrl,
+                 preProcess = c("center", "scale"),
+                 tuneLength = 10)
+
+test_pred <- predict(knn_fit, newdata = testing)
+
+confusionMatrix(test_pred, as.factor(testing$V1))
+
+
+## EXEMPLO 2 ##
 
 library(caret)
 library(kernlab)
@@ -9,6 +39,7 @@ library(kernlab)
 
 ##abrindo dados
 data(spam)
+anyNA(spam)
 
 ##particionando dados
 inTrain <- createDataPartition(y=spam$type, p=0.75, list=FALSE) #indices dos dados pra treino
@@ -31,7 +62,7 @@ predictions
 confusionMatrix(predictions, testing$type)
 
 
-## EXEMPLO 2 ##
+## EXEMPLO 3 ##
 ## FONTE: https://statistik-dresden.de/archives/14967
 
 library(MASS)
