@@ -92,18 +92,100 @@ crs(predictors) = CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0') 
 # statResultsSDMimproved = data.frame()
 
 ## funcoes autorais :-) #NOTEBOOK
-source('/home/anderson/R-Scripts/makeSpecies.R')
+source('/home/anderson/R-Scripts/makeSpeciesContinuous.R')
 source('/home/anderson/R-Scripts/rangeByACcontinuous.R')
 source('/home/anderson/R-Scripts/makeOutput.R')
 source('/home/anderson/R-Scripts/bestModel.R')
 
 
 
-SpDistAC = makeSpecies(predictors, 1)
+#obtaining species distribution using simulation
+SpDistAC = makeSpeciesContinuous(predictors, 1)
 plot(SpDistAC)
 plot(AmSulShape, add=T)
 
 
+## atualizando distribuicoes atraves do tempo - fazer uma funcao especifica##
+
+#suitT1 = rasterSpDistribution
+#suitT2 = rasterSpDistribution
+
+SpDistDF = raster::as.data.frame(SpDistAC, xy=TRUE, na.rm=FALSE)
+NewSuitDF = raster::as.data.frame(suitT2, xy=TRUE, na.rm=FALSE)
+
+occProb = runif(nrow(SpDistDF))
+
+#reduzindo a distribuicao usando o suitability novo (obs.: aqui eh somente a parte de reducao da distrib.)
+SpDistDF$DistUpdated = sapply(seq(nrow(SpDistDF)), function(i) ifelse(NewSuitDF[i,3] > occProb[i], SpDistDF[i,3], 0))
+
+#raster of the reduced range
+spRange = SpDistDF[,c('x','y','DistUpdated')] #extraindo lon/lat e suitability (ou pres-aus) de cada especie
+coordinates(spRange) = ~x+y #definindo colunas das coordenadas
+gridded(spRange) = TRUE #definindo gridded
+proj4string(spRange) = '+proj=lcc +lat_1=48 +lat_2=33 +lon_0=-100 +ellps=WGS84' #definindo proj
+spRangeUpdated = raster(spRange) #criando objeto raster
+#plot(spRangeUpdated)
+
+seedCoords = SpDistDF[which(SpDistDF$DistUpdated>0),c('x','y')]
+
+seedCoords = seedCoords[ sample(x=nrow(seedCoords), size=ceiling(0.01*nrow(seedCoords))), ]
+
+spRange_i = SpatialPoints(seedCoords)
+crs(spRange_i) = CRS('+proj=lcc +lat_1=48 +lat_2=33 +lon_0=-100 +ellps=WGS84 ')
+
+###growing up sps' range###
+for (i in 1:5){
+  
+  ##criando Buffer
+  rangeBuff = rgeos::gBuffer(spRange_i, width=1) #capStyle="SQUARE"
+  
+  ##pegando celulas = zero dentro do Buffer e executando ocupacao usando suitability como probabilidade de occ.
+  vals = extract(suitT2, rangeBuff, cellnumbers=TRUE)[[1]]
+  vals2 = vals[which(vals[,2] > 0),]
+  probOcc = runif(n=nrow(vals2))
+  vals3 = vals2[vals2[,2] > probOcc, 1]
+  spRangeUpdated[vals3] = 1 #; plot(spRangeUpdated)
+  
+  ##fazendo Buffer sobre Buffer
+  #spRange_i = rangeBuff
+  
+  ##pontos para o novo Buffer
+  ptsDistUpadatedRaw = extract(spRangeUpdated, rangeBuff, cellnumbers=TRUE)[[1]]
+  ptsDistUpadated = ptsDistUpadatedRaw[which(ptsDistUpadatedRaw[,2]==1),]
+  ptsMigrationTotal = xyFromCell(spRangeUpdated,ptsDistUpadated[,1])
+  ptsMigrationSelected = ptsMigrationTotal[sample(x=nrow(ptsMigrationTotal), size=ceiling(0.01*nrow(ptsMigrationTotal))),]
+  spRange_i = SpatialPoints(ptsMigrationSelected)
+  
+  #plot(spRangeUpdated)
+}
+####
+
+
+r <- raster(nrow=18, ncol=36, xmn=0)
+r[251:450] <- 1
+plot(r)
+plot( boundaries(r, type='inner') )
+plot( boundaries(r, type='outer') )
+plot( boundaries(r, classes=TRUE) )
+
+bouter = boundaries(r, type='outer')
+plot(stack(bouter,r))
+smd = sum(stack(bouter,r), na.rm=T)
+plot(stack(bouter,r,smd))
+plot(smd)
+plot(sum(bouter,smd,na.rm=T))
+
+
+
+
+SpDistAC2 = SpDistAC
+values(SpDistAC2)[ is.na(values(SpDistAC2)) ] = 0
+plot(SpDistAC2)
+xx = boundaries(SpDistAC2, asNA=FALSE, classes=TRUE, type='outer')
+plot( xx )
+xxs = stack(xx,SpDistAC2)
+plot( xxs )
+plot(sum(xxs, na.rm=T))
 
 
 ###SEGUNDA PARTE: amostragem de pontos de ocorrencia em diferentes camadas de tempo###

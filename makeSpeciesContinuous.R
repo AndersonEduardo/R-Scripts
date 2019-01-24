@@ -6,7 +6,7 @@
 ## 30/fev/2018
 
 
-makeSpecies = function(predictorsData, iIindex){
+makeSpeciesContinuous = function(predictorsData, iIindex){
     
     ## parametros locais
     predictors = predictorsData
