@@ -92,39 +92,39 @@ crs(predictors) = CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0') 
 # statResultsSDMimproved = data.frame()
 
 ## funcoes autorais :-) #NOTEBOOK
-source('/home/anderson/R-Scripts/makeSpeciesContinuous.R')
+source('/home/anderson/R-Scripts/makeSpeciesSuitability.R')
+source('/home/anderson/R-Scripts/makeSpeciesSuitabilityIterator.R')
 source('/home/anderson/R-Scripts/rangeByACcontinuous.R')
 source('/home/anderson/R-Scripts/makeOutput.R')
 source('/home/anderson/R-Scripts/bestModel.R')
+source('/home/anderson/R-Scripts/temporalUpdate.R')
 
 
 
 #obtaining species distribution using simulation
-SpDistAC = makeSpeciesContinuous(predictors, 1)
+spsSuit = makeSpeciesSuitability(predictors)
+SpDistAC = rangeByACcontinuous(spsSuit)
 plot(SpDistAC)
 plot(AmSulShape, add=T)
 
+#updating sps distribution
+newSuitabilityMap = rasterSpDistribution
+SpDistACup = temporalUpdate(currentSpsRange = SpDistAC, newSuitabilityMap = rasterSpDistribution)
+plot(SpDistACup)
 
-## atualizando distribuicoes atraves do tempo - fazer uma funcao especifica##
+## CONTINUAR EM: AJUSTAR SCRIPT MAKESPECIESSUITABILITY E MAKESPECIESSUITABILITYITERATOR PARA GERAR MAPAS DE
+## SUITABILITY PARA A LISTA DE PREDITORAS DAS DIFERENTES IDADES
 
-#suitT1 = rasterSpDistribution
-#suitT2 = rasterSpDistribution
 
-SpDistDF = raster::as.data.frame(SpDistAC, xy=TRUE, na.rm=FALSE)
-NewSuitDF = raster::as.data.frame(suitT2, xy=TRUE, na.rm=FALSE)
 
-occProb = runif(nrow(SpDistDF))
 
-#reduzindo a distribuicao usando o suitability novo (obs.: aqui eh somente a parte de reducao da distrib.)
-SpDistDF$DistUpdated = sapply(seq(nrow(SpDistDF)), function(i) ifelse(NewSuitDF[i,3] > occProb[i], SpDistDF[i,3], 0))
 
-#raster of the reduced range
-spRange = SpDistDF[,c('x','y','DistUpdated')] #extraindo lon/lat e suitability (ou pres-aus) de cada especie
-coordinates(spRange) = ~x+y #definindo colunas das coordenadas
-gridded(spRange) = TRUE #definindo gridded
-proj4string(spRange) = '+proj=lcc +lat_1=48 +lat_2=33 +lon_0=-100 +ellps=WGS84' #definindo proj
-spRangeUpdated = raster(spRange) #criando objeto raster
-#plot(spRangeUpdated)
+
+
+
+
+
+#######################################################################
 
 seedCoords = SpDistDF[which(SpDistDF$DistUpdated>0),c('x','y')]
 
@@ -186,6 +186,9 @@ plot( xx )
 xxs = stack(xx,SpDistAC2)
 plot( xxs )
 plot(sum(xxs, na.rm=T))
+#######################################################################
+
+
 
 
 ###SEGUNDA PARTE: amostragem de pontos de ocorrencia em diferentes camadas de tempo###
