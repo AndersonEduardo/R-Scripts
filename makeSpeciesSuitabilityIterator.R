@@ -1,23 +1,31 @@
 ## Anderson A. Eduardo
 ## 25/jan/2019
 
-iterateFunc = function(x){
+iterateFunc = function(x, respFunc){
+  
+  if(class(respFunc) != "respFuncObject"){
+    stop("ERRO: O argumento 'respFunc' precisa ser da classe 'respFuncObject'.")
+  }
   
   datMatCurrent = x
   names(datMatCurrent) = c('lon','lat','bio1','bio12','fSp')
+  betaBio1 = respFunc$betaBio1
+  betaBio12 = respFunc$betaBio12
+  alphaBio1 = respFunc$alphaBio1
+  alphaBio12 = respFunc$alphaBio12
   
   ##condicao para nao permitir distribuicoes vazias (i.e. inexistente) ou tbm sobre a Am. Sul toda. Condicao: distribuicao > 1% ou <95% da america do sul
   #while( (sum(datMatCurrent[,paste('sp',i,sep='')]) < 0.05*(nrow(datMatCurrent))) | (sum(datMatCurrent[,paste('sp',i,sep='')]) > 0.5*(nrow(datMatCurrent))) ){
-  while( (sum(datMatCurrent$fSp, na.rm=TRUE) < 0.05*(nrow(datMatCurrent))) | (sum(datMatCurrent$fSp, na.rm=TRUE) > 0.5*(nrow(datMatCurrent))) ){
+  #while( (sum(datMatCurrent$fSp, na.rm=TRUE) < 0.05*(nrow(datMatCurrent))) | (sum(datMatCurrent$fSp, na.rm=TRUE) > 0.5*(nrow(datMatCurrent))) ){
     
-    ##equacoes para as dimensoes do nicho das especies
-    betaBio1 = runif(n=1, min=0.001, max=1)*sample(x=c(-1,1), size=1) #parametro para cada equacao de cada especie
-    betaBio12 = runif(n=1, min=0.001, max=1)*sample(x=c(-1,1), size=1) #parametro para cada equacao de cada especie
-    betaElev = runif(n=1, min=0.001, max=1)*sample(x=c(-1,1), size=1) #parametro para cada equacao de cada especie
-    ##
-    alphaBio1 = runif(n=1, min=quantile(datMatCurrent$bio1, probs=0.25, na.rm=TRUE), max=quantile(datMatCurrent$bio1, probs=0.75, na.rm=TRUE)) #parametro para cada equacao de cada especie
-    alphaBio12 = runif(n=1, min=quantile(datMatCurrent$bio12, probs=0.25, na.rm=TRUE), max=quantile(datMatCurrent$bio12, probs=0.75, na.rm=TRUE)) #parametro para cada equacao de cada especie
-    ## alphaElev = runif(n=1, min=quantile(datMatCurrent$elevation, probs=0.25, na.rm=TRUE), max=quantile(datMatCurrent$elevation, probs=0.75, na.rm=TRUE)) #parametro para cada equacao de cada especie
+    # ##equacoes para as dimensoes do nicho das especies
+    # betaBio1 = runif(n=1, min=0.001, max=1)*sample(x=c(-1,1), size=1) #parametro para cada equacao de cada especie
+    # betaBio12 = runif(n=1, min=0.001, max=1)*sample(x=c(-1,1), size=1) #parametro para cada equacao de cada especie
+    # betaElev = runif(n=1, min=0.001, max=1)*sample(x=c(-1,1), size=1) #parametro para cada equacao de cada especie
+    # ##
+    # alphaBio1 = runif(n=1, min=quantile(datMatCurrent$bio1, probs=0.25, na.rm=TRUE), max=quantile(datMatCurrent$bio1, probs=0.75, na.rm=TRUE)) #parametro para cada equacao de cada especie
+    # alphaBio12 = runif(n=1, min=quantile(datMatCurrent$bio12, probs=0.25, na.rm=TRUE), max=quantile(datMatCurrent$bio12, probs=0.75, na.rm=TRUE)) #parametro para cada equacao de cada especie
+    # ## alphaElev = runif(n=1, min=quantile(datMatCurrent$elevation, probs=0.25, na.rm=TRUE), max=quantile(datMatCurrent$elevation, probs=0.75, na.rm=TRUE)) #parametro para cada equacao de cada especie
     
     ## betaBio1 = abs(rnorm(n=Nsp,mean=0.1,sd=0.1)) #parametro para cada equacao de cada especie
     ## betaBio12 = abs(rnorm(n=Nsp,mean=0.001,sd=0.1)) #parametro para cada equacao de cada especie
@@ -49,7 +57,7 @@ iterateFunc = function(x){
     ## plot(fElevSp_i~varElev,xlab='Elevation',ylab='Suitability',ylim=c(0,1)) 
     ##dev.off()
     
-  }
+  #}
   
   ##raster da distribuicao de adequabilidade climatica modelada
   SpDistribution = datMatCurrent[,c('lon','lat','fSp')] #extraindo lon/lat e suitability (ou pres-aus) de cada especie

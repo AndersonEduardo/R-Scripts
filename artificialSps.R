@@ -102,18 +102,43 @@ source('/home/anderson/R-Scripts/temporalUpdate.R')
 
 
 #obtaining species distribution using simulation
-spsSuit = makeSpeciesSuitability(predictors)
-SpDistAC = rangeByACcontinuous(spsSuit)
-plot(SpDistAC)
-plot(AmSulShape, add=T)
+# spsSuit = makeSpeciesSuitability(predictors)
+# SpDistAC = rangeByACcontinuous(spsSuit)
+# plot(SpDistAC)
+# plot(AmSulShape, add=T)
+
+
+SAcells = sum(freq(predictors[[2]]>=0, useNA='no')[,2]) #number of cells in South America
+prevCorrupted = TRUE
+iterLimit = 0
+while(any(prevCorrupted)){
+  
+  #obtendo distribuicao de suitability
+  spsSuit = makeSpeciesSuitability(predictors)
+  
+  #computando prevalencia do suitability (ao longo do tempo, quando houverem conjuntos de dados para cada idade)
+  spsPrevalData =  lapply(seq(length(spsSuit)), function(i){
+    spsPreval = freq(spsSuit[[i]])[2,2] / SAcells #sps prevalence
+    return(spsPreval)
+  })
+  
+  #verificando se a prevalencia esta dentro dos limites estabelecidos (aqui: maior que 5% e menor que 60%)
+  prevCorrupted = sapply(seq(length(spsPrevalData)), function(i) {(spsPrevalData[i] < 0.05) | (spsPrevalData[i] > 0.6)})
+  iterLimit = iterLimit + 1
+  
+  #helper para prevenir loop infinito
+  if (iterLimit == 11){
+    stop("Numero maximo de tentativas realizado sem obter distribuicoes dentro dos parametros. Tente novamente!")
+  }
+  
+}
 
 #updating sps distribution
 newSuitabilityMap = rasterSpDistribution
 SpDistACup = temporalUpdate(currentSpsRange = SpDistAC, newSuitabilityMap = rasterSpDistribution)
 plot(SpDistACup)
 
-## CONTINUAR EM: AJUSTAR SCRIPT MAKESPECIESSUITABILITY E MAKESPECIESSUITABILITYITERATOR PARA GERAR MAPAS DE
-## SUITABILITY PARA A LISTA DE PREDITORAS DAS DIFERENTES IDADES
+## CONTINUAR EM: TEMPORAL UPDATE
 
 
 
@@ -232,60 +257,60 @@ sampleData = data.frame()
 sampleDataBG = data.frame()
 
 for (i in 1:length(spsTypes)){ #loop sobre os 'tipos de especies'
-
-    ##criando uma pasta da especie, se nao exisitir
-    if(!file.exists(paste(projectFolder,'/Amostras','/multitemporal/',spsTypes[i],sep=''))){
-        dir.create(paste(projectFolder,'/Amostras','/multitemporal/',spsTypes[i],sep=''),recursive=TRUE)}
+  
+  ##criando uma pasta da especie, se nao exisitir
+  if(!file.exists(paste(projectFolder,'/Amostras','/multitemporal/',spsTypes[i],sep=''))){
+    dir.create(paste(projectFolder,'/Amostras','/multitemporal/',spsTypes[i],sep=''),recursive=TRUE)}
+  
+  for (sSize in sampleSizes){ #numero de pontos (registros, dados) na amostra
     
-    for (sSize in sampleSizes){ #numero de pontos (registros, dados) na amostra
+    sampledAges = vector()
+    sampledAges = round(runif(sSize,0,Tmax)) #selecionando 'n' camadas de tempo aleatoriamente
+    nicheRealFolder = paste(projectFolder,'/NichoReal/',spsTypes[i],sep='') #pasta com os mapas de nicho real da sp
+    nicheRealPath = list.files(path=nicheRealFolder, full.names=TRUE, pattern='.asc') #lista com os enderecos dos mapas de distribuicao da
+    
+    for (j in 1:NumRep){ #replicas do cenario amostral
+      
+      for (sAge in unique(sampledAges)){ #amostrando em cada camada de tempo que consta na amostra
         
-        sampledAges = vector()
-        sampledAges = round(runif(sSize,0,Tmax)) #selecionando 'n' camadas de tempo aleatoriamente
-        nicheRealFolder = paste(projectFolder,'/NichoReal/',spsTypes[i],sep='') #pasta com os mapas de nicho real da sp
-        nicheRealPath = list.files(path=nicheRealFolder, full.names=TRUE, pattern='.asc') #lista com os enderecos dos mapas de distribuicao da
+        ## occ pts
         
-        for (j in 1:NumRep){ #replicas do cenario amostral
-
-            for (sAge in unique(sampledAges)){ #amostrando em cada camada de tempo que consta na amostra
-
-                ## occ pts
-                
-                sampleData_i = dismo::randomPoints(mask=raster(nicheRealPath[sAge+1])>0.2,prob=TRUE, n=sum(sAge==sampledAges)) #amostra d ponto
-                #sampleData_i = randomPoints(mask=raster(nicheRealPath[sAge+1]), n=1) #amostra d ponto
-                scenarioName = basename(nicheRealPath[1:24][sAge+1]) #tempo vinculado ao cenario para variaveis ambientais
-                scenarioName = gsub('.asc','',scenarioName) #retirando do nome o '.asc'
-                layers_i = extract(
-                    x=stack(list.files(path=paste(envVarFolder,'/',scenarioName,sep=''), pattern='asc', full.names=TRUE)),
-                    y=sampleData_i) #extraindo variaveis ambientais do ponto, em sua respectiva camada de tempo
-                sampleData = rbind(sampleData, cbind(sampleData_i,layers_i,sAge)) #juntando com os dados das outras camadas de tempo amostradas
-
-                ## background points
-                
-                envVarPath = list.files(path=envVarFolder,full.names=TRUE)[sAge+1] #lista com os enderecos das variaveis ambientais no tempo corresposndente a interacao
-                envData = list.files(envVarPath,full.names=TRUE)
-                sampleDataBG_i = dismo::randomPoints(mask = raster(envData[1], 
-                                                            crs = CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0')), 
-                                              n = sum(sAge==sampledAges)*(round(bgPoints/length(sampledAges)))) #amostra dos pontos
-                scenarioName = list.files(path=paste(envVarFolder))[sAge+1] #nome do cenario
-                layersBG_i = extract(
-                    x=stack(list.files(path=paste(envVarFolder,'/',scenarioName,sep=''), pattern='asc', full.names=TRUE)),
-                    y=sampleDataBG_i) #extraindo variaveis ambientais do ponto, em sua respectiva camada de tempo
-                sampleDataBG = rbind(sampleDataBG, data.frame(lon=sampleDataBG_i[,1],lat=sampleDataBG_i[,2],layersBG_i,kyrBP=sAge)) #juntando com os dados das outras camadas de tempo amostradas
-                
-            }
-
-            ## occ pts
-            names(sampleData) = c('lon','lat',names(as.data.frame(layers_i)),'kyrBP') #ajustando os nomes
-            write.csv(sampleData,paste(projectFolder,'/Amostras/multitemporal/',spsTypes[i],'/occ_',sSize,'pts_multitemporal_', j ,'rep.csv',sep=''),row.names=FALSE) #salvando
-            sampleData = data.frame() #devolvendo data.frame vazio para proxima rodada
-
-            ## background pts
-            names(sampleDataBG) = c('lon','lat',names(as.data.frame(layersBG_i)),'kyrBP') #ajustando os nomes
-            write.csv(sampleDataBG,paste(projectFolder,'/Amostras/multitemporal/',spsTypes[i],'/bg_',sSize,'pts_multitemporal_', j ,'rep.csv',sep=''),row.names=FALSE) #salvando
-            sampleDataBG = data.frame() #devolvendo data.frame vazio para proxima rodada
-            
-        }
+        sampleData_i = dismo::randomPoints(mask=raster(nicheRealPath[sAge+1])>0.2,prob=TRUE, n=sum(sAge==sampledAges)) #amostra d ponto
+        #sampleData_i = randomPoints(mask=raster(nicheRealPath[sAge+1]), n=1) #amostra d ponto
+        scenarioName = basename(nicheRealPath[1:24][sAge+1]) #tempo vinculado ao cenario para variaveis ambientais
+        scenarioName = gsub('.asc','',scenarioName) #retirando do nome o '.asc'
+        layers_i = extract(
+          x=stack(list.files(path=paste(envVarFolder,'/',scenarioName,sep=''), pattern='asc', full.names=TRUE)),
+          y=sampleData_i) #extraindo variaveis ambientais do ponto, em sua respectiva camada de tempo
+        sampleData = rbind(sampleData, cbind(sampleData_i,layers_i,sAge)) #juntando com os dados das outras camadas de tempo amostradas
+        
+        ## background points
+        
+        envVarPath = list.files(path=envVarFolder,full.names=TRUE)[sAge+1] #lista com os enderecos das variaveis ambientais no tempo corresposndente a interacao
+        envData = list.files(envVarPath,full.names=TRUE)
+        sampleDataBG_i = dismo::randomPoints(mask = raster(envData[1], 
+                                                           crs = CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0')), 
+                                             n = sum(sAge==sampledAges)*(round(bgPoints/length(sampledAges)))) #amostra dos pontos
+        scenarioName = list.files(path=paste(envVarFolder))[sAge+1] #nome do cenario
+        layersBG_i = extract(
+          x=stack(list.files(path=paste(envVarFolder,'/',scenarioName,sep=''), pattern='asc', full.names=TRUE)),
+          y=sampleDataBG_i) #extraindo variaveis ambientais do ponto, em sua respectiva camada de tempo
+        sampleDataBG = rbind(sampleDataBG, data.frame(lon=sampleDataBG_i[,1],lat=sampleDataBG_i[,2],layersBG_i,kyrBP=sAge)) #juntando com os dados das outras camadas de tempo amostradas
+        
+      }
+      
+      ## occ pts
+      names(sampleData) = c('lon','lat',names(as.data.frame(layers_i)),'kyrBP') #ajustando os nomes
+      write.csv(sampleData,paste(projectFolder,'/Amostras/multitemporal/',spsTypes[i],'/occ_',sSize,'pts_multitemporal_', j ,'rep.csv',sep=''),row.names=FALSE) #salvando
+      sampleData = data.frame() #devolvendo data.frame vazio para proxima rodada
+      
+      ## background pts
+      names(sampleDataBG) = c('lon','lat',names(as.data.frame(layersBG_i)),'kyrBP') #ajustando os nomes
+      write.csv(sampleDataBG,paste(projectFolder,'/Amostras/multitemporal/',spsTypes[i],'/bg_',sSize,'pts_multitemporal_', j ,'rep.csv',sep=''),row.names=FALSE) #salvando
+      sampleDataBG = data.frame() #devolvendo data.frame vazio para proxima rodada
+      
     }
+  }
 }
 
 
@@ -296,62 +321,62 @@ sampleData = data.frame()
 sampleDataBG = data.frame()
 
 for (i in 1:length(spsTypes)){ #loop sobre os 'tipos de especies'
+  
+  ##criando uma pasta da especie, se nao exisitir
+  if(!file.exists(paste(projectFolder,'/Amostras','/multitemporal/',spsTypes[i],sep=''))){
+    dir.create(paste(projectFolder,'/Amostras','/multitemporal/',spsTypes[i],sep=''), recursive=TRUE)}
+  
+  for (sSize in sampleSizes){ #numero de pontos (registros, dados) na amostra
     
-    ##criando uma pasta da especie, se nao exisitir
-    if(!file.exists(paste(projectFolder,'/Amostras','/multitemporal/',spsTypes[i],sep=''))){
-        dir.create(paste(projectFolder,'/Amostras','/multitemporal/',spsTypes[i],sep=''), recursive=TRUE)}
+    sampledAges = vector()
+    sampledAges = round(runif(sSize,0,Tmax)) #selecionando 'n' camadas de tempo aleatoriamente
+    nicheRealFolder = paste(projectFolder,'/NichoReal/',spsTypes[i],sep='') #pasta com os mapas de nicho real da sp
+    nicheRealPath = list.files(path=nicheRealFolder, full.names=TRUE, pattern='.asc') #lista com os enderecos dos mapas de distribuicao da
+    biasLayerAdjusted = projectRaster(biasLayer,raster(nicheRealPath[1])) #alinhando o biasLayer com os rasters do projeto
     
-    for (sSize in sampleSizes){ #numero de pontos (registros, dados) na amostra
+    for (j in 1:NumRep){ #replicas do cenario amostral
+      
+      for (sAge in unique(sampledAges)){ #amostrando em cada camada de tempo que consta na amostra
         
-        sampledAges = vector()
-        sampledAges = round(runif(sSize,0,Tmax)) #selecionando 'n' camadas de tempo aleatoriamente
-        nicheRealFolder = paste(projectFolder,'/NichoReal/',spsTypes[i],sep='') #pasta com os mapas de nicho real da sp
-        nicheRealPath = list.files(path=nicheRealFolder, full.names=TRUE, pattern='.asc') #lista com os enderecos dos mapas de distribuicao da
-        biasLayerAdjusted = projectRaster(biasLayer,raster(nicheRealPath[1])) #alinhando o biasLayer com os rasters do projeto
-            
-        for (j in 1:NumRep){ #replicas do cenario amostral
-
-            for (sAge in unique(sampledAges)){ #amostrando em cada camada de tempo que consta na amostra
-
-                ## occ pts
-                
-                sampleData_i = dismo::randomPoints(mask=raster(nicheRealPath[sAge+1])*biasLayerAdjusted, prob=TRUE, n=sum(sAge==sampledAges)) #amostra d ponto
-                #sampleData_i = randomPoints(mask=raster(nicheRealPath[sAge+1])*biasLayerAdjusted, n=1, prob=TRUE) #amostra d ponto
-                scenarioName = basename(nicheRealPath[1:24][sAge+1]) #tempo vinculado ao cenario para variaveis ambientais
-                scenarioName = gsub('.asc','',scenarioName) #retirando do nome o '.asc'
-                layers_i = extract(
-                    x=stack(list.files(path=paste(envVarFolder,'/',scenarioName,sep=''), pattern='asc', full.names=TRUE)),
-                    y=sampleData_i) #extraindo variaveis ambientais do ponto, em sua respectiva camada de tempo
-                sampleData = rbind(sampleData, cbind(sampleData_i,layers_i,sAge)) #juntando com os dados das outras camadas de tempo amostradas
-
-                ## background points
-                
-                envVarPath = list.files(path=envVarFolder,full.names=TRUE)[sAge+1] #lista com os enderecos das variaveis ambientais no tempo corresposndente a interacao
-                envData = list.files(envVarPath,full.names=TRUE)
-                sampleDataBG_i = dismo::randomPoints(mask = raster(envData[1], 
-                                                            crs = CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0')), 
-                                              n = sum(sAge==sampledAges)*(round(bgPoints/length(sampledAges)))) #amostra dos pontos
-                scenarioName = list.files(path=paste(envVarFolder))[sAge+1] #nome do cenario
-                layersBG_i = extract(
-                    x=stack(list.files(path=paste(envVarFolder,'/',scenarioName,sep=''), pattern='asc', full.names=TRUE)),
-                    y=sampleDataBG_i) #extraindo variaveis ambientais do ponto, em sua respectiva camada de tempo
-                sampleDataBG = rbind(sampleDataBG, data.frame(lon=sampleDataBG_i[,1],lat=sampleDataBG_i[,2],layersBG_i,kyrBP=sAge)) #juntando com os dados das outras camadas de tempo amostradas
-
-                
-            }
-
-            ## occ pts
-            names(sampleData) = c('lon','lat',names(as.data.frame(layers_i)),'kyrBP') #ajustando os nomes
-            write.csv(sampleData,paste(projectFolder,'/Amostras/multitemporal/',spsTypes[i],'/occ_',sSize,'pts_multitemporal_comVIES_', j ,'rep.csv',sep=''),row.names=FALSE) #salvando
-            sampleData = data.frame() #devolvendo data.frame vazio para proxima rodada
-
-            ## background pts
-            names(sampleDataBG) = c('lon','lat',names(as.data.frame(layersBG_i)),'kyrBP') #ajustando os nomes
-            write.csv(sampleDataBG,paste(projectFolder,'/Amostras/multitemporal/',spsTypes[i],'/bg_',sSize,'pts_multitemporal_', j ,'rep.csv',sep=''),row.names=FALSE) #salvando
-            sampleDataBG = data.frame() #devolvendo data.frame vazio para proxima rodada
-
-        }
+        ## occ pts
+        
+        sampleData_i = dismo::randomPoints(mask=raster(nicheRealPath[sAge+1])*biasLayerAdjusted, prob=TRUE, n=sum(sAge==sampledAges)) #amostra d ponto
+        #sampleData_i = randomPoints(mask=raster(nicheRealPath[sAge+1])*biasLayerAdjusted, n=1, prob=TRUE) #amostra d ponto
+        scenarioName = basename(nicheRealPath[1:24][sAge+1]) #tempo vinculado ao cenario para variaveis ambientais
+        scenarioName = gsub('.asc','',scenarioName) #retirando do nome o '.asc'
+        layers_i = extract(
+          x=stack(list.files(path=paste(envVarFolder,'/',scenarioName,sep=''), pattern='asc', full.names=TRUE)),
+          y=sampleData_i) #extraindo variaveis ambientais do ponto, em sua respectiva camada de tempo
+        sampleData = rbind(sampleData, cbind(sampleData_i,layers_i,sAge)) #juntando com os dados das outras camadas de tempo amostradas
+        
+        ## background points
+        
+        envVarPath = list.files(path=envVarFolder,full.names=TRUE)[sAge+1] #lista com os enderecos das variaveis ambientais no tempo corresposndente a interacao
+        envData = list.files(envVarPath,full.names=TRUE)
+        sampleDataBG_i = dismo::randomPoints(mask = raster(envData[1], 
+                                                           crs = CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0')), 
+                                             n = sum(sAge==sampledAges)*(round(bgPoints/length(sampledAges)))) #amostra dos pontos
+        scenarioName = list.files(path=paste(envVarFolder))[sAge+1] #nome do cenario
+        layersBG_i = extract(
+          x=stack(list.files(path=paste(envVarFolder,'/',scenarioName,sep=''), pattern='asc', full.names=TRUE)),
+          y=sampleDataBG_i) #extraindo variaveis ambientais do ponto, em sua respectiva camada de tempo
+        sampleDataBG = rbind(sampleDataBG, data.frame(lon=sampleDataBG_i[,1],lat=sampleDataBG_i[,2],layersBG_i,kyrBP=sAge)) #juntando com os dados das outras camadas de tempo amostradas
+        
+        
+      }
+      
+      ## occ pts
+      names(sampleData) = c('lon','lat',names(as.data.frame(layers_i)),'kyrBP') #ajustando os nomes
+      write.csv(sampleData,paste(projectFolder,'/Amostras/multitemporal/',spsTypes[i],'/occ_',sSize,'pts_multitemporal_comVIES_', j ,'rep.csv',sep=''),row.names=FALSE) #salvando
+      sampleData = data.frame() #devolvendo data.frame vazio para proxima rodada
+      
+      ## background pts
+      names(sampleDataBG) = c('lon','lat',names(as.data.frame(layersBG_i)),'kyrBP') #ajustando os nomes
+      write.csv(sampleDataBG,paste(projectFolder,'/Amostras/multitemporal/',spsTypes[i],'/bg_',sSize,'pts_multitemporal_', j ,'rep.csv',sep=''),row.names=FALSE) #salvando
+      sampleDataBG = data.frame() #devolvendo data.frame vazio para proxima rodada
+      
     }
+  }
 }
 
 
@@ -362,45 +387,45 @@ sampleData = data.frame()
 sampleDataBg = data.frame()
 
 for (i in 1:length(spsTypes)){ #loop sobre os 'tipos de especies'
-
-    ##criando uma pasta da especie, se nao exisitir
-    if(!file.exists(paste(projectFolder,'/Amostras','/monotemporal/',spsTypes[i],sep=''))){
-        dir.create(paste(projectFolder,'Amostras','/monotemporal/',spsTypes[i],sep=''), recursive=TRUE)}
+  
+  ##criando uma pasta da especie, se nao exisitir
+  if(!file.exists(paste(projectFolder,'/Amostras','/monotemporal/',spsTypes[i],sep=''))){
+    dir.create(paste(projectFolder,'Amostras','/monotemporal/',spsTypes[i],sep=''), recursive=TRUE)}
+  
+  for (sSize in sampleSizes){ #numero de pontos (registros, dados) na amostra
     
-    for (sSize in sampleSizes){ #numero de pontos (registros, dados) na amostra
-        
-        for (j in 1:NumRep){ #replicas do cenario amostral
-
-            sampledAge = round(runif(1,0,Tmax)) #selecionando a camada de tempo aleatoriamente
-            nicheRealFolder = paste(projectFolder,'/NichoReal/',spsTypes[i],sep='') #pasta com os mapas de nicho real da sp
-            nicheRealPath = list.files(path=nicheRealFolder, full.names=TRUE, pattern='.asc') #lista com os enderecos dos mapas de distribuicao da
-            
-            sampleData_i = dismo::randomPoints(mask=raster(nicheRealPath[sampledAge])>0.2, prob=TRUE, n=sSize) #amostra do ponto
-            scenarioName = basename(nicheRealPath[1:24][sampledAge]) #tempo vinculado ao cenario para variaveis ambientais
-            scenarioName = gsub('.asc','',scenarioName) #retirando do nome o '.asc'
-            layers_i = extract(
-                x=stack(list.files(path=paste(envVarFolder,'/',scenarioName,sep=''), pattern='asc', full.names=TRUE)),
-                y=sampleData_i) #extraindo variaveis ambientais do ponto, em sua respectiva camada de tempo
-            sampleData = rbind(sampleData, cbind(sampleData_i,layers_i,sampledAge)) #juntando com os dados das outras camadas de tempo amostradas
-            names(sampleData) = c('lon','lat',names(as.data.frame(layers_i)),'kyrBP') #ajustando os nomes
-            write.csv(sampleData,paste(projectFolder,'/Amostras/monotemporal/',spsTypes[i],'/occ_',sSize,'pts_monotemporal_',j,'rep','.csv',sep=''),row.names=FALSE) #salvando
-            
-            sampleData = data.frame() #devolvendo data.frame vazio para proxima rodada
-
-            ##background points##
-            sampleDataBg_i = dismo::randomPoints(mask=raster(nicheRealPath[sampledAge]),
-                                          n=bgPoints) #amostra dos pontos
-#            scenarioName = list.files(path=paste(envVarFolder))[sAge+1] #nome do cenario
-            layersBg_i = extract(
-                x=stack(list.files(path=paste(envVarFolder,'/',scenarioName,sep=''), pattern='asc', full.names=TRUE)),
-                y=sampleDataBg_i) #extraindo variaveis ambientais do ponto, em sua respectiva camada de tempo
-            sampleDataBg = rbind(sampleDataBg, data.frame(lon=sampleDataBg_i[,1],lat=sampleDataBg_i[,2],layersBg_i,kyrBP=sampledAge)) #juntando com os dados das outras camadas de tempo amostradas
-            names(sampleDataBg) = c('lon','lat',names(as.data.frame(layersBg_i)),'kyrBP') #ajustando os nomes
-            write.csv(sampleDataBg,paste(projectFolder,'/Amostras/monotemporal/',spsTypes[i],'/bg_',sSize,'pts_monotemporal_',j,'rep','.csv',sep=''),row.names=FALSE) #salvando
-            sampleDataBg = data.frame() #devolvendo data.frame vazio para proxima rodada
-
-        }
+    for (j in 1:NumRep){ #replicas do cenario amostral
+      
+      sampledAge = round(runif(1,0,Tmax)) #selecionando a camada de tempo aleatoriamente
+      nicheRealFolder = paste(projectFolder,'/NichoReal/',spsTypes[i],sep='') #pasta com os mapas de nicho real da sp
+      nicheRealPath = list.files(path=nicheRealFolder, full.names=TRUE, pattern='.asc') #lista com os enderecos dos mapas de distribuicao da
+      
+      sampleData_i = dismo::randomPoints(mask=raster(nicheRealPath[sampledAge])>0.2, prob=TRUE, n=sSize) #amostra do ponto
+      scenarioName = basename(nicheRealPath[1:24][sampledAge]) #tempo vinculado ao cenario para variaveis ambientais
+      scenarioName = gsub('.asc','',scenarioName) #retirando do nome o '.asc'
+      layers_i = extract(
+        x=stack(list.files(path=paste(envVarFolder,'/',scenarioName,sep=''), pattern='asc', full.names=TRUE)),
+        y=sampleData_i) #extraindo variaveis ambientais do ponto, em sua respectiva camada de tempo
+      sampleData = rbind(sampleData, cbind(sampleData_i,layers_i,sampledAge)) #juntando com os dados das outras camadas de tempo amostradas
+      names(sampleData) = c('lon','lat',names(as.data.frame(layers_i)),'kyrBP') #ajustando os nomes
+      write.csv(sampleData,paste(projectFolder,'/Amostras/monotemporal/',spsTypes[i],'/occ_',sSize,'pts_monotemporal_',j,'rep','.csv',sep=''),row.names=FALSE) #salvando
+      
+      sampleData = data.frame() #devolvendo data.frame vazio para proxima rodada
+      
+      ##background points##
+      sampleDataBg_i = dismo::randomPoints(mask=raster(nicheRealPath[sampledAge]),
+                                           n=bgPoints) #amostra dos pontos
+      #            scenarioName = list.files(path=paste(envVarFolder))[sAge+1] #nome do cenario
+      layersBg_i = extract(
+        x=stack(list.files(path=paste(envVarFolder,'/',scenarioName,sep=''), pattern='asc', full.names=TRUE)),
+        y=sampleDataBg_i) #extraindo variaveis ambientais do ponto, em sua respectiva camada de tempo
+      sampleDataBg = rbind(sampleDataBg, data.frame(lon=sampleDataBg_i[,1],lat=sampleDataBg_i[,2],layersBg_i,kyrBP=sampledAge)) #juntando com os dados das outras camadas de tempo amostradas
+      names(sampleDataBg) = c('lon','lat',names(as.data.frame(layersBg_i)),'kyrBP') #ajustando os nomes
+      write.csv(sampleDataBg,paste(projectFolder,'/Amostras/monotemporal/',spsTypes[i],'/bg_',sSize,'pts_monotemporal_',j,'rep','.csv',sep=''),row.names=FALSE) #salvando
+      sampleDataBg = data.frame() #devolvendo data.frame vazio para proxima rodada
+      
     }
+  }
 }
 
 
@@ -448,125 +473,125 @@ timeStart = Sys.time()
 
 ##algoritmo da analise do projeto
 for (h in 1:length(sdmTypes)){
-    for (i in 1:length(spsTypes)){
-        
-        statResults = data.frame() #tabela de estatisticas basicas do modelo  
-        
-        for (j in 1:length(sampleSizes)){
-            for (k in 1:NumRep){ #loop sobre o numero de replicas 
-                tryCatch({
-                    
-                    ##ajustando o diretorio de trabalho (pois o biomod roda e salva tudo simultaneamente)
-                    if(!file.exists(file.path(projectFolder,'maxent',sdmTypes[h], spsTypes[i],sep=''))){
-                        dir.create(file.path(projectFolder,'maxent',sdmTypes[h],spsTypes[i],sep=''),recursive=TRUE)
-                    }
-                    setwd(file.path(projectFolder,'maxent',sdmTypes[h],spsTypes[i]))
-                    
-                    ##definindo variaveis e parametros locais                        
-                    occPoints = read.csv(paste(mainSampleFolder,sdmTypes[h],'/',spsTypes[i],'/occ_',sampleSizes[j],'pts_',sdmTypes[h],'_',k,'rep.csv',sep=''),header=TRUE) #abrindo pontos de ocorrencia    
-                    backgroundPoints = read.csv(paste(mainSampleFolder,sdmTypes[h],'/',spsTypes[i],'/bg_',sampleSizes[j],'pts_',sdmTypes[h],'_',k,'rep.csv',sep=''),header=TRUE) #abrindo pontos de background
-                    
-                    
-                    ##agrupando ocorrencias e pseudo-ausencias
-                    names(backgroundPoints) = names(occPoints) #certificando que os nomes das colunas estão iguais (cuidado aqui...)
-                    dataSet = data.frame(cbind(rbind(occPoints,backgroundPoints),pres=c(rep(1,nrow(occPoints)),rep(0,nrow(backgroundPoints))))) #planilha de dados no formato SWD
-                    
-                    ##variaveis e parametros locais especificos para o biomod2
-                    myRespName <- paste(spsTypes[i],'_sample',sampleSizes[j],'_replica',k,sep='') # nome do cenario atual (para biomod2)
-                    myResp <- dataSet[,c('pres')] # variavel resposta (para biomod2)
-                    myRespXY <- dataSet[,c('lon','lat')] # coordenadas associadas a variavel resposta (para biomod2)
-                    myExpl = dataSet[,c('bioclim_01','bioclim_12')]  #variavel preditora (para biomod2)
-                    
-                    ##ajuste de dados de entrada para biomod2
-                    myBiomodData <- BIOMOD_FormatingData(resp.var = myResp,
-                                                         expl.var = myExpl,
-                                                         resp.xy = myRespXY,
-                                                         resp.name = myRespName)
-                    
-                    ## ##inspecionando o objeto gerado pela funcao do biomod2
-                    ## myBiomodData
-                    ## plot(myBiomodData)
-                    
-                    ##parametrizando os modelos
-                    myBiomodOption <- BIOMOD_ModelingOptions(
-                        MAXENT.Phillips=list(
-                            path_to_maxent.jar=maxentFolder,
-                            maximumiterations=1000,
-                            linear=TRUE,
-                            quadratic=TRUE,
-                            product=FALSE,
-                            threshold=FALSE,
-                            hinge=FALSE,
-                            maximumiterations=1000,
-                            convergencethreshold=1.0E-5,
-                            threads=2))
-                    
-                    ##rodando o(s) algoritmo(s) (i.e. SDMs)
-                    myBiomodModelOut <- BIOMOD_Modeling(
-                        myBiomodData,
-                        models = c('MAXENT.Phillips'),
-                        models.options = myBiomodOption,
-                        NbRunEval = 3,
-                        DataSplit = 75,
-                        VarImport = 5,
-                        models.eval.meth = c('TSS','ROC'),
-                        SaveObj = TRUE,
-                        rescal.all.models = TRUE,
-                        do.full.models = FALSE,
-                        modeling.id = paste(myRespName))
-                    
-                    ##My output data
-                    evaluationScores = get_evaluations(myBiomodModelOut)
-                    
-                    ##gravando estatistcas basicas do modelo
-                    statResults = rbind(statResults,cbind(
-                                                        modelType = sdmTypes[h],
-                                                        sp = spsTypes[i],
-                                                        sampleSize = sampleSizes[j],
-                                                        replicate = k,
-                                                        AUC = mean(evaluationScores['ROC','Testing.data',,,]),
-                                                        TSS = mean(evaluationScores['TSS','Testing.data',,,]),
-                                                        numbOfTimeLayers = length(unique(occPoints$kyrBP)),
-                                                        medianKyr = median(occPoints$kyrBP),
-                                                        minAge = min(occPoints$kyrBP),
-                                                        maxAge = max(occPoints$kyrBP)))
-                    
-                    write.csv(statResults,file=paste(projectFolder,'/maxent/',sdmTypes[h],'/',spsTypes[i],'/StatisticalResults-',spsTypes[i],'.csv',sep=''),row.names=FALSE)
-                    
-                    ##implementando projecoes do modelo
-                    for (l in 1:length(envVarPaths[1:24])){
-                        
-                        ##definindo variaveis e parametros internos
-                        predictors = stack(list.files(path=envVarPaths[l],full.names=TRUE, pattern='.asc')) #predictors com todas as variaveis (presente)
-                        predictors = predictors[[c('bioclim_01','bioclim_12')]]
-                        ##predictors = mask(predictors,AmSulShape) #recortando as variaveis ambientais
-                        crs(predictors) = CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0') #ajustando CRS
-
-                        ##selecionando o melhor modelo para projecao
-                        whichModel = names(evaluationScores['TSS','Testing.data',,,][which(evaluationScores['TSS','Testing.data',,,]== max(evaluationScores['TSS','Testing.data',,,]) )])
-                        modelName = grep(pattern=whichModel, myBiomodModelOut@models.computed, value=TRUE)
-                        
-                        ##rodando algortmo de projecao (i.e. rodando a projecao)
-                        myBiomodProj <- BIOMOD_Projection(
-                            modeling.output = myBiomodModelOut,
-                            new.env = predictors,
-                            proj.name = paste(l-1,'kyr',sep=''),
-                            selected.models = modelName,
-                            binary.meth = 'TSS',
-                            compress = 'TRUE',
-                            build.clamping.mask = 'TRUE',
-                            output.format = '.grd')
-                        
-                        ##gerando e salvando um mapa binario (threshold 10%)
-                        ## projStack = get_predictions(myBiomodProj) #extrai as projecoes
-                        ## projStackBIN = BinaryTransformation(stack(mean(projStack)),'10')
-                        ## writeRaster(projStackBIN,file=paste(projectFolder,'/maxent/',sdmTypes[h],'/',spsTypes[i],'/',spsTypes[i],'.sample',sampleSizes[j],'.replica',k,'/proj_',l,'kyr/proj_',i,'kyr','.sample',sampleSizes[j],'.replica',k,'_BIN.asc',sep=''),overwrite=TRUE)
-                        
-                    }
-                }, error=function(e){cat("ERROR :",conditionMessage(e), "\n")})
-            }
-        }
+  for (i in 1:length(spsTypes)){
+    
+    statResults = data.frame() #tabela de estatisticas basicas do modelo  
+    
+    for (j in 1:length(sampleSizes)){
+      for (k in 1:NumRep){ #loop sobre o numero de replicas 
+        tryCatch({
+          
+          ##ajustando o diretorio de trabalho (pois o biomod roda e salva tudo simultaneamente)
+          if(!file.exists(file.path(projectFolder,'maxent',sdmTypes[h], spsTypes[i],sep=''))){
+            dir.create(file.path(projectFolder,'maxent',sdmTypes[h],spsTypes[i],sep=''),recursive=TRUE)
+          }
+          setwd(file.path(projectFolder,'maxent',sdmTypes[h],spsTypes[i]))
+          
+          ##definindo variaveis e parametros locais                        
+          occPoints = read.csv(paste(mainSampleFolder,sdmTypes[h],'/',spsTypes[i],'/occ_',sampleSizes[j],'pts_',sdmTypes[h],'_',k,'rep.csv',sep=''),header=TRUE) #abrindo pontos de ocorrencia    
+          backgroundPoints = read.csv(paste(mainSampleFolder,sdmTypes[h],'/',spsTypes[i],'/bg_',sampleSizes[j],'pts_',sdmTypes[h],'_',k,'rep.csv',sep=''),header=TRUE) #abrindo pontos de background
+          
+          
+          ##agrupando ocorrencias e pseudo-ausencias
+          names(backgroundPoints) = names(occPoints) #certificando que os nomes das colunas estão iguais (cuidado aqui...)
+          dataSet = data.frame(cbind(rbind(occPoints,backgroundPoints),pres=c(rep(1,nrow(occPoints)),rep(0,nrow(backgroundPoints))))) #planilha de dados no formato SWD
+          
+          ##variaveis e parametros locais especificos para o biomod2
+          myRespName <- paste(spsTypes[i],'_sample',sampleSizes[j],'_replica',k,sep='') # nome do cenario atual (para biomod2)
+          myResp <- dataSet[,c('pres')] # variavel resposta (para biomod2)
+          myRespXY <- dataSet[,c('lon','lat')] # coordenadas associadas a variavel resposta (para biomod2)
+          myExpl = dataSet[,c('bioclim_01','bioclim_12')]  #variavel preditora (para biomod2)
+          
+          ##ajuste de dados de entrada para biomod2
+          myBiomodData <- BIOMOD_FormatingData(resp.var = myResp,
+                                               expl.var = myExpl,
+                                               resp.xy = myRespXY,
+                                               resp.name = myRespName)
+          
+          ## ##inspecionando o objeto gerado pela funcao do biomod2
+          ## myBiomodData
+          ## plot(myBiomodData)
+          
+          ##parametrizando os modelos
+          myBiomodOption <- BIOMOD_ModelingOptions(
+            MAXENT.Phillips=list(
+              path_to_maxent.jar=maxentFolder,
+              maximumiterations=1000,
+              linear=TRUE,
+              quadratic=TRUE,
+              product=FALSE,
+              threshold=FALSE,
+              hinge=FALSE,
+              maximumiterations=1000,
+              convergencethreshold=1.0E-5,
+              threads=2))
+          
+          ##rodando o(s) algoritmo(s) (i.e. SDMs)
+          myBiomodModelOut <- BIOMOD_Modeling(
+            myBiomodData,
+            models = c('MAXENT.Phillips'),
+            models.options = myBiomodOption,
+            NbRunEval = 3,
+            DataSplit = 75,
+            VarImport = 5,
+            models.eval.meth = c('TSS','ROC'),
+            SaveObj = TRUE,
+            rescal.all.models = TRUE,
+            do.full.models = FALSE,
+            modeling.id = paste(myRespName))
+          
+          ##My output data
+          evaluationScores = get_evaluations(myBiomodModelOut)
+          
+          ##gravando estatistcas basicas do modelo
+          statResults = rbind(statResults,cbind(
+            modelType = sdmTypes[h],
+            sp = spsTypes[i],
+            sampleSize = sampleSizes[j],
+            replicate = k,
+            AUC = mean(evaluationScores['ROC','Testing.data',,,]),
+            TSS = mean(evaluationScores['TSS','Testing.data',,,]),
+            numbOfTimeLayers = length(unique(occPoints$kyrBP)),
+            medianKyr = median(occPoints$kyrBP),
+            minAge = min(occPoints$kyrBP),
+            maxAge = max(occPoints$kyrBP)))
+          
+          write.csv(statResults,file=paste(projectFolder,'/maxent/',sdmTypes[h],'/',spsTypes[i],'/StatisticalResults-',spsTypes[i],'.csv',sep=''),row.names=FALSE)
+          
+          ##implementando projecoes do modelo
+          for (l in 1:length(envVarPaths[1:24])){
+            
+            ##definindo variaveis e parametros internos
+            predictors = stack(list.files(path=envVarPaths[l],full.names=TRUE, pattern='.asc')) #predictors com todas as variaveis (presente)
+            predictors = predictors[[c('bioclim_01','bioclim_12')]]
+            ##predictors = mask(predictors,AmSulShape) #recortando as variaveis ambientais
+            crs(predictors) = CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0') #ajustando CRS
+            
+            ##selecionando o melhor modelo para projecao
+            whichModel = names(evaluationScores['TSS','Testing.data',,,][which(evaluationScores['TSS','Testing.data',,,]== max(evaluationScores['TSS','Testing.data',,,]) )])
+            modelName = grep(pattern=whichModel, myBiomodModelOut@models.computed, value=TRUE)
+            
+            ##rodando algortmo de projecao (i.e. rodando a projecao)
+            myBiomodProj <- BIOMOD_Projection(
+              modeling.output = myBiomodModelOut,
+              new.env = predictors,
+              proj.name = paste(l-1,'kyr',sep=''),
+              selected.models = modelName,
+              binary.meth = 'TSS',
+              compress = 'TRUE',
+              build.clamping.mask = 'TRUE',
+              output.format = '.grd')
+            
+            ##gerando e salvando um mapa binario (threshold 10%)
+            ## projStack = get_predictions(myBiomodProj) #extrai as projecoes
+            ## projStackBIN = BinaryTransformation(stack(mean(projStack)),'10')
+            ## writeRaster(projStackBIN,file=paste(projectFolder,'/maxent/',sdmTypes[h],'/',spsTypes[i],'/',spsTypes[i],'.sample',sampleSizes[j],'.replica',k,'/proj_',l,'kyr/proj_',i,'kyr','.sample',sampleSizes[j],'.replica',k,'_BIN.asc',sep=''),overwrite=TRUE)
+            
+          }
+        }, error=function(e){cat("ERROR :",conditionMessage(e), "\n")})
+      }
     }
+  }
 }
 
 ##tempo gasto
@@ -611,142 +636,142 @@ outputData = data.frame()
 
 ##algoritmo da analise do projeto
 for (h in 1:length(sdmTypes)){
-    for (i in 1:length(spsTypes)){
-
-        ##definindo variaveis e parametros locais
-        nicheRealFolder = paste(projectFolder,'NichoReal/',spsTypes[i],sep='') #pasta com os mapas de nicho real da sp
-        nicheRealPath = list.files(path=nicheRealFolder,pattern='.asc',full.names=TRUE) #lista com os enderecos dos mapas de distribuicao da sp
-
-        ##loop sobre as cadamdas de tempo
-        for (l in 1:length(nicheRealPath[1:24])){   #1:length(nicheRealPath[1:24])){ 
-
-            ##definindo variaveis e parametros locais
-            realNiche = nicheRealPath[l] #nicho real
-
-            ##amostrando pontos da distribuicao real para compracao dos SDMs
-            binMap = raster(realNiche)>0.2 #mapa binario do real
-            realNicheDataOccCoord = dismo::randomPoints(binMap,1000) #amostrando 1000 pontos do binario real
-            realNicheDataOccPres = extract(binMap,realNicheDataOccCoord,na.rm=TRUE) #definindo occ e ausencias para os pontos
-            realNicheDataOcc = data.frame(longitude=realNicheDataOccCoord[,1], latitude=realNicheDataOccCoord[,2], pres=realNicheDataOccPres) #tabela lon, lat e pres
-            predictors = stack(list.files(path=envVarPaths[l],full.names=TRUE, pattern='.asc')) #predictors com todas as variaveis
-            predictors = predictors[[c('bioclim_01','bioclim_12')]] #selecionando as variaveis usadas
-            predictors = mask(predictors,AmSulShape) #recortando as variaveis ambientais
-            projection(predictors) = CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0') #ajustando CRS
-            realNicheDataPred = extract(x=predictors,y=realNicheDataOcc[,c('longitude','latitude')],na.rm=TRUE) #extraindo variaveis ambientais do ponto, em sua respectiva camada de tempo
-            realNicheData = data.frame(realNicheDataOcc, realNicheDataPred) #juntando com os dados das outras camadas de tempo amostradas
+  for (i in 1:length(spsTypes)){
+    
+    ##definindo variaveis e parametros locais
+    nicheRealFolder = paste(projectFolder,'NichoReal/',spsTypes[i],sep='') #pasta com os mapas de nicho real da sp
+    nicheRealPath = list.files(path=nicheRealFolder,pattern='.asc',full.names=TRUE) #lista com os enderecos dos mapas de distribuicao da sp
+    
+    ##loop sobre as cadamdas de tempo
+    for (l in 1:length(nicheRealPath[1:24])){   #1:length(nicheRealPath[1:24])){ 
+      
+      ##definindo variaveis e parametros locais
+      realNiche = nicheRealPath[l] #nicho real
+      
+      ##amostrando pontos da distribuicao real para compracao dos SDMs
+      binMap = raster(realNiche)>0.2 #mapa binario do real
+      realNicheDataOccCoord = dismo::randomPoints(binMap,1000) #amostrando 1000 pontos do binario real
+      realNicheDataOccPres = extract(binMap,realNicheDataOccCoord,na.rm=TRUE) #definindo occ e ausencias para os pontos
+      realNicheDataOcc = data.frame(longitude=realNicheDataOccCoord[,1], latitude=realNicheDataOccCoord[,2], pres=realNicheDataOccPres) #tabela lon, lat e pres
+      predictors = stack(list.files(path=envVarPaths[l],full.names=TRUE, pattern='.asc')) #predictors com todas as variaveis
+      predictors = predictors[[c('bioclim_01','bioclim_12')]] #selecionando as variaveis usadas
+      predictors = mask(predictors,AmSulShape) #recortando as variaveis ambientais
+      projection(predictors) = CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0') #ajustando CRS
+      realNicheDataPred = extract(x=predictors,y=realNicheDataOcc[,c('longitude','latitude')],na.rm=TRUE) #extraindo variaveis ambientais do ponto, em sua respectiva camada de tempo
+      realNicheData = data.frame(realNicheDataOcc, realNicheDataPred) #juntando com os dados das outras camadas de tempo amostradas
+      
+      ##loop sobre os tamanhos amostrais
+      for (m in sampleSizes){ 
+        
+        ## ##timeSampleData = list.files(path=projectionsFolder, pattern=glob2rx(paste('*Time',l-1,'*Sample',m,'.asc',sep='')),full.names=TRUE)
+        ## timeSampleData = list.files(path=paste(projectFolder,'maxent/',sdmTypes[h],'/',spsTypes[i],sep=''), pattern=glob2rx(paste('*',l,'kyr','*sample',m,'*.asc',sep='')), recursive=TRUE, full.names=TRUE) #pasta com as projecoes do cenario
+        
+        ##loop sobre replicas de cada combinacao de tempo e tamanho amostral
+        for(n in 1:NumRep){ 
+          tryCatch({
             
-            ##loop sobre os tamanhos amostrais
-            for (m in sampleSizes){ 
-                
-                ## ##timeSampleData = list.files(path=projectionsFolder, pattern=glob2rx(paste('*Time',l-1,'*Sample',m,'.asc',sep='')),full.names=TRUE)
-                ## timeSampleData = list.files(path=paste(projectFolder,'maxent/',sdmTypes[h],'/',spsTypes[i],sep=''), pattern=glob2rx(paste('*',l,'kyr','*sample',m,'*.asc',sep='')), recursive=TRUE, full.names=TRUE) #pasta com as projecoes do cenario
-
-                ##loop sobre replicas de cada combinacao de tempo e tamanho amostral
-                for(n in 1:NumRep){ 
-                  tryCatch({
-                  
-                    ##definindo variaveis e parametros locais
-                    ##outputData = data.frame() #tabela de dados de saida
-                    ## projectionsFolder = paste(projectFolder,'maxent/',sdmTypes[h],'/',spsTypes[i],'/',spsTypes[i],'.sample',m,'.replica',n,sep='') #pasta com as projecoes do cenario
-                    ## projectionsPath = list.files(path=projectionsFolder, pattern='.asc',recursive=TRUE,full.names=T) #caminhos para os .asc na paste do cenario
-                    
-                    sdmNichePath = paste(projectFolder,'maxent/',sdmTypes[h],'/',spsTypes[i],'/',spsTypes[i],'.sample',m,'.replica',n,'/proj_',l-1,'kyr/','proj_',l-1,'kyr_',spsTypes[i],'.sample',m,'.replica',n,'_TSSbin.grd',sep='') #caminho do mapa de suitability gerado por SDM
-                    sdmNicheStack = stack(sdmNichePath)
-                    binMapSDM = sdmNicheStack #sum(sdmNicheStack)#>0.5
-#                    binMapSDM = sdmNicheStack[[round(runif(1,0.5,nlayers(sdmNicheStack)))]] #mapa de suitability gerado por SDM
-#                    binMapSDM = biomod2::BinaryTransformation(data=mean(sdmNiche), threshold=10) #fazendo mapa binario, threshold 10%
-
-                    SDMDataOccCoord = dismo::randomPoints(binMapSDM, 1000)
-                    SDMDataOccPres = extract(binMapSDM, SDMDataOccCoord, na.rm=TRUE)
-                    SDMDataOcc = data.frame(longitude=SDMDataOccCoord[,1],latitude=SDMDataOccCoord[,2],pres=as.numeric(SDMDataOccPres))
-                    SDMDataPred = extract(x=predictors,y=SDMDataOcc[,c('longitude','latitude')],na.rm=TRUE) #extraindo variaveis ambientais do ponto, em sua respectiva camada de tempo
-                    SDMData = data.frame(SDMDataOcc, SDMDataPred) #juntando com os dados das outras camadas de tempo amostradas
-                    SDMData = SDMData[complete.cases(SDMData),]
-                    
-                    ##The PCA is calibrated on all the sites of the study area
-                    pca.env <- dudi.pca(rbind(realNicheData,SDMData)[,c('bioclim_01','bioclim_12')],scannf=F,nf=2)
-                    #ecospat.plot.contrib(contrib=pca.env$co, eigen=pca.env$eig) #grafico
-
-                    ##PCA scores for the whole study area
-                    scores.globclim <- pca.env$li
-                    ##PCA scores for the species native distribution
-                    scores.sp.realNiche <- suprow(pca.env,realNicheData[which(realNicheData[,'pres']==1),c('bioclim_01','bioclim_12')])$li
-
-                    ##PCA scores for the species invasive distribution
-                    scores.sp.SDMniche <- suprow(pca.env,SDMData[which(SDMData[,'pres']==1),c('bioclim_01','bioclim_12')])$li
-
-                    ##PCA scores for the whole native study area
-                    scores.clim.realNiche <-suprow(pca.env,realNicheData[,c('bioclim_01','bioclim_12')])$li
-
-                    ##PCA scores for the whole invaded study area
-                    scores.clim.SDMniche <- suprow(pca.env,SDMData[,c('bioclim_01','bioclim_12')])$li
-
-                    ##gridding the native niche
-                    grid.clim.realNiche <-ecospat.grid.clim.dyn(glob=scores.globclim,glob1=scores.clim.realNiche,sp=scores.sp.realNiche, R=100,th.sp=0)
-
-                    ##gridding the invasive niche
-                    grid.clim.SDMniche <- ecospat.grid.clim.dyn(glob=scores.globclim,glob1=scores.clim.SDMniche,sp=scores.sp.SDMniche, R=100,th.sp=0)
-
-                    ##equivalencia de nicho
-                    ##OBS: Compares the observed niche overlap between z1 and z2 to overlaps between random niches z1.sim
-                    ## and z2.sim, which are built from random reallocations of occurences of z1 and z2.
-                    ##'alternative' argument specifies if you want to test for niche conservatism (alternative = "greater", i.e.  the
-                    ## niche overlap is more equivalent/similar than random) or for niche divergence (alternative = "lower",
-                    ## i.e. the niche overlap is less equivalent/similar than random).
-                    eq.test <- ecospat.niche.equivalency.test(grid.clim.realNiche, grid.clim.SDMniche,rep=100, alternative = "greater")
-
-                    ##similaridade de nicho
-                    ##OBS: Compares the observed niche overlap between z1 and z2 to overlaps between z1 and random niches
-                    ## (z2.sim) as available in the range of z2 (z2$Z). z2.sim has the same pattern as z2 but the center is
-                    ## randomly translatated in the availabe z2$Z space and weighted by z2$Z densities. If rand.type = 1,
-                    ## both z1 and z2 are randomly shifted, if rand.type =2, only z2 is randomly shifted.
-                    ## 'alternative' specifies if you want to test for niche conservatism (alternative = "greater", i.e.  the
-                    ## niche overlap is more equivalent/similar than random) or for niche divergence (alternative = "lower",
-                    ## i.e. the niche overlap is less equivalent/similar than random)
-                    sim.test <- ecospat.niche.similarity.test(grid.clim.realNiche, grid.clim.SDMniche, rep=100, alternative = "greater")
-                    
-                    Dobs_equiv = eq.test$obs$D #indice D observado no teste de equivalencia de nicho
-                    Iobs_equiv = eq.test$obs$I #indice I observado no teste de equivalencia de nicho
-                    DpValue_equiv = eq.test$p.D #p-valor indice D no teste de equivalencia de nicho
-                    IpValue_equiv = eq.test$p.I #p-valor indice I no teste de equivalencia de nicho
-                    ##
-                    Dobs_simi = sim.test$obs$D #indice D observado no teste de similaridade de nicho
-                    Iobs_simi = sim.test$obs$I #indice I observado no teste de similaridade de nicho
-                    DpValue_simi = sim.test$p.D #p-valor indice D no teste de similaridade de nicho
-                    IpValue_simi = sim.test$p.I #p-valor indice I no teste de similaridade de nicho
-
-                    ##abrindo planilha de pontos para extrair dados do cenario
-                    occPoints = read.csv(paste(mainSampleFolder,'/',sdmTypes[h],'/',spsTypes[i],'/occ_',m,'pts_',sdmTypes[h],'_', n ,'rep.csv',sep=''),header=TRUE) 
-                    occPoints[occPoints==0] = NA
-                    occPoints = occPoints[complete.cases(occPoints),]
-                    occPoints = round(occPoints, digits=2)
-                    occPoints = occPoints[!duplicated(occPoints),]                 
-                    
-                    outputData = rbind(outputData,data.frame(sdmType = sdmTypes[h],
-                                                        sp = spsTypes[i],
-                                                        kyrBP = l-1,
-                                                        sampleSize = m,
-                                                        replicate = n,
-                                                        numbOfTimeLayers = length(unique(occPoints$kyrBP)),
-                                                        medianKyr = median(occPoints$kyrBP),
-                                                        minAge = min(occPoints$kyrBP),
-                                                        maxAge = max(occPoints$kyrBP),
-                                                        Schoeners_D_equiv = Dobs_equiv,
-                                                        p_value_equiv = DpValue_equiv,
-                                                        Hellinger_I_equiv = Iobs_equiv,
-                                                        p_value_equiv = IpValue_equiv,
-                                                        Schoeners_D_simi = Dobs_simi,
-                                                        p_value_simi = DpValue_simi,
-                                                        Hellinger_I_simi = Iobs_simi,
-                                                        p_value_simi = IpValue_simi))
-                    
-                    write.csv(outputData, file=paste(projectFolder,'/maxent/output.csv',sep=''),row.names=FALSE) #salvando os dados do cenario
-                    
-                  }, error=function(e){cat("ERROR :",conditionMessage(e), "\n")})
-                }
-            }
+            ##definindo variaveis e parametros locais
+            ##outputData = data.frame() #tabela de dados de saida
+            ## projectionsFolder = paste(projectFolder,'maxent/',sdmTypes[h],'/',spsTypes[i],'/',spsTypes[i],'.sample',m,'.replica',n,sep='') #pasta com as projecoes do cenario
+            ## projectionsPath = list.files(path=projectionsFolder, pattern='.asc',recursive=TRUE,full.names=T) #caminhos para os .asc na paste do cenario
+            
+            sdmNichePath = paste(projectFolder,'maxent/',sdmTypes[h],'/',spsTypes[i],'/',spsTypes[i],'.sample',m,'.replica',n,'/proj_',l-1,'kyr/','proj_',l-1,'kyr_',spsTypes[i],'.sample',m,'.replica',n,'_TSSbin.grd',sep='') #caminho do mapa de suitability gerado por SDM
+            sdmNicheStack = stack(sdmNichePath)
+            binMapSDM = sdmNicheStack #sum(sdmNicheStack)#>0.5
+            #                    binMapSDM = sdmNicheStack[[round(runif(1,0.5,nlayers(sdmNicheStack)))]] #mapa de suitability gerado por SDM
+            #                    binMapSDM = biomod2::BinaryTransformation(data=mean(sdmNiche), threshold=10) #fazendo mapa binario, threshold 10%
+            
+            SDMDataOccCoord = dismo::randomPoints(binMapSDM, 1000)
+            SDMDataOccPres = extract(binMapSDM, SDMDataOccCoord, na.rm=TRUE)
+            SDMDataOcc = data.frame(longitude=SDMDataOccCoord[,1],latitude=SDMDataOccCoord[,2],pres=as.numeric(SDMDataOccPres))
+            SDMDataPred = extract(x=predictors,y=SDMDataOcc[,c('longitude','latitude')],na.rm=TRUE) #extraindo variaveis ambientais do ponto, em sua respectiva camada de tempo
+            SDMData = data.frame(SDMDataOcc, SDMDataPred) #juntando com os dados das outras camadas de tempo amostradas
+            SDMData = SDMData[complete.cases(SDMData),]
+            
+            ##The PCA is calibrated on all the sites of the study area
+            pca.env <- dudi.pca(rbind(realNicheData,SDMData)[,c('bioclim_01','bioclim_12')],scannf=F,nf=2)
+            #ecospat.plot.contrib(contrib=pca.env$co, eigen=pca.env$eig) #grafico
+            
+            ##PCA scores for the whole study area
+            scores.globclim <- pca.env$li
+            ##PCA scores for the species native distribution
+            scores.sp.realNiche <- suprow(pca.env,realNicheData[which(realNicheData[,'pres']==1),c('bioclim_01','bioclim_12')])$li
+            
+            ##PCA scores for the species invasive distribution
+            scores.sp.SDMniche <- suprow(pca.env,SDMData[which(SDMData[,'pres']==1),c('bioclim_01','bioclim_12')])$li
+            
+            ##PCA scores for the whole native study area
+            scores.clim.realNiche <-suprow(pca.env,realNicheData[,c('bioclim_01','bioclim_12')])$li
+            
+            ##PCA scores for the whole invaded study area
+            scores.clim.SDMniche <- suprow(pca.env,SDMData[,c('bioclim_01','bioclim_12')])$li
+            
+            ##gridding the native niche
+            grid.clim.realNiche <-ecospat.grid.clim.dyn(glob=scores.globclim,glob1=scores.clim.realNiche,sp=scores.sp.realNiche, R=100,th.sp=0)
+            
+            ##gridding the invasive niche
+            grid.clim.SDMniche <- ecospat.grid.clim.dyn(glob=scores.globclim,glob1=scores.clim.SDMniche,sp=scores.sp.SDMniche, R=100,th.sp=0)
+            
+            ##equivalencia de nicho
+            ##OBS: Compares the observed niche overlap between z1 and z2 to overlaps between random niches z1.sim
+            ## and z2.sim, which are built from random reallocations of occurences of z1 and z2.
+            ##'alternative' argument specifies if you want to test for niche conservatism (alternative = "greater", i.e.  the
+            ## niche overlap is more equivalent/similar than random) or for niche divergence (alternative = "lower",
+            ## i.e. the niche overlap is less equivalent/similar than random).
+            eq.test <- ecospat.niche.equivalency.test(grid.clim.realNiche, grid.clim.SDMniche,rep=100, alternative = "greater")
+            
+            ##similaridade de nicho
+            ##OBS: Compares the observed niche overlap between z1 and z2 to overlaps between z1 and random niches
+            ## (z2.sim) as available in the range of z2 (z2$Z). z2.sim has the same pattern as z2 but the center is
+            ## randomly translatated in the availabe z2$Z space and weighted by z2$Z densities. If rand.type = 1,
+            ## both z1 and z2 are randomly shifted, if rand.type =2, only z2 is randomly shifted.
+            ## 'alternative' specifies if you want to test for niche conservatism (alternative = "greater", i.e.  the
+            ## niche overlap is more equivalent/similar than random) or for niche divergence (alternative = "lower",
+            ## i.e. the niche overlap is less equivalent/similar than random)
+            sim.test <- ecospat.niche.similarity.test(grid.clim.realNiche, grid.clim.SDMniche, rep=100, alternative = "greater")
+            
+            Dobs_equiv = eq.test$obs$D #indice D observado no teste de equivalencia de nicho
+            Iobs_equiv = eq.test$obs$I #indice I observado no teste de equivalencia de nicho
+            DpValue_equiv = eq.test$p.D #p-valor indice D no teste de equivalencia de nicho
+            IpValue_equiv = eq.test$p.I #p-valor indice I no teste de equivalencia de nicho
+            ##
+            Dobs_simi = sim.test$obs$D #indice D observado no teste de similaridade de nicho
+            Iobs_simi = sim.test$obs$I #indice I observado no teste de similaridade de nicho
+            DpValue_simi = sim.test$p.D #p-valor indice D no teste de similaridade de nicho
+            IpValue_simi = sim.test$p.I #p-valor indice I no teste de similaridade de nicho
+            
+            ##abrindo planilha de pontos para extrair dados do cenario
+            occPoints = read.csv(paste(mainSampleFolder,'/',sdmTypes[h],'/',spsTypes[i],'/occ_',m,'pts_',sdmTypes[h],'_', n ,'rep.csv',sep=''),header=TRUE) 
+            occPoints[occPoints==0] = NA
+            occPoints = occPoints[complete.cases(occPoints),]
+            occPoints = round(occPoints, digits=2)
+            occPoints = occPoints[!duplicated(occPoints),]                 
+            
+            outputData = rbind(outputData,data.frame(sdmType = sdmTypes[h],
+                                                     sp = spsTypes[i],
+                                                     kyrBP = l-1,
+                                                     sampleSize = m,
+                                                     replicate = n,
+                                                     numbOfTimeLayers = length(unique(occPoints$kyrBP)),
+                                                     medianKyr = median(occPoints$kyrBP),
+                                                     minAge = min(occPoints$kyrBP),
+                                                     maxAge = max(occPoints$kyrBP),
+                                                     Schoeners_D_equiv = Dobs_equiv,
+                                                     p_value_equiv = DpValue_equiv,
+                                                     Hellinger_I_equiv = Iobs_equiv,
+                                                     p_value_equiv = IpValue_equiv,
+                                                     Schoeners_D_simi = Dobs_simi,
+                                                     p_value_simi = DpValue_simi,
+                                                     Hellinger_I_simi = Iobs_simi,
+                                                     p_value_simi = IpValue_simi))
+            
+            write.csv(outputData, file=paste(projectFolder,'/maxent/output.csv',sep=''),row.names=FALSE) #salvando os dados do cenario
+            
+          }, error=function(e){cat("ERROR :",conditionMessage(e), "\n")})
         }
+      }
     }
+  }
 }
 
 ##registro do tempo
@@ -1106,33 +1131,33 @@ territory = list()
 
 
 for(h in 1:length(sdmTypes)){
-    for(i in 1:length(spsTypes)){
-        for(m in 1:length(sampleSizes)){
-            for(n in 1:numRep){
-                for(l in 1:24){
-                    ##mapa de clamping
-                    sdmClampPath = paste(projectFolder,'maxent/',sdmTypes[h],'/',spsTypes[i],'/',spsTypes[i],'.sample',sampleSizes[m],'.replica',n,'/proj_',l-1,'kyr/','proj_',l-1,'kyr_ClampingMask.grd',sep='') #caminho do mapa de suitability gerado por SDM
-                    clampLayer_i = raster(sdmClampPath)
-                    scenName = paste(sdmTypes[h],'_proj_',l-1,'kyr_',spsTypes[i],'.sample',sampleSizes[m],'.replica',n,sep='')
-                    clampList[[scenName]] = clampLayer_i
-                    clamping = (sum(getValues(clampLayer_i)>0, na.rm=TRUE)/ncell(getValues(clampLayer_i))) * 100
-                    ##mapa de distribuicao da especie
-                    sdmDistPath = paste(projectFolder,'maxent/',sdmTypes[h],'/',spsTypes[i],'/',spsTypes[i],'.sample',sampleSizes[m],'.replica',n,'/proj_',l-1,'kyr/','proj_',l-1,'kyr_',spsTypes[i],'.sample',sampleSizes[m],'.replica',n,'_TSSbin.grd',sep='') #caminho do mapa de suitability gerado por SDM
-                    distLayer_i = raster(sdmDistPath)
-                    ##calculo da porporcao de clamping na area de distribuicao modelada
-                    distUnderClamp = (clampLayer_i + distLayer_i)==2
-                    distUnderClamp = ( freq(distUnderClamp, value=1)/sum(freq(distUnderClamp)[1:2,2]) ) * 100
-                    ##tabela de dados final
-                    outputDF = outputData[ which(outputData$sdmType==sdmTypes[h] & outputData$sp==spsTypes[i] & outputData$sampleSize==sampleSizes[m] & outputData$replicate==n & outputData$kyrBP==l-1 ), ]
-                    if(nrow(outputDF)>0){
-                        territory[[scenName]] = data.frame( outputDF,
-                                                           clamping = clamping,
-                                                           distUnderClamp = distUnderClamp )
-                    }
-                }
-            }
+  for(i in 1:length(spsTypes)){
+    for(m in 1:length(sampleSizes)){
+      for(n in 1:numRep){
+        for(l in 1:24){
+          ##mapa de clamping
+          sdmClampPath = paste(projectFolder,'maxent/',sdmTypes[h],'/',spsTypes[i],'/',spsTypes[i],'.sample',sampleSizes[m],'.replica',n,'/proj_',l-1,'kyr/','proj_',l-1,'kyr_ClampingMask.grd',sep='') #caminho do mapa de suitability gerado por SDM
+          clampLayer_i = raster(sdmClampPath)
+          scenName = paste(sdmTypes[h],'_proj_',l-1,'kyr_',spsTypes[i],'.sample',sampleSizes[m],'.replica',n,sep='')
+          clampList[[scenName]] = clampLayer_i
+          clamping = (sum(getValues(clampLayer_i)>0, na.rm=TRUE)/ncell(getValues(clampLayer_i))) * 100
+          ##mapa de distribuicao da especie
+          sdmDistPath = paste(projectFolder,'maxent/',sdmTypes[h],'/',spsTypes[i],'/',spsTypes[i],'.sample',sampleSizes[m],'.replica',n,'/proj_',l-1,'kyr/','proj_',l-1,'kyr_',spsTypes[i],'.sample',sampleSizes[m],'.replica',n,'_TSSbin.grd',sep='') #caminho do mapa de suitability gerado por SDM
+          distLayer_i = raster(sdmDistPath)
+          ##calculo da porporcao de clamping na area de distribuicao modelada
+          distUnderClamp = (clampLayer_i + distLayer_i)==2
+          distUnderClamp = ( freq(distUnderClamp, value=1)/sum(freq(distUnderClamp)[1:2,2]) ) * 100
+          ##tabela de dados final
+          outputDF = outputData[ which(outputData$sdmType==sdmTypes[h] & outputData$sp==spsTypes[i] & outputData$sampleSize==sampleSizes[m] & outputData$replicate==n & outputData$kyrBP==l-1 ), ]
+          if(nrow(outputDF)>0){
+            territory[[scenName]] = data.frame( outputDF,
+                                                clamping = clamping,
+                                                distUnderClamp = distUnderClamp )
+          }
         }
+      }
     }
+  }
 }
 
 
@@ -1552,7 +1577,7 @@ corSpCDmono50 = cor.test(dataClamp[ which(dataClamp$sdm=='monotemporal' & dataCl
                          dataClamp[ which(dataClamp$sdm=='monotemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize==50),]$distUnderClamp, method='pearson')
 
 corSpCDmono100 = cor.test(dataClamp[ which(dataClamp$sdm=='monotemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize==100),]$Schoeners_D_simi,
-                         dataClamp[ which(dataClamp$sdm=='monotemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize==100),]$distUnderClamp, method='pearson')
+                          dataClamp[ which(dataClamp$sdm=='monotemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize==100),]$distUnderClamp, method='pearson')
 
 ##monotemporal - spHW
 corSpHWmono10 = cor.test(dataClamp[ which(dataClamp$sdm=='monotemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize==10),]$Schoeners_D_simi,
@@ -1562,27 +1587,27 @@ corSpHWmono50 = cor.test(dataClamp[ which(dataClamp$sdm=='monotemporal' & dataCl
                          dataClamp[ which(dataClamp$sdm=='monotemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize==50),]$distUnderClamp, method='pearson')
 
 corSpHWmono100 = cor.test(dataClamp[ which(dataClamp$sdm=='monotemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize==100),]$Schoeners_D_simi,
-                         dataClamp[ which(dataClamp$sdm=='monotemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize==100),]$distUnderClamp, method='pearson')
+                          dataClamp[ which(dataClamp$sdm=='monotemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize==100),]$distUnderClamp, method='pearson')
 
 ##multitemporal - spCD
 corSpCDmulti10 = cor.test(dataClamp[ which(dataClamp$sdm=='multitemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize==10),]$Schoeners_D_simi,
-                         dataClamp[ which(dataClamp$sdm=='multitemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize==10),]$distUnderClamp, method='pearson')
+                          dataClamp[ which(dataClamp$sdm=='multitemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize==10),]$distUnderClamp, method='pearson')
 
 corSpCDmulti50 = cor.test(dataClamp[ which(dataClamp$sdm=='multitemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize==50),]$Schoeners_D_simi,
-                         dataClamp[ which(dataClamp$sdm=='multitemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize==50),]$distUnderClamp, method='pearson')
+                          dataClamp[ which(dataClamp$sdm=='multitemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize==50),]$distUnderClamp, method='pearson')
 
 corSpCDmulti100 = cor.test(dataClamp[ which(dataClamp$sdm=='multitemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize==100),]$Schoeners_D_simi,
-                         dataClamp[ which(dataClamp$sdm=='multitemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize==100),]$distUnderClamp, method='pearson')
+                           dataClamp[ which(dataClamp$sdm=='multitemporal' & dataClamp$sp=='spCD' & dataClamp$sampleSize==100),]$distUnderClamp, method='pearson')
 
 ##multitemporal - spHW
 corSpHWmulti10 = cor.test(dataClamp[ which(dataClamp$sdm=='multitemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize==10),]$Schoeners_D_simi,
-                         dataClamp[ which(dataClamp$sdm=='multitemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize==10),]$distUnderClamp, method='pearson')
+                          dataClamp[ which(dataClamp$sdm=='multitemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize==10),]$distUnderClamp, method='pearson')
 
 corSpHWmulti50 = cor.test(dataClamp[ which(dataClamp$sdm=='multitemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize==50),]$Schoeners_D_simi,
-                         dataClamp[ which(dataClamp$sdm=='multitemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize==50),]$distUnderClamp, method='pearson')
+                          dataClamp[ which(dataClamp$sdm=='multitemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize==50),]$distUnderClamp, method='pearson')
 
 corSpHWmulti100 = cor.test(dataClamp[ which(dataClamp$sdm=='multitemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize==100),]$Schoeners_D_simi,
-                         dataClamp[ which(dataClamp$sdm=='multitemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize==100),]$distUnderClamp, method='pearson')
+                           dataClamp[ which(dataClamp$sdm=='multitemporal' & dataClamp$sp=='spHW' & dataClamp$sampleSize==100),]$distUnderClamp, method='pearson')
 
 
 
@@ -1595,12 +1620,12 @@ corMulti = cor.test(dataClamp[ which(dataClamp$sdm=='multitemporal'),]$Schoeners
                     dataClamp[ which(dataClamp$sdm=='multitemporal'),]$distUnderClamp, method='pearson')
 
 corMono = cor.test(dataClamp[ which(dataClamp$sdm=='monotemporal'),]$Schoeners_D_simi,
-                    dataClamp[ which(dataClamp$sdm=='monotemporal'),]$distUnderClamp, method='pearson')
+                   dataClamp[ which(dataClamp$sdm=='monotemporal'),]$distUnderClamp, method='pearson')
 
 ##tabela
 corTable = data.frame( scenario = c('corFullDataset','corMulti','corMono','corSpCDmono10','corSpCDmono50','corSpCDmono100','corSpHWmono10','corSpHWmono50','corSpHWmono100','corSpCDmulti10','corSpCDmulti50','corSpCDmulti100','corSpHWmulti10','corSpHWmulti50','corSpHWmulti100'),
-                      correlation = c(as.numeric(corFullDataset$estimate),as.numeric(corMulti$estimate),as.numeric(corMono$estimate),as.numeric(corSpCDmono10$estimate),as.numeric(corSpCDmono50$estimate),as.numeric(corSpCDmono100$estimate),as.numeric(corSpHWmono10$estimate),as.numeric(corSpHWmono50$estimate),as.numeric(corSpHWmono100$estimate),as.numeric(corSpCDmulti10$estimate),as.numeric(corSpCDmulti50$estimate),as.numeric(corSpCDmulti100$estimate),as.numeric(corSpHWmulti10$estimate),as.numeric(corSpHWmulti50$estimate),as.numeric(corSpHWmulti100$estimate)),
-                      p.value = c(as.numeric(corFullDataset$p.value),as.numeric(corMulti$p.value),as.numeric(corMono$p.value),as.numeric(corSpCDmono10$p.value),as.numeric(corSpCDmono50$p.value),as.numeric(corSpCDmono100$p.value),as.numeric(corSpHWmono10$p.value),as.numeric(corSpHWmono50$p.value),as.numeric(corSpHWmono100$p.value),as.numeric(corSpCDmulti10$p.value),as.numeric(corSpCDmulti50$p.value),as.numeric(corSpCDmulti100$p.value),as.numeric(corSpHWmulti10$p.value),as.numeric(corSpHWmulti50$p.value),as.numeric(corSpHWmulti100$p.value)) )
+                       correlation = c(as.numeric(corFullDataset$estimate),as.numeric(corMulti$estimate),as.numeric(corMono$estimate),as.numeric(corSpCDmono10$estimate),as.numeric(corSpCDmono50$estimate),as.numeric(corSpCDmono100$estimate),as.numeric(corSpHWmono10$estimate),as.numeric(corSpHWmono50$estimate),as.numeric(corSpHWmono100$estimate),as.numeric(corSpCDmulti10$estimate),as.numeric(corSpCDmulti50$estimate),as.numeric(corSpCDmulti100$estimate),as.numeric(corSpHWmulti10$estimate),as.numeric(corSpHWmulti50$estimate),as.numeric(corSpHWmulti100$estimate)),
+                       p.value = c(as.numeric(corFullDataset$p.value),as.numeric(corMulti$p.value),as.numeric(corMono$p.value),as.numeric(corSpCDmono10$p.value),as.numeric(corSpCDmono50$p.value),as.numeric(corSpCDmono100$p.value),as.numeric(corSpHWmono10$p.value),as.numeric(corSpHWmono50$p.value),as.numeric(corSpHWmono100$p.value),as.numeric(corSpCDmulti10$p.value),as.numeric(corSpCDmulti50$p.value),as.numeric(corSpCDmulti100$p.value),as.numeric(corSpHWmulti10$p.value),as.numeric(corSpHWmulti50$p.value),as.numeric(corSpHWmulti100$p.value)) )
 
 corTable[,'p.value'] = round(corTable[,'p.value'], 3)
 
