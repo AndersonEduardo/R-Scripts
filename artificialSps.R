@@ -138,7 +138,7 @@ newSuitabilityMap = rasterSpDistribution
 SpDistACup = temporalUpdate(currentSpsRange = SpDistAC, newSuitabilityMap = rasterSpDistribution)
 plot(SpDistACup)
 
-## CONTINUAR EM: TEMPORAL UPDATE
+# CONTINUAR EM: TEMPORAL UPDATE
 
 
 
