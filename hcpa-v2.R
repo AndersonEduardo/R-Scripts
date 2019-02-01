@@ -529,8 +529,8 @@ for(i in 1:Nsp){
 timeOne = Sys.time()
 
 ##arquivo de log
-write.table(x=NULL, file=paste(projectFolder,'/logfileSDMnormalOutrosProjecoes.txt',sep='')) #criando arquivo
-cat('Log file - Started at: ', as.character(Sys.time()), "\n \n", file="logfileSDMnormalOutrosProjecoes.txt", append=TRUE) #gravando no arquivo
+write.table(x=NULL, file=paste(projectFolder,'/logfileSDMnormalProjecoes.txt',sep='')) #criando arquivo
+cat('Log file - Started at: ', as.character(Sys.time()), "\n \n", file="logfileSDMnormalProjecoes.txt", append=TRUE) #gravando no arquivo
 
 for(i in 1:Nsp){
   for(j in 1:length(sampleSizes)){
@@ -556,303 +556,30 @@ for(i in 1:Nsp){
         modelNames = strsplit(x = modelNames, split = "_")
         modelNames = lapply(seq(length(modelNames)), function(i) rev(modelNames[[i]]) )
         modelNames = lapply(seq(length(modelNames)), function(i) paste(modelNames[[i]], collapse = '_', sep='') )
-        modelNames= unlist(modelNames)
+        modelNames = unlist(modelNames)
         
         ##abrindo os modelos
         modelFiles = list.files(paste(projectFolder,'/SDMnormal/sp',i,'.sample',sampleSizes[j],'.biaslevel',current_vies_level,'.SDMnormal/models/sp',i,'_sample',sampleSizes[j],'_SDMnormal',sep=''), pattern = paste(modelNames,collapse = '|'), full.names = TRUE)
         lapply(modelFiles, load, .GlobalEnv)
         
+        ##implementado projecoes
+        modelNames = lapply(basename(modelFiles), get)
+        modelProj = lapply(seq(length(modelNames)), function(i)  predict(modelNames[[i]], predictors))
         
-        
-        ##########################################
-        ##########################################
-        # CONTINUAR DAQUI: IMPLEMENTAR PROJECOES #
-        ##########################################
-        ##########################################
-        
-        
+        ##salvando
+        modelProj = stack(modelProj)
+        crs(modelProj) = CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0')
+        writeRaster(modelProj, bylayer=TRUE, filename=paste(projectFolder,'/SDMnormal/sp',i,'.sample',sampleSizes[j],'.biaslevel',current_vies_level,'.SDMnormal/models/',basename(modelFiles),sep=''), format='ascii', overwrite=TRUE)
         
       }, error=function(e){cat("ERROR :",conditionMessage(e), "\n \n", file="logfileSDMnormal.txt", append=TRUE)})
     }
   }
 }
 
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-  
-  
-  
-  for (model_i in names(SDMlistRaw)){
-    
-    currentSDM = SDMlist[[model_i]] #modelo da iteracao atual
-    
-    SDMeval = evaluate(model = currentSDM,
-                       p = curent_occData_test,
-                       a = curent_bgData_test,
-                       x = predictors) #algoritmo de avaliacao do modelo
-    
-    
-    
-    ##TSS
-    tssVector = SDMeval@TPR + SDMeval@TNR - 1
-    tssVal = max( SDMeval@TPR + SDMeval@TNR - 1 )
-    ## Obs1: formula do TSS = true positive ratio + true negative ratio - 1
-    ## FONTE: ALOUCHE & KADMON (2006), Journal of Applied Ecology.
-    ## Obs2: outra forma de fazer a mesma coisa seria:
-    ## tssVal = tssVector[ which(SDMeval@t == threshold(SDMeval, 'spec_sens')) ]
-    ##threshold (maximizando o TSS)
-    current_thre_maximizingTSS = threshold(SDMeval, 'spec_sens')
-    ## Obs: outra forma de fazer a mesma coisa seria:
-    ## tssVal = SDMeval@t[which(tssVector==max(tssVector))]
-    ##AUC
-    aucVal = SDMeval@auc
-    current_thre_maximizingROC = max( SDMeval@t[which(
-      sqrt( (1-SDMeval@TPR)^2 + (1-SDMeval@TNR)^2 ) == min(sqrt( (1-SDMeval@TPR)^2 + (1-SDMeval@TNR)^2 ))
-    )] )
-    ## Obs1: esse eh o procedimento realizado pelo Biomod. FONTE: http://lists.r-forge.r-project.org/pipermail/biomod-commits/2010-August/000129.html
-    ## Obs2: Formula pitagorica retirada de Jimenez-Valverde (2012) Global Ecology and Biogreography.
-    
-    evaluationScores = rbind(evaluationScores,
-                             data.frame(Model.name = rep(paste(model_i,'_PA1',sep=''),2),
-                                        Eval.metric = c('TSS','ROC'),
-                                        Testing.data = c(tssVal, aucVal),
-                                        Evaluating.data = c(NA,NA),
-                                        Cutoff = c(current_thre_maximizingTSS*1000, current_thre_maximizingROC*1000),
-                                        Sensitivity = c(SDMeval@TPR[which(SDMeval@t==current_thre_maximizingTSS)]*100, SDMeval@TPR[which(SDMeval@t==current_thre_maximizingROC)]*100),
-                                        Specificity = c(SDMeval@TNR[which(SDMeval@t==current_thre_maximizingTSS)]*100, SDMeval@TNR[which(SDMeval@t==current_thre_maximizingROC)]*100)))
-  }
-}
-
-##construindo tabela de outputs
-## statResultsSDMnormal = makeOutput(evaluationScores, statResultsSDMnormal, i, j, 'normal', sampleSizes[j])
-statResultsSDMnormal = rbind(statResultsSDMnormal,
-                             data.frame(SDM='normal', sp=paste('sp',i,sep=''), sampleSize=sampleSizes[j], biaslevel=current_vies_level, evaluationScores))
-
-write.csv(statResultsSDMnormal, file=paste(projectFolder,'/StatisticalResults_SDMnormal.csv',sep=''), row.names=FALSE)
-
-##selecao do modelo de maior sensibilidade            
-modelNames = bestModel(evaluationScores, myBiomodModelOut)
-#rm(evaluationScores)
-
-
-##rodando algoritmo de projecao (i.e. rodando a projecao)##
-
-##predicao espacial para SDMs implemnetados pelo BIOMOD2
-if ( length(grep(pattern=paste(modelNames,collapse='|'), x=myBiomodModelOut@models.computed, value=FALSE)) > 0 ){
-  
-  myExpl = predictors
-  
-  myBiomodProj <- BIOMOD_Projection(
-    modeling.output = myBiomodModelOut,
-    new.env = myExpl,
-    binary.meth = c('ROC','TSS'),
-    proj.name = paste('sp',i,'_sample',sampleSizes[j],'_biaslevel',current_vies_level,'_SDMnormal',sep=''),
-    selected.models = grep(pattern=paste(modelNames,collapse='|'),x=myBiomodModelOut@models.computed, value=TRUE),
-    compress = 'TRUE',
-    build.clamping.mask = 'FALSE')
-  
-  # ##pegando os gridfiles
-  # myCurrentProj <- get_predictions(myBiomodProj) 
-  # 
-  # ##media e desvio padrao das projecoes
-  # for(myCurrentProj_i in names(myCurrentProj)){
-  #   ##media e desvio padrao
-  #   rasterLayer_i_mean = calc( x=myCurrentProj[[myCurrentProj_i]], fun=mean )
-  #   names(rasterLayer_i_mean) = myCurrentProj_i
-  #   rasterLayer_i_SD = calc( x=myCurrentProj[[myCurrentProj_i]], fun=sd )
-  #   names(rasterLayer_i_SD) = myCurrentProj_i
-  #   ##salvando no HD
-  #   writeRaster(rasterLayer_i_mean, file=paste(projectFolder,'/SDMnormal/sp',i,'.sample',sampleSizes[j],'.biaslevel',current_vies_level,'.SDMnormal','/proj_sp',i,'_sample',sampleSizes[j],'_biaslevel',current_vies_level,'_SDMnormal/','sp',i,'_sample',sampleSizes[j],'_biaslevel',current_vies_level,'_SDMnormal_Mean.asc',sep=''), overwrite=TRUE)
-  #   writeRaster(rasterLayer_i_SD, file=paste(projectFolder,'/SDMnormal/sp',i,'.sample',sampleSizes[j],'.biaslevel',current_vies_level,'.SDMnormal','/proj_sp',i,'_sample',sampleSizes[j],'_biaslevel',current_vies_level,'_SDMnormal/','sp',i,'_sample',sampleSizes[j],'_biaslevel',current_vies_level,'_SDMnormal_SD.asc',sep=''), overwrite=TRUE)
-  
-  # }
-}
-
-
-##predicao espacial para SDMs que NAO foram implemnetados pelo BIOMOD2 (bioclim, mahalanobis, domain)
-##verifica e cria diretorio para salvar resultados da especie atual
-currentProjFolder = paste(projectFolder,'/SDMnormal/sp',i,'.sample',sampleSizes[j],'.biaslevel',current_vies_level,'.SDMnormal','/proj_sp',i,'_sample',sampleSizes[j],'_biaslevel',current_vies_level,'_SDMnormal', sep='')
-if (!file.exists(currentProjFolder, recursive=TRUE)){
-  dir.create(currentProjFolder, recursive=TRUE)
-}
-
-##nomes dos modelos selecionados (i.e., melhores modelos)
-bimodNames = gsub( paste('sp',i,'.sample',sampleSizes[j],'.biaslevel',current_vies_level,'.SDMnormal_PA1_',sep=''), '',myBiomodModelOut@models.computed )
-nonBiomod = grep(pattern=paste(bimodNames,collapse='|'), x=modelNames, value=TRUE, invert=TRUE)
-
-if ( length(nonBiomod) > 0 ){
-  currentSDMpred = list()
-  
-  modelNamesAdjusted = vector()
-  for(modName_i in 1:length(nonBiomod)){
-    modelNamesRawSplit = strsplit(x=nonBiomod[[modName_i]], split='_')
-    modelNamesAdjusted = append(x=modelNamesAdjusted, values=paste(modelNamesRawSplit[[1]][2],modelNamesRawSplit[[1]][1],sep='_'))
-  }
-  
-  for (model_i in modelNamesAdjusted){ #rodando predict para cada um dos modelos indentificados
-    for (repl_i in 1:SDMreplicates){ #replicas para mapear areas de incerteza
-      ##dataset
-      curent_occData_test = subset( x=myBiomodData@coord[!is.na(myBiomodData@data.species),], subset=kfold(myBiomodData@coord[!is.na(myBiomodData@data.species),], k=3)==1 ) #occ para teste
-      ##predicao espacial
-      currentSDM = SDMlist[[model_i]] #modelo da iteracao atual
-      currentSDMpred = append(currentSDMpred, dismo::predict(predictors, currentSDM))
-    }
-    
-    rasterLayer_i_mean = calc( x=stack(currentSDMpred), fun=mean ) #media das projecoes
-    rasterLayer_i_SD = calc( x=stack(currentSDMpred), fun=sd ) #desvio padrao das projecoes
-    ##salvando no HD - media e variancia do mapa de suitability
-    writeRaster(rasterLayer_i_mean, 
-                file=paste(projectFolder,
-                           '/SDMnormal/sp',
-                           i,'.sample',sampleSizes[j],'.biaslevel',current_vies_level,'.SDMnormal',
-                           '/proj_sp',i,'_sample',sampleSizes[j],'_biaslevel',current_vies_level,'_SDMnormal/', 
-                           'proj_sp',i,'_sample',sampleSizes[j],'_biaslevel',current_vies_level,'_SDMnormal_sp',i,'.sample',sampleSizes[j],'.',model_i,'_biaslevel',current_vies_level,'_Mean_SDMnormal.asc',sep=''), overwrite=TRUE)
-    
-    writeRaster(rasterLayer_i_SD, 
-                file=paste(projectFolder,
-                           '/SDMnormal/sp',
-                           i,'.sample',sampleSizes[j],'.biaslevel',current_vies_level,'.SDMnormal',
-                           '/proj_sp',i,'_sample',sampleSizes[j],'_biaslevel',current_vies_level,'_SDMnormal/', 
-                           'proj_sp',i,'_sample',sampleSizes[j],'_biaslevel',current_vies_level,'_SDMnormal_sp',i,'.sample',sampleSizes[j],'.',model_i,'_biaslevel',current_vies_level,'_SD_SDMnormal.asc',sep=''), overwrite=TRUE)
-    
-    
-    ##mapas binarios
-    current_thres_TSS = statResultsSDMnormal[ statResultsSDMnormal$Model.name %in% grep(pattern=paste(unlist(strsplit(x=model_i, split='_')), collapse='*.*'), x=statResultsSDMnormal[,'Model.name'], value=TRUE) & statResultsSDMnormal$Eval.metric =='TSS' ,'Cutoff']/1000
-    current_thres_TSS = mean(current_thres_TSS)
-    current_thres_ROC = statResultsSDMnormal[ statResultsSDMnormal$Model.name %in% grep(pattern=paste(unlist(strsplit(x=model_i, split='_')), collapse='*.*'), x=statResultsSDMnormal[,'Model.name'], value=TRUE) & statResultsSDMnormal$Eval.metric =='ROC' ,'Cutoff']/1000
-    current_thres_ROC = mean(current_thres_ROC)
-    ##
-    writeRaster(rasterLayer_i_mean > current_thres_TSS, 
-                file=paste(projectFolder,
-                           '/SDMnormal/sp',
-                           i,'.sample',sampleSizes[j],'.biaslevel',current_vies_level,'.SDMnormal',
-                           '/proj_sp',i,'_sample',sampleSizes[j],'_biaslevel',current_vies_level,'_SDMnormal/',
-                           'proj_sp',i,'_sample',sampleSizes[j],'_biaslevel',current_vies_level,'_SDMnormal_sp',i,'.sample',sampleSizes[j],'.',model_i,'_biaslevel',current_vies_level,'_Mean_SDMnormal_TSSbin.asc',sep=''), 
-                overwrite=TRUE)
-    writeRaster(rasterLayer_i_mean > current_thres_ROC, 
-                file=paste(projectFolder,
-                           '/SDMnormal/sp',
-                           i,'.sample',sampleSizes[j],'.biaslevel',current_vies_level,'.SDMnormal',
-                           '/proj_sp',i,'_sample',sampleSizes[j],'_biaslevel',current_vies_level,'_SDMnormal/',
-                           'proj_sp',i,'_sample',sampleSizes[j],'_biaslevel',current_vies_level,'_SDMnormal_sp',i,'.sample',sampleSizes[j],'.',model_i,'_biaslevel',current_vies_level,'_Mean_SDMnormal_ROCbin.asc',sep=''), 
-                overwrite=TRUE) 
-    
-  }
-}
-
-
-## ##rodando o algoritmo de consenso dos modelos (i.e. ensemble model)
-## myBiomodEM = BIOMOD_EnsembleModeling(
-##     modeling.output = myBiomodModelOut,
-##     chosen.models = modelNames)
-
-## ##forecasting com o consenso dos algoritmos (i.e. ensemble projection)
-## myBiomodEF = BIOMOD_EnsembleForecasting(
-##     EM.output = myBiomodEM,
-##     binary.meth = c('TSS','ROC'),
-##     projection.output = myBiomodProj)
-
-##writeRaster(projStackBIN,file=paste(projectFolder,'maxent/',sdmTypes[h],'/',spsTypes[i],'/',spsTypes[i],'.sample',sampleSizes[j],'.replica',k,'/proj_',l,'kyr/proj_',i,'kyr','.sample',sampleSizes[j],'.replica',k,'_BIN.asc',sep=''),row.names=FALSE)
-
-##projStackBIN = projStack>0.5  #BinaryTransformation(projStack,"10")
-
-
-##projecoes distribuicao (i.e., AREAS DE PRESENCA) pelo SDM normal (as projecoes anteriores eram para AREAS DE AUSENCIA)##
-# nsps_distribution_folder = paste(projectFolder,'/SDMnormal/sp',i,'.sample',sampleSizes[j],'.biaslevel',current_vies_level,'.SDMnormal/sps_distribution', sep='')
-# if (file.exists(nsps_distribution_folder, recursive=TRUE)){
-#   setwd(nsps_distribution_folder)
-# } else {
-#   dir.create(nsps_distribution_folder, recursive=TRUE)
-#   setwd(nsps_distribution_folder)
-# }
-
-
-#BIOMOD
-myBiomodProj <- BIOMOD_Projection(
-  modeling.output = myBiomodModelOut,
-  new.env = myExpl,
-  binary.meth = c('ROC','TSS'),
-  proj.name = paste('sp',i,'_sample',sampleSizes[j],'_biaslevel',current_vies_level,'_SDMnormal_spsDistribution',sep=''),
-  selected.models = 'all',
-  compress = 'TRUE',
-  build.clamping.mask = 'FALSE')
-
-
-#NONBIOMOD
-##predicao espacial para SDMs NAO implemnetados pelo BIOMOD2 (bioclim, mahalanobis, domain)
-##verifica e cria diretorio para salvar resultados da especie atual
-nsps_distribution_folder = paste(projectFolder,'/SDMnormal/sp',i,'.sample',sampleSizes[j],'.biaslevel',current_vies_level,'.SDMnormal/proj_sp',i,'_sample',sampleSizes[j],'_biaslevel',current_vies_level,'_SDMnormal_spsDistribution',sep='')
-if (file.exists(nsps_distribution_folder, recursive=TRUE)){
-  setwd(nsps_distribution_folder)
-} else {
-  dir.create(nsps_distribution_folder, recursive=TRUE)
-  setwd(nsps_distribution_folder)
-}
-
-currentSDMpred = list()
-nonBiomodNames = unique(gsub('_RUN.*', '', names(SDMlist)))
-
-for (model_i in nonBiomodNames){ #rodando predict para cada um dos modelos indentificados
-  ids  = grep(pattern = model_i, x=names(SDMlist), value=FALSE)
-  
-  for (model_ids in ids){
-    currentSDM = SDMlist[[model_ids]] #modelo da iteracao atual
-    currentSDMpred = append(currentSDMpred, dismo::predict(predictors, currentSDM))
-  }
-  
-  rasterLayer_i_mean = calc( x=stack(currentSDMpred), fun=mean ) #media das projecoes
-  rasterLayer_i_SD = calc( x=stack(currentSDMpred), fun=sd ) #desvio padrao das projecoes
-  ##salvando no HD - media e variancia do mapa de suitability
-  writeRaster(rasterLayer_i_mean, 
-              file=paste('proj_sp',i,'_sample',sampleSizes[j],'_biaslevel',current_vies_level,'_SDMnormal_',model_i,'_spsDistribution.asc',sep=''), 
-              overwrite=TRUE)
-  
-  writeRaster(rasterLayer_i_SD, 
-              file=paste('proj_sp',i,'_sample',sampleSizes[j],'_biaslevel',current_vies_level,'_SDMnormal_',model_i,'_spsDistribution.asc',sep=''), 
-              overwrite=TRUE)
-  
-  
-  ##mapas binarios
-  current_thres_TSS = statResultsSDMnormal[ which( statResultsSDMnormal$Model.name %in% grep(pattern=model_i, x=statResultsSDMnormal[,'Model.name'], value=TRUE) & statResultsSDMnormal$Eval.metric =='TSS' ) , 'Cutoff']/1000
-  current_thres_TSS = mean(current_thres_TSS)
-  current_thres_ROC = statResultsSDMnormal[ statResultsSDMnormal$Model.name %in% grep(pattern=paste(unlist(strsplit(x=model_i, split='_')), collapse='*.*'), x=statResultsSDMnormal[,'Model.name'], value=TRUE) & statResultsSDMnormal$Eval.metric =='ROC' ,'Cutoff']/1000
-  current_thres_ROC = mean(current_thres_ROC)
-  ##
-  writeRaster(rasterLayer_i_mean > current_thres_TSS, 
-              file=paste('proj_sp',i,'_sample',sampleSizes[j],'_biaslevel',current_vies_level,'_SDMnormal_',model_i,'_spsDistribution_TSSbin.asc',sep=''), 
-              overwrite=TRUE)
-  writeRaster(rasterLayer_i_mean > current_thres_ROC, 
-              file=paste('proj_sp',i,'_sample',sampleSizes[j],'_biaslevel',current_vies_level,'_SDMnormal_',model_i,'_spsDistribution_ROCbin.asc',sep=''), 
-              overwrite=TRUE) 
-}
-
-}, error=function(e){cat("ERROR :",conditionMessage(e), "\n \n", file="logfileSDMnormal.txt", append=TRUE)})
-
-}
-}
-}
 
 
 
-##calculando tempo gasto para processamento
-Sys.time() - timeOne
-
-
-
-
-##PARTE 3: SDM com pseudoausencias melhoradas
+##PARTE 3: implementado SDM com pseudoausencias melhoradas
 
 
 
@@ -884,6 +611,23 @@ for(i in 1:Nsp){
           dir.create('SDMimproved')
           setwd(paste(projectFolder,'/SDMimproved',sep=''))
         }
+        
+        
+        
+        
+        #################################################
+        #################################################
+        ## CONTINUAR DAQUI: implementar HCPA e os SDMs ##
+        #################################################
+        #################################################
+        
+        
+        
+        
+        
+        
+        
+        
         
         ##definindo variaveis e parametros locais
         betterPseudo = list()
