@@ -149,7 +149,7 @@ timeOne = Sys.time()
 
 ##arquivo de log
 write.table(x=NULL, file=paste(projectFolder,'/logfileSDMnormalDatasets.txt',sep='')) #criando arquivo
-cat('Log file - Started at: ', as.character(Sys.time()), "\n \n", file="logfileSDMnormalDatasets.txt", append=TRUE) #gravando no arquivo
+cat('Log file - Started at: ', as.character(Sys.time()), "\n \n", file=paste(projectFolder,'/logfileSDMnormalDatasets.txt',sep=''), append=TRUE) #gravando no arquivo
 
 for(i in 1:Nsp){
   for(j in 1:length(sampleSizes)){
@@ -157,7 +157,7 @@ for(i in 1:Nsp){
       tryCatch({
         
         ##logfile
-        cat('STARTING SCENARIO: sp = ', i, '/ sampleSizes = ', sampleSizes[j], '/ current_vies_level = ', current_vies_level,  "\n \n", file = "logfileSDMnormalDatasets.txt", append = TRUE) #gravando no arquivo
+        cat('STARTING SCENARIO: sp = ', i, '/ sampleSizes = ', sampleSizes[j], '/ current_vies_level = ', current_vies_level, ' / time: ', as.character(Sys.time()), "\n \n", file = paste(projectFolder,'/logfileSDMnormalDatasets.txt',sep=''), append = TRUE) #gravando no arquivo
         
         ##diretorio de trabalho do projeto
         setwd(file.path(projectFolder))
@@ -226,11 +226,11 @@ for(i in 1:Nsp){
         write.csv(occPoints, paste(projectFolder,'/datasets/','occ_sp',i,'_sampleSizes',j,'_biasLevel',current_vies_level,'.csv', sep=''), row.names = FALSE)
         
         ##backgrownd points
-        bgPoints = dismo::randomPoints(mask=SpDistAC*biasLayerBGptsKDE, p=occPoints, n=10000, prob=TRUE) #sorteando pontos da distribuicao modelada
+        bgPoints = dismo::randomPoints(mask=biasLayerBGptsKDE, p=occPoints, n=10000, prob=TRUE) #sorteando pontos da distribuicao modelada
         bgPoints = data.frame(lon=bgPoints[,1], lat=bgPoints[,2])
         write.csv(bgPoints, paste(projectFolder,'/datasets/','bg_sp',i,'_sampleSizes',j,'_biasLevel',current_vies_level,'.csv', sep=''), row.names = FALSE)
         
-      }, error=function(e){cat("ERROR :",conditionMessage(e), "\n \n", file="logfileSDMnormalDatasets.txt", append=TRUE)})
+      }, error=function(e){cat("ERROR :",conditionMessage(e), "\n \n", file=paste(projectFolder,'/logfileSDMnormalDatasets.txt',sep=''), append=TRUE)})
       
     }
   }
@@ -249,7 +249,7 @@ timeOne = Sys.time()
 
 ##arquivo de log
 write.table(x=NULL, file=paste(projectFolder,'/logfileSDMnormalBiomod2.txt',sep='')) #criando arquivo
-cat('Log file - Started at: ', as.character(Sys.time()), "\n \n", file="logfileSDMnormalBiomod2.txt", append=TRUE) #gravando no arquivo
+cat('Log file - Started at: ', as.character(Sys.time()), "\n \n", file=paste(projectFolder,'/logfileSDMnormalBiomod2.txt',sep=''), append=TRUE) #gravando no arquivo
 
 for(i in 1:Nsp){
   for(j in 1:length(sampleSizes)){
@@ -257,10 +257,23 @@ for(i in 1:Nsp){
       tryCatch({
         
         ##logfile
-        cat('STARTING SCENARIO: sp = ', i, '/ sampleSizes = ', sampleSizes[j], '/ current_vies_level = ', current_vies_level,  "\n \n", file = "logfileSDMnormalBiomod2.txt", append = TRUE) #gravando no arquivo
+        cat('STARTING SCENARIO: sp = ', i, '/ sampleSizes = ', sampleSizes[j], '/ current_vies_level = ', current_vies_level, ' / time: ', as.character(Sys.time()), "\n \n", file = paste(projectFolder,'/logfileSDMnormalBiomod2.txt',sep=''), append = TRUE) #gravando no arquivo
         
-        ##diretorio para o biomod2 salvar resultados para SDMnormal
-        setwd(file.path(projectFolder,'SDMnormal'))
+        ##diretorio de trabalho do projeto
+        setwd(file.path(projectFolder))
+        
+        ##verifica e cria diretorio para salvar datasets 
+        if (file.exists(paste(projectFolder,'/SDMnormal', sep=''))){
+          setwd(paste(projectFolder,'/SDMnormal', sep=''))
+        } else {
+          dir.create(paste(projectFolder,'/SDMnormal',sep=''), recursive=TRUE)
+          setwd(paste(projectFolder,'/SDMnormal', sep=''))
+        }
+        
+        ##verifica e cria diretorio para salvar bias layers
+        if (!file.exists(paste(projectFolder,'/biasLayers', sep=''))){
+          dir.create(paste(projectFolder,'/biasLayers', sep=''))
+        }
         
         ##dataset
         occPoints = read.csv(paste(projectFolder,'/datasets/','occ_sp',i,'_sampleSizes',j,'_biasLevel',current_vies_level,'.csv', sep=''))
@@ -389,7 +402,7 @@ for(i in 1:Nsp){
                                      data.frame(SDM='normal', sp=paste('sp',i,sep=''), sampleSize=sampleSizes[j], biaslevel=current_vies_level, evaluationScores))
         write.csv(statResultsSDMnormal, file=paste(projectFolder,'/SDMnormal/StatisticalResults_SDMnormal.csv',sep=''), row.names=FALSE)
         
-      }, error=function(e){cat("ERROR :",conditionMessage(e), "\n \n", file="logfileSDMnormalBiomod2.txt", append=TRUE)})
+      }, error=function(e){cat("ERROR :",conditionMessage(e), "\n \n", file=paste(projectFolder,'/logfileSDMnormalBiomod2.txt',sep=''), append=TRUE)})
     }
   }
 }      
@@ -407,7 +420,7 @@ timeOne = Sys.time()
 
 ##arquivo de log
 write.table(x=NULL, file=paste(projectFolder,'/logfileSDMnormalOutrosModelos.txt',sep='')) #criando arquivo
-cat('Log file - Started at: ', as.character(Sys.time()), "\n \n", file="logfileSDMnormalOutrosModelos.txt", append=TRUE) #gravando no arquivo
+cat('Log file - Started at: ', as.character(Sys.time()), "\n \n", file=paste(projectFolder,'/logfileSDMnormalOutrosModelos.txt',sep=''), append=TRUE) #gravando no arquivo
 
 ##data.frame para ajudar a computar os outputs
 evaluationScores = data.frame()
@@ -418,7 +431,7 @@ for(i in 1:Nsp){
       tryCatch({
         
         ##logfile
-        cat('STARTING SCENARIO: sp = ', i, '/ sampleSizes = ', sampleSizes[j], '/ current_vies_level = ', current_vies_level,  "\n \n", file = "logfileSDMnormalOutrosModelos.txt", append = TRUE) #gravando no arquivo
+        cat('STARTING SCENARIO: sp = ', i, '/ sampleSizes = ', sampleSizes[j], '/ current_vies_level = ', current_vies_level, ' / time: ', as.character(Sys.time()), "\n \n", file=paste(projectFolder,'/logfileSDMnormalOutrosModelos.txt',sep=''), append = TRUE) #gravando no arquivo
         
         ##diretorio para o biomod2 salvar resultados para SDMnormal
         setwd(file.path(projectFolder,'SDMnormal'))
@@ -459,9 +472,17 @@ for(i in 1:Nsp){
                              paste('domain_RUN',iter,sep=''))
           
           ##salvando os modelos na memoria fisica do PC
-          save(mahalanobisSDM, file=paste(projectFolder,'/SDMnormal/sp',i,'.sample',sampleSizes[j],'.biaslevel',current_vies_level,'.SDMnormal/models/sp',i,'_sample',sampleSizes[j],'_SDMnormal/sp',i,'.sample',sampleSizes[j],'.biaslevel',current_vies_level,'.SDMnormal_AllData_RUN',iter,'_mahalanobis.RData',sep=''))
-          save(bioclimSDM, file=paste(projectFolder,'/SDMnormal/sp',i,'.sample',sampleSizes[j],'.biaslevel',current_vies_level,'.SDMnormal/models/sp',i,'_sample',sampleSizes[j],'_SDMnormal/sp',i,'.sample',sampleSizes[j],'.biaslevel',current_vies_level,'.SDMnormal_AllData_RUN',iter,'_bioclim.RData',sep=''))          
-          save(domainSDM, file=paste(projectFolder,'/SDMnormal/sp',i,'.sample',sampleSizes[j],'.biaslevel',current_vies_level,'.SDMnormal/models/sp',i,'_sample',sampleSizes[j],'_SDMnormal/sp',i,'.sample',sampleSizes[j],'.biaslevel',current_vies_level,'.SDMnormal_AllData_RUN',iter,'_domain.RData',sep=''))          
+          assign(paste('sp',i,'.sample',sampleSizes[j],'.biaslevel',current_vies_level,'.SDMnormal_AllData_RUN',iter,'_mahalanobis', sep=''), mahalanobisSDM)
+          save(list = paste('sp',i,'.sample',sampleSizes[j],'.biaslevel',current_vies_level,'.SDMnormal_AllData_RUN',iter,'_mahalanobis', sep=''), 
+               file=paste(projectFolder,'/SDMnormal/sp',i,'.sample',sampleSizes[j],'.biaslevel',current_vies_level,'.SDMnormal/models/sp',i,'_sample',sampleSizes[j],'_SDMnormal/sp',i,'.sample',sampleSizes[j],'.biaslevel',current_vies_level,'.SDMnormal_AllData_RUN',iter,'_mahalanobis.RData',sep=''))
+          
+          assign(paste('sp',i,'.sample',sampleSizes[j],'.biaslevel',current_vies_level,'.SDMnormal_AllData_RUN',iter,'_bioclim', sep=''), bioclimSDM)
+          save(list = paste('sp',i,'.sample',sampleSizes[j],'.biaslevel',current_vies_level,'.SDMnormal_AllData_RUN',iter,'_bioclim', sep=''), 
+               file=paste(projectFolder,'/SDMnormal/sp',i,'.sample',sampleSizes[j],'.biaslevel',current_vies_level,'.SDMnormal/models/sp',i,'_sample',sampleSizes[j],'_SDMnormal/sp',i,'.sample',sampleSizes[j],'.biaslevel',current_vies_level,'.SDMnormal_AllData_RUN',iter,'_bioclim.RData',sep=''))          
+          
+          assign(paste('sp',i,'.sample',sampleSizes[j],'.biaslevel',current_vies_level,'.SDMnormal_AllData_RUN',iter,'_domain', sep=''), domainSDM)
+          save(list = paste('sp',i,'.sample',sampleSizes[j],'.biaslevel',current_vies_level,'.SDMnormal_AllData_RUN',iter,'_domain', sep=''), 
+               file=paste(projectFolder,'/SDMnormal/sp',i,'.sample',sampleSizes[j],'.biaslevel',current_vies_level,'.SDMnormal/models/sp',i,'_sample',sampleSizes[j],'_SDMnormal/sp',i,'.sample',sampleSizes[j],'.biaslevel',current_vies_level,'.SDMnormal_AllData_RUN',iter,'_domain.RData',sep=''))          
           
           ##computando metricas dos modelos
           evaluationScoresList = lapply( seq(length(SDMlist)), function(i){
@@ -512,7 +533,7 @@ for(i in 1:Nsp){
         write.csv(statResultsSDMnormal, file=paste(projectFolder,'/SDMnormal/StatisticalResults_SDMnormal.csv',sep=''), row.names=FALSE)
         
         
-      }, error=function(e){cat("ERROR :",conditionMessage(e), "\n \n", file="logfileSDMnormalOutrosModelos.txt", append=TRUE)})
+      }, error=function(e){cat("ERROR :",conditionMessage(e), "\n \n", file=paste(projectFolder,'/logfileSDMnormalOutrosModelos.txt',sep=''), append=TRUE)})
     }
   }
 }
@@ -525,12 +546,9 @@ for(i in 1:Nsp){
 
 
 
-##registrando hora do incio
-timeOne = Sys.time()
-
 ##arquivo de log
 write.table(x=NULL, file=paste(projectFolder,'/logfileSDMnormalProjecoes.txt',sep='')) #criando arquivo
-cat('Log file - Started at: ', as.character(Sys.time()), "\n \n", file="logfileSDMnormalProjecoes.txt", append=TRUE) #gravando no arquivo
+cat('Log file - Started at: ', as.character(Sys.time()), "\n \n", file=paste(projectFolder,'/logfileSDMnormalProjecoes.txt',sep=''), append=TRUE) #gravando no arquivo
 
 for(i in 1:Nsp){
   for(j in 1:length(sampleSizes)){
@@ -538,7 +556,7 @@ for(i in 1:Nsp){
       tryCatch({
         
         ##logfile
-        cat('STARTING SCENARIO: sp = ', i, '/ sampleSizes = ', sampleSizes[j], '/ current_vies_level = ', current_vies_level,  "\n \n", file = "logfileSDMnormalOutrosProjecoes.txt", append = TRUE) #gravando no arquivo
+        cat('STARTING SCENARIO: sp = ', i, '/ sampleSizes = ', sampleSizes[j], '/ current_vies_level = ', current_vies_level, ' / time: ', as.character(Sys.time()),  "\n \n", file = paste(projectFolder,'/logfileSDMnormalProjecoes.txt',sep=''), append = TRUE) #gravando no arquivo
         
         ##diretorio para o biomod2 salvar resultados para SDMnormal
         setwd(file.path(projectFolder,'SDMnormal'))
@@ -563,7 +581,9 @@ for(i in 1:Nsp){
         lapply(modelFiles, load, .GlobalEnv)
         
         ##implementado projecoes
-        modelNames = lapply(basename(modelFiles), get)
+        modelFiles = basename(modelFiles)
+        modelFiles = if (sum(grep(pattern = '.RData', x = modelFiles)) > 0){gsub(pattern = '.RData', replacement = '', x = modelFiles)}
+        modelNames = lapply(modelFiles, get)
         modelProj = lapply(seq(length(modelNames)), function(i)  predict(modelNames[[i]], predictors))
         
         ##salvando
@@ -571,7 +591,7 @@ for(i in 1:Nsp){
         crs(modelProj) = CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0')
         writeRaster(modelProj, bylayer=TRUE, filename=paste(projectFolder,'/SDMnormal/sp',i,'.sample',sampleSizes[j],'.biaslevel',current_vies_level,'.SDMnormal/models/',basename(modelFiles),sep=''), format='ascii', overwrite=TRUE)
         
-      }, error=function(e){cat("ERROR :",conditionMessage(e), "\n \n", file="logfileSDMnormalProjecoes.txt", append=TRUE)})
+      }, error=function(e){cat("ERROR :",conditionMessage(e), "\n \n", file=paste(projectFolder,'/logfileSDMnormalProjecoes.txt',sep=''), append=TRUE)})
     }
   }
 }
