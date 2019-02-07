@@ -56,7 +56,7 @@ library(dismo)
 # }
 
 
-rangeByACcontinuous = function(envAreas, iter=100){
+rangeByAC = function(envAreas, iter=100){
   
   ## atualizando distribuicoes atraves do tempo ##
   # envAreas: suitability gridfile for sps range
@@ -100,8 +100,8 @@ rangeByACcontinuous = function(envAreas, iter=100){
   maskHelper = spSuit
   maskHelper[values(maskHelper)>0] = 1
   spRange = spRange*maskHelper
-  #output - parabin - parabem - paraboom!
   
+  #output - parabin - parabem - paraboom!
   return(spRange)
   
 }

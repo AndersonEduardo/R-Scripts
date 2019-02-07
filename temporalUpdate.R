@@ -42,7 +42,7 @@ temporalUpdate = function(currentSpsRange, newSuitabilityMap, iter = 100){
     
     occupiedCells = Which(spRange_i == 1, cells = TRUE) #identifying occupied cells
     
-    rangeBorder = boundaries(spRange_i, asNA=FALSE, classes=TRUE, type='outer', directions=sample(c(4,8),1)) #ger the borders os sps range
+    rangeBorder = boundaries(spRange_i, asNA=FALSE, classes=TRUE, type='outer', directions=sample(c(4,8),1)) #get the borders of sps range
     
     cellsBorder =  Which(rangeBorder == 1, cells = TRUE) #identifying boundary cells
     
@@ -50,7 +50,7 @@ temporalUpdate = function(currentSpsRange, newSuitabilityMap, iter = 100){
     
     borderOcc = sapply(seq(length(cellsBorder)), function(i) ifelse(NewSuit[cellsBorder[i]] > probOcc[i], 1, 0) ) #probabilistic occupancy of borders
     
-    spRange_i[c(occupiedCells, cellsBorder)] = c(rep(1,length(occupiedCells)), borderOcc) #updating sps range - filling cels
+    spRange_i[c(occupiedCells, cellsBorder)] = c(rep(1,length(occupiedCells)), borderOcc) #updating sps range - filling cells
     
   }
   

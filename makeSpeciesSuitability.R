@@ -49,6 +49,7 @@ makeSpeciesSuitability = function(predictorsData){
   })
   
   ## output da funcao
+  if(length(spsDist)==1){spsDist=spsDist[[1]]}
   return(spsDist)
   
 }
