@@ -3,8 +3,8 @@
 #########################################################################################
 
 ##pacotes necessarios
-library(virtualspecies)
-library(maptools)
+#library(virtualspecies)
+#library(maptools)
 library(dismo)
 library(raster)
 library(phyloclim) #para funcao niche.overlap()
@@ -94,12 +94,10 @@ crs(predictors) = CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0') 
 ## funcoes autorais :-) #NOTEBOOK
 source('/home/anderson/R-Scripts/makeSpeciesSuitability.R')
 source('/home/anderson/R-Scripts/makeSpeciesSuitabilityIterator.R')
-source('/home/anderson/R-Scripts/rangeByACcontinuous.R')
+source('/home/anderson/R-Scripts/rangeByAC.R')
 source('/home/anderson/R-Scripts/makeOutput.R')
 source('/home/anderson/R-Scripts/bestModel.R')
 source('/home/anderson/R-Scripts/temporalUpdate.R')
-
-
 
 #obtaining species distribution using simulation
 # spsSuit = makeSpeciesSuitability(predictors)
@@ -107,20 +105,25 @@ source('/home/anderson/R-Scripts/temporalUpdate.R')
 # plot(SpDistAC)
 # plot(AmSulShape, add=T)
 
+#obtendo mapas de suitability
 
 SAcells = sum(freq(predictors[[2]]>=0, useNA='no')[,2]) #number of cells in South America
 prevCorrupted = TRUE
 iterLimit = 0
 while(any(prevCorrupted)){
   
-  #obtendo distribuicao de suitability
+  #implementing sps ecological niche and obtaining suitability map
   spsSuit = makeSpeciesSuitability(predictors)
   
   #computando prevalencia do suitability (ao longo do tempo, quando houverem conjuntos de dados para cada idade)
-  spsPrevalData =  lapply(seq(length(spsSuit)), function(i){
-    spsPreval = freq(spsSuit[[i]])[2,2] / SAcells #sps prevalence
-    return(spsPreval)
-  })
+  if (is.list(spsSuit)){
+    spsPrevalData =  lapply(seq(length(spsSuit)), function(i){
+      spsPreval = freq(spsSuit[[i]])[2,2] / SAcells #sps prevalence
+      return(spsPreval)
+    })
+  }else{
+    spsPrevalData = freq(spsSuit)[2,2] / SAcells #sps prevalence
+  }
   
   #verificando se a prevalencia esta dentro dos limites estabelecidos (aqui: maior que 5% e menor que 60%)
   prevCorrupted = sapply(seq(length(spsPrevalData)), function(i) {(spsPrevalData[i] < 0.05) | (spsPrevalData[i] > 0.6)})
@@ -133,10 +136,29 @@ while(any(prevCorrupted)){
   
 }
 
+#sps geographical range
+
+#spsSuit_t1 = spsSuit[[1]] #suitability no tempo 1
+#spsSuit_t2 = spsSuit[[2]] #suitability no tempo 2
+
+SpDistData = list()
+
+for (i in seq(length(spsSuit))){
+  if (i==1){
+    SpDistAC = rangeByAC(spsSuit_t1) #sps range at time 1
+    SpDistData = append(SpDistData, SpDistAC)
+    next
+  }
+  SpDistACup = temporalUpdate(currentSpsRange = SpDistAC, newSuitabilityMap = spsSuit_t2) #sps range at time i
+  
+  #object with all maps of sps range
+  SpDistData = append(SpDistData, SpDistACup)
+}
+
+
 #updating sps distribution
-newSuitabilityMap = rasterSpDistribution
-SpDistACup = temporalUpdate(currentSpsRange = SpDistAC, newSuitabilityMap = rasterSpDistribution)
-plot(SpDistACup)
+
+#plot(SpDistACup, main='Distribuicao em t2')
 
 # CONTINUAR EM: TEMPORAL UPDATE
 

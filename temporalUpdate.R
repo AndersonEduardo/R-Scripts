@@ -21,7 +21,10 @@ temporalUpdate = function(currentSpsRange, newSuitabilityMap, iter = 100){
   occProb = runif(nrow(SpDistDF))
   
   #reduzindo a distribuicao usando o suitability novo (obs.: aqui eh somente a parte de reducao da distrib.)
-  SpDistDF$DistUpdated = sapply(seq(nrow(SpDistDF)), function(i) ifelse(NewSuitDF[i,3] > occProb[i], SpDistDF[i,3], 0))
+  #SpDistDF$DistUpdated = sapply(seq(nrow(SpDistDF)), function(i) ifelse(NewSuitDF[i,3] > occProb[i], SpDistDF[i,3], 0))
+  SpDistDF$DistUpdated = as.integer(NewSuitDF$fSp > occProb)
+  SpDistDF$DistUpdated = SpDistDF$DistUpdated * SpDistDF$layer
+  
   
   #rastering the reduced range
   spRange = SpDistDF[,c('x','y','DistUpdated')] #extraindo lon/lat e suitability (ou pres-aus) de cada especie
