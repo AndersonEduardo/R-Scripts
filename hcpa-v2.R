@@ -205,18 +205,18 @@ for(i in 1:Nsp){
         biasLayerBGptsKDE = biasLayerBGptsKDE/biasLayerBGptsKDE@data@max #ajustando entre 0 e 1
         values(biasLayerBGptsKDE)[which(values(biasLayerBGptsKDE)<=0)] = 0
         ##salvando
-        writeRaster(biasLayerBGptsKDE, paste(projectFolder,'/biasLayers/','sp',i,'_sampleSizes',j,'_biasLevel',current_vies_level,'.asc', sep=''))
+        writeRaster(biasLayerBGptsKDE, paste(projectFolder,'/biasLayers/','sp',i,'_sampleSizes',sampleSizes[j],'_biasLevel',current_vies_level,'.asc', sep=''), overwrite=TRUE)
         
         ##dados de ocorrencia
         occPoints = dismo::randomPoints(mask=SpDistAC*biasLayerBGptsKDE, n=sampleSizes[j], prob=TRUE) #sorteando pontos da distribuicao modelada
         ##rm(SpDistAC) ##teste do bug persistente
         occPoints = data.frame(lon=occPoints[,1],lat=occPoints[,2])
-        write.csv(occPoints, paste(projectFolder,'/datasets/','occ_sp',i,'_sampleSizes',j,'_biasLevel',current_vies_level,'.csv', sep=''), row.names = FALSE)
+        write.csv(occPoints, paste(projectFolder,'/datasets/','occ_sp',i,'_sampleSizes',sampleSizes[j],'_biasLevel',current_vies_level,'.csv', sep=''), row.names = FALSE)
         
         ##backgrownd points
         bgPoints = dismo::randomPoints(mask=biasLayerBGptsKDE, p=occPoints, n=10000, prob=TRUE) #sorteando pontos da distribuicao modelada
         bgPoints = data.frame(lon=bgPoints[,1], lat=bgPoints[,2])
-        write.csv(bgPoints, paste(projectFolder,'/datasets/','bg_sp',i,'_sampleSizes',j,'_biasLevel',current_vies_level,'.csv', sep=''), row.names = FALSE)
+        write.csv(bgPoints, paste(projectFolder,'/datasets/','bg_sp',i,'_sampleSizes',sampleSizes[j],'_biasLevel',current_vies_level,'.csv', sep=''), row.names = FALSE)
         
       }, error=function(e){cat("ERROR :",conditionMessage(e), "\n \n", file=paste(projectFolder,'/logfileSDMnormalDatasets.txt',sep=''), append=TRUE)})
       
@@ -261,9 +261,9 @@ for(i in 1:Nsp){
         }
         
         ##dataset
-        occPoints = read.csv(paste(projectFolder,'/datasets/','occ_sp',i,'_sampleSizes',j,'_biasLevel',current_vies_level,'.csv', sep=''))
+        occPoints = read.csv(paste(projectFolder,'/datasets/','occ_sp',i,'_sampleSizes',sampleSizes[j],'_biasLevel',current_vies_level,'.csv', sep=''))
         occPoints$pres = 1
-        bgPoints =  read.csv(paste(projectFolder,'/datasets/','bg_sp',i,'_sampleSizes',j,'_biasLevel',current_vies_level,'.csv', sep=''))
+        bgPoints =  read.csv(paste(projectFolder,'/datasets/','bg_sp',i,'_sampleSizes',sampleSizes[j],'_biasLevel',current_vies_level,'.csv', sep=''))
         bgPoints$pres = 0
         dataSet = rbind(occPoints, bgPoints)
         
@@ -419,8 +419,8 @@ for(i in 1:Nsp){
         setwd(file.path(projectFolder,'SDMnormal'))
         
         ##dataset
-        occPoints = read.csv(paste(projectFolder,'/datasets/','occ_sp',i,'_sampleSizes',j,'_biasLevel',current_vies_level,'.csv', sep=''))
-        bgPoints =  read.csv(paste(projectFolder,'/datasets/','bg_sp',i,'_sampleSizes',j,'_biasLevel',current_vies_level,'.csv', sep=''))
+        occPoints = read.csv(paste(projectFolder,'/datasets/','occ_sp',i,'_sampleSizes',sampleSizes[j],'_biasLevel',current_vies_level,'.csv', sep=''))
+        bgPoints =  read.csv(paste(projectFolder,'/datasets/','bg_sp',i,'_sampleSizes',sampleSizes[j],'_biasLevel',current_vies_level,'.csv', sep=''))
         
         ##preditoras
         
@@ -619,7 +619,7 @@ for(i in 1:Nsp){
         }
         
         ##abrindo dados de ocorrecias
-        occPoints = read.csv(paste(projectFolder,'/datasets/','occ_sp',i,'_sampleSizes',j,'_biasLevel',current_vies_level,'.csv', sep=''))
+        occPoints = read.csv(paste(projectFolder,'/datasets/','occ_sp',i,'_sampleSizes',sampleSizes[j],'_biasLevel',current_vies_level,'.csv', sep=''))
         
         ##abrindo dados dos modelos - SDM normal
         statResultsSDMnormal = read.csv(paste(projectFolder,'/SDMnormal/StatisticalResults_SDMnormal.csv',sep=''), header = TRUE)
@@ -663,13 +663,13 @@ for(i in 1:Nsp){
         #################################################
         
         ##salvando HCPA dataset
-        write.csv(hcpa, paste(projectFolder,'/datasets/','hcpa_sp',i,'_sampleSizes',j,'_biasLevel',current_vies_level,'.csv', sep=''), row.names = FALSE)
+        write.csv(hcpa, paste(projectFolder,'/datasets/','hcpa_sp',i,'_sampleSizes',sampleSizes[j],'_biasLevel',current_vies_level,'.csv', sep=''), row.names = FALSE)
 
       }, error=function(e){cat("ERROR :",conditionMessage(e), "\n \n", file=paste(projectFolder,'/logfileSDMimprovedDatasets.txt',sep=''), append=TRUE)})
     }
   }
-}        
-        
+}
+
 
 
 
@@ -702,9 +702,9 @@ for(i in 1:Nsp){
         }
         
         ##dataset
-        occPoints = read.csv(paste(projectFolder,'/datasets/','occ_sp',i,'_sampleSizes',j,'_biasLevel',current_vies_level,'.csv', sep=''))
+        occPoints = read.csv(paste(projectFolder,'/datasets/','occ_sp',i,'_sampleSizes',sampleSizes[j],'_biasLevel',current_vies_level,'.csv', sep=''))
         occPoints$pres = 1
-        bgPoints = read.csv(paste(projectFolder,'/datasets/','hcpa_sp',i,'_sampleSizes',j,'_biasLevel',current_vies_level,'.csv', sep=''))
+        bgPoints = read.csv(paste(projectFolder,'/datasets/','hcpa_sp',i,'_sampleSizes',sampleSizes[j],'_biasLevel',current_vies_level,'.csv', sep=''))
         bgPoints$pres = 0
         dataSet = rbind(occPoints, bgPoints)
         
@@ -860,8 +860,8 @@ for(i in 1:Nsp){
         setwd(paste(projectFolder,'/SDMimproved',sep=''))
         
         ##dataset
-        occPoints = read.csv(paste(projectFolder,'/datasets/','occ_sp',i,'_sampleSizes',j,'_biasLevel',current_vies_level,'.csv', sep=''))
-        bgPoints =  read.csv(paste(projectFolder,'/datasets/','bg_sp',i,'_sampleSizes',j,'_biasLevel',current_vies_level,'.csv', sep=''))
+        occPoints = read.csv(paste(projectFolder,'/datasets/','occ_sp',i,'_sampleSizes',sampleSizes[j],'_biasLevel',current_vies_level,'.csv', sep=''))
+        bgPoints =  read.csv(paste(projectFolder,'/datasets/','bg_sp',i,'_sampleSizes',sampleSizes[j],'_biasLevel',current_vies_level,'.csv', sep=''))
         
         ##preditoras
         
