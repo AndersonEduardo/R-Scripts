@@ -5,6 +5,7 @@ library(biomod2)
 library(sensitivity)
 library(ENMeval)
 library(dismo)
+library(usdm)
 # ##notebook
 # source('/home/anderson/R-Scripts/paleoextract.R')
 # source('/home/anderson/R-Scripts/strings2na.R')
@@ -62,16 +63,16 @@ for (i in seq(length(sps))){
   pts = dataSetRaw[which(dataSetRaw$Species == sps[i]),]
   
   if (nrow(pts) <= 5){
-    cat("\n ATENÇÃO: A espécie", sps[i], "possui menos que 5 registros, por isso não foi analisada. \n")
+    cat("\n ATENÃ‡ÃƒO: A espÃ©cie", sps[i], "possui menos que 5 registros, por isso nÃ£o foi analisada. \n")
     next
   }else{
-    cat("\n Rodando para a espécie", sps[i], "...\n")
+    cat("\n Rodando para a espÃ©cie", sps[i], "...\n")
   }
   
   ##ajustando dados
   pts = strings2na(pts, 'Species') #transformando strings ao longo do dateset em NA
   
-  ## ##inspeção visual dos dados
+  ## ##inspeÃ§Ã£o visual dos dados
   ## plot(AmSulBorders)
   ## points(pts[[1]][,c('lon','lat')], pch=20, cex=1.5, col='red')
   
@@ -92,7 +93,8 @@ for (i in seq(length(sps))){
 
 
 
-## SDM ##
+## SDMs - criando as instancias de dados
+
 
 
 ##working directory
@@ -100,7 +102,7 @@ setwd(paste(projectFolder,'/SDMs',sep=''))
 
 ##dataset
 #dataSetRaw = read.csv(file='/home/anderson/Projetos/SDM megafauna Sul-Americana/dataset_clean.csv', header=TRUE, dec='.', sep=',')
-dataSetRaw = read.csv(file='D:/Anderson_Eduardo/SDM megafauna Sul-Americana/dataset_clean.csv', header=TRUE, dec='.', sep=',') #abrindo e tratando o banco de dados
+dataSetRaw = read.csv(file= paste(projectFolder,'/dataset_clean.csv',sep=''), header=TRUE, dec='.', sep=',') #abrindo e tratando o banco de dados
 maxentFolder = 'D:/Anderson_Eduardo/maxent'
 
 ##subset from the dataset
@@ -157,11 +159,37 @@ for (i in seq(length(sps))){
     occData = occData[!duplicated(occData[,c('lon','lat')]), ]
     
     occDataList = dataInstance(x=occData, col_names=c('ageMean', 'ageMin', 'ageMax'), tempRes=1) #Obs.: put tempres=1 if age already is in the desired temporal resolution.
+  
+    save(occDataList, file=paste(projectFolder, '/SDMs/', gsub(' ','_',sps[i]), '_dataInstances.R', sep=''))
+    
+  }, error=function(e){cat("ERROR :",conditionMessage(e), "\n")})
+}  
+
+
+
+## SDMs - calibracao dos SDMs
+
+
+
+##loop over species
+for (i in seq(length(sps))){
+  tryCatch({
+    
+    ##diretorio de trabalho
+    setwd(paste(projectFolder, '/SDMs/', sps[i], sep=''))
+    
+    gc() #hoping to clean some computer memory...
+    
+    rm(occDataList)
+    load(occDataList, file=paste(projectFolder, '/SDMs/', gsub(' ','_',sps[i]), '_dataInstances.R', sep=''))
+    
+    ##cross-temporal background points
+    current_bgData = paleobg(x=occDataList[[1]], colNames=c('lon','lat','age'), envFolder=envFolder, n=10000) #sanpling bg points
+    current_bgData[,c('lon','lat')] = round(current_bgData[,c('lon','lat')], 2) #round data
+    current_bgData = current_bgData[!duplicated(current_bgData[,c('lon','lat','age')]), ] #excluding duplicated points (in a same age)
     
     ##loop over data intances
     for(j in seq(length(occDataList))){ 
-      
-      gc() #hoping to clean some computer memory...
       
       names(occDataList[[j]]) = c("lon","lat","originalID","age")
       
@@ -169,10 +197,6 @@ for (i in seq(length(sps))){
       current_occData = current_occData[complete.cases(current_occData),]
       
       ##cross-temporal background points
-      current_bgData = paleobg(x=current_occData, colNames=c('lon','lat','age'), envFolder=envFolder, n=10000) #sanpling bg points
-      
-      current_bgData[,c('lon','lat')] = round(current_bgData[,c('lon','lat')], 2) #round data
-      current_bgData = current_bgData[!duplicated(current_bgData[,c('lon','lat','age')]), ] #excluding duplicated points (in a same age)
       current_bgData$originalID = NA #adjusting to fit occ data.frame
       idxOrdem = match(names(current_occData), names(current_bgData)) #adjusting to fit occ data.frame
       current_bgData = current_bgData[,idxOrdem] #adjusting to fit occ data.frame
@@ -222,8 +246,7 @@ for (i in seq(length(sps))){
         rescal.all.models = FALSE,
         do.full.models = FALSE,
         modeling.id = myRespName)
-      
-
+ 
       ##My output data
       evaluationScores = get_evaluations(myBiomodModelOut)
     
@@ -237,39 +260,58 @@ for (i in seq(length(sps))){
       varImportDF = data.frame(variables=names(varImportMean), importance.mean=varImportMean, impotance.sd=varImportSD)
       write.csv(varImportDF, paste(projectFolder,'/SDMs/',sps[i],'/',gsub(pattern=' ',replacement='_',x=sps[i]),'_VariableImportance.csv',sep=''), row.names=FALSE)
       
-      ##predicao
-      envVarPaths = list.files(envFolder, full.names=TRUE)
+    }
+  }, error=function(e){cat("ERROR :",conditionMessage(e), "\n")})
+}
+
+
       
-      for (l in 1:length(envVarPaths[1:24])){
-        
-        ##definindo variaveis e parametros internos
-        predictors = stack(list.files(path=envVarPaths[l], full.names=TRUE, pattern='.asc')) #predictors com todas as variaveis (presente)
-        ##predictors = predictors[[c('bioclim_01','bioclim_12')]]
-        ##predictors = mask(predictors,AmSulShape) #recortando as variaveis ambientais
-        crs(predictors) = CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0') #ajustando CRS
-        
-        myBiomodModelFull <- BIOMOD_Modeling(
-          myBiomodData,
-          models = c('MAXENT.Phillips'),
-          models.options = myBiomodOption,
-          NbRunEval = 1,
-          DataSplit = 100,
-          SaveObj = FALSE,
-          rescal.all.models = FALSE,
-          do.full.models = TRUE,
-          modeling.id = paste(myRespName,'_FULL',sep=''))
-        
-        ##rodando algortmo de projecao (i.e. rodando a projecao)
-        myBiomodProj <- BIOMOD_Projection(
-          modeling.output = myBiomodModelFull,
-          new.env = predictors,
-          proj.name = paste(l-1,'kyr',sep=''),
-          selected.models = 'all',
-          binary.meth = c('TSS','ROC'),
-          compress = 'TRUE',
-          build.clamping.mask = 'TRUE',
-          output.format = '.grd')
-      }
+## SDMs - projecao dos SDMs
+      
+
+
+##loop over species
+for (i in seq(length(sps))){
+  tryCatch({
+    
+    ##diretorio de trabalho
+    setwd(paste(projectFolder, '/SDMs/', sps[i], sep=''))
+    
+    gc() #hoping to clean some computer memory...
+
+    ##predicao
+    envVarPaths = list.files(envFolder, full.names=TRUE)
+    
+    for (l in 1:length(envVarPaths[1:24])){
+      
+      ##definindo variaveis e parametros internos
+      predictors = stack(list.files(path=envVarPaths[l], full.names=TRUE, pattern='.asc')) #predictors com todas as variaveis (presente)
+      ##predictors = predictors[[c('bioclim_01','bioclim_12')]]
+      ##predictors = mask(predictors,AmSulShape) #recortando as variaveis ambientais
+      crs(predictors) = CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0') #ajustando CRS
+      
+      myBiomodModelFull <- BIOMOD_Modeling(
+        myBiomodData,
+        models = c('MAXENT.Phillips'),
+        models.options = myBiomodOption,
+        NbRunEval = 1,
+        DataSplit = 100,
+        SaveObj = FALSE,
+        rescal.all.models = FALSE,
+        do.full.models = TRUE,
+        modeling.id = paste(myRespName,'_FULL',sep=''))
+      
+      ##rodando algortmo de projecao (i.e. rodando a projecao)
+      myBiomodProj <- BIOMOD_Projection(
+        modeling.output = myBiomodModelFull,
+        new.env = predictors,
+        proj.name = paste(l-1,'kyr',sep=''),
+        selected.models = 'all',
+        binary.meth = c('TSS','ROC'),
+        compress = 'TRUE',
+        build.clamping.mask = 'TRUE',
+        output.format = '.grd')
+      
     }
   }, error=function(e){cat("ERROR :",conditionMessage(e), "\n")})
 }

@@ -11,7 +11,7 @@ uniche3 = function(x, cols, envFolder, dataMaxAge=120, maxentFolder){
     pts$ID = seq(nrow(pts)) #identidade dos pontos    
     envFolder = envFolder #caminho ate as pastas com as variaveis ambientais
     dataMaxAge = dataMaxAge #idade mais antiga entre os dados ambientais
-    maxentFolder = maxentFolder #pasta em que est· o MaxEnt
+    maxentFolder = maxentFolder #pasta em que est? o MaxEnt
     dataInstances = data.frame() #tabela de dados atual
     output = data.frame()
 
@@ -55,7 +55,7 @@ uniche3 = function(x, cols, envFolder, dataMaxAge=120, maxentFolder){
     idx = sapply( seq(length(dataInstances)), function(x) ncol(dataInstances[[x]]) == ncolsData )
     if(length(which(idx==FALSE)) > 0){
         dataInstances = lapply(which(idx==TRUE), function(x) dataInstances[[x]])
-        cat(" *OBSERVA«√O:", length(which(idx==FALSE)), " inst‚ncia(s) dos dados foram excluidas por uma possÌvel falha da funÁ„o 'paleoextract.' \n")
+        cat(" *OBSERVA√á√ÉO:", length(which(idx==FALSE)), " inst√¢ncia(s) dos dados foram excluidas por uma poss√≠vel falha da fun√ß√£o 'paleoextract.' \n")
     }
 
     
@@ -174,7 +174,7 @@ uniche3 = function(x, cols, envFolder, dataMaxAge=120, maxentFolder){
     outputDataset = pts[ match(sdmData[[1]][,'id'], pts$ID) , ] ##pts[sdmData[[1]][,'id'], c('lon','lat','ageMean','ageMin','ageMax','ID')] ##sdmData[[1]][,c('lon','lat','id')]  ##pts[c('lon','lat','ID')]
     output = list(dataset=outputDataset, uniche.TSS=pccOutputTSS, uniche.ROC=pccOutputROC)
     class(output) = 'uniche'
-    cat(' uniche-status | ‘ÙÙ rapaz!! An·lise finalizada com sucesso! Pelo menos assim espero...  : ) \n')
+    cat(' uniche-status | Uai?! Rapaz!! An√°lise finalizada com sucesso! Pelo menos assim espero...  : ) \n')
     
     return(output)
     
