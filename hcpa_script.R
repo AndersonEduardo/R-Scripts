@@ -9,6 +9,7 @@
 library(raster)
 library(biomod2)
 library(dismo)
+library(usdm)
 
 ##definindo prametros e variaveis globais (NOTEBOOK)
 projectFolder = "/home/anderson/Projetos/HCPA" #pasta do projeto
@@ -21,12 +22,6 @@ maxentFolder = '/home/anderson/R/x86_64-pc-linux-gnu-library/3.4/dismo/java/maxe
 sampleSizes = c(10,20,40,80,160)
 NumRep = 10 #numero de replicas (de cada cenario amostral)
 vies_levels = 5
-##variaveis preditoras
-## elevation = raster('/home/anderson/PosDoc/dados_ambientais/DEM/DEM.tif')
-predictors = stack(list.files(path=envVarPaths[1],full.names=TRUE, pattern='.asc')) #predictors com todas as variaveis (presente)
-predictors = predictors[[c('bioclim_01','bioclim_12')]]
-predictors = stack(mask(x=predictors, mask=AmSulShape))
-crs(predictors) = CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0') #ajustando CRS
 Nsp = NumRep #numero de especies a serem criadas e trabalhadas igual ao numero de replicas
 SDMreplicates = 10 #numero de replicas para calibracao/validacao dos SDMs
 statResultsSDMnormal = data.frame() #tabela de estatisticas basicas do modelo
@@ -100,6 +95,11 @@ source('/home/anderson/R-Scripts/bestModel.R')
 
 
 
+
+predictors = stack(list.files(path=envVarPaths[1],full.names=TRUE, pattern='.asc')) #predictors com todas as variaveis (presente)
+predictors = predictors[[c('bioclim_01','bioclim_12')]]
+predictors = stack(mask(x=predictors, mask=AmSulShape))
+crs(predictors) = CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0') #ajustando CRS
 
 for(i in 1:Nsp){
   
@@ -255,11 +255,6 @@ for(i in 1:Nsp){
           setwd(paste(projectFolder,'/SDMnormal', sep=''))
         }
         
-        ##verifica e cria diretorio para salvar bias layers
-        if (!file.exists(paste(projectFolder,'/biasLayers', sep=''))){
-          dir.create(paste(projectFolder,'/biasLayers', sep=''))
-        }
-        
         ##dataset
         occPoints = read.csv(paste(projectFolder,'/datasets/','occ_sp',i,'_sampleSizes',sampleSizes[j],'_biasLevel',current_vies_level,'.csv', sep=''))
         occPoints$pres = 1
@@ -268,11 +263,22 @@ for(i in 1:Nsp){
         dataSet = rbind(occPoints, bgPoints)
         
         ##preditoras
+        ##analisando correlacao das variaveis
+        predictorsForVif = stack(list.files(path=envVarPaths[1],full.names=TRUE, pattern='.asc')) #predictors com todas as variaveis (presente)
+        crs(predictorsForVif) = CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0') #ajustando CRS
+        predictorsForVif = mask(x=predictorsForVif, mask=AmSulShape)
         
-        #####################################
-        ## FAZER SELECAO DE VARIAVEIS AQUI ##
-        #####################################
+        vif(predictorsForVif)
+        predictorsVif1 = vifcor(predictorsForVif, th=0.7)
         
+        ##preditoras com as variaveis selecionadas
+        predictors = predictorsForVif[[ grep(pattern=paste(as.character(predictorsVif1@results$Variables), collapse='|'), x=names(predictorsForVif)) ]]
+        save(predictors, file=paste(projectFolder, '/SDMnormal/sp', i, '.sample', sampleSizes[j], '.biaslevel',current_vies_level,'.SDMnormal/predictors.RData', sep=''))
+        
+        ##arquivo de log da selecao de variaveis
+        cat("Output of variable selection for the current sps (using the R funtion 'vifcor' from usdm package): \n \n", file=paste(projectFolder,'/logfileSDMnormalBiomod2.txt',sep=''), append=TRUE) #gravando no arquivo
+        capture.output(predictorsVif1, file=paste(projectFolder,'/logfileSDMnormalBiomod2.txt',sep=''), append = TRUE)
+     
         # myResp <- data.frame(lon=occPoints[,1], lat=occPoints[,2])
         # coordinates(myResp) <- ~ lon + lat #transformando em spatialPoints
         # crs(myResp) = CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0') #transformando em spatialPoints
@@ -423,10 +429,7 @@ for(i in 1:Nsp){
         bgPoints =  read.csv(paste(projectFolder,'/datasets/','bg_sp',i,'_sampleSizes',sampleSizes[j],'_biasLevel',current_vies_level,'.csv', sep=''))
         
         ##preditoras
-        
-        #################################################################
-        ## ABRIR AS VARIAVEIS JA SELECIONAAS E SALVAS NA ULTIMA ETAPA  ##
-        #################################################################
+        load( paste(projectFolder, '/SDMnormal/sp', i, '.sample', sampleSizes[j], '.biaslevel',current_vies_level,'.SDMnormal/predictors.RData', sep='') )
         
         ##iterando replicas (ATENCAO: tem que ser o mesmo numero que no biomod2)
         SDMlist = list()
@@ -542,6 +545,10 @@ for(i in 1:Nsp){
         
         ##diretorio para o biomod2 salvar resultados para SDMnormal
         setwd(file.path(projectFolder,'SDMnormal'))
+        
+        ##preditoras
+        ##preditoras
+        load( paste(projectFolder, '/SDMnormal/sp', i, '.sample', sampleSizes[j], '.biaslevel',current_vies_level,'.SDMnormal/predictors.RData', sep='') )
         
         ##abrindo dados dos modelos
         statResultsSDMnormal = read.csv(paste(projectFolder,'/SDMnormal/StatisticalResults_SDMnormal.csv',sep=''), header = TRUE)
@@ -709,10 +716,7 @@ for(i in 1:Nsp){
         dataSet = rbind(occPoints, bgPoints)
         
         ##preditoras
-        
-        #####################################
-        ## FAZER SELECAO DE VARIAVEIS AQUI ##
-        #####################################
+        load( paste(projectFolder, '/SDMimproved/sp', i, '.sample', sampleSizes[j], '.biaslevel',current_vies_level,'.SDMnormal/predictors.RData', sep='') )
         
         # myResp <- data.frame(lon=occPoints[,1], lat=occPoints[,2])
         # coordinates(myResp) <- ~ lon + lat #transformando em spatialPoints
@@ -864,10 +868,7 @@ for(i in 1:Nsp){
         bgPoints =  read.csv(paste(projectFolder,'/datasets/','bg_sp',i,'_sampleSizes',sampleSizes[j],'_biasLevel',current_vies_level,'.csv', sep=''))
         
         ##preditoras
-        
-        #################################################################
-        ## ABRIR AS VARIAVEIS JA SELECIONAAS E SALVAS NA ULTIMA ETAPA  ##
-        #################################################################
+        load( paste(projectFolder, '/SDMimproved/sp', i, '.sample', sampleSizes[j], '.biaslevel',current_vies_level,'.SDMnormal/predictors.RData', sep='') )
         
         ##iterando replicas (ATENCAO: tem que ser o mesmo numero que no biomod2)
         SDMlist = list()
@@ -986,6 +987,9 @@ for(i in 1:Nsp){
         
         ##diretorio para o biomod2 salvar resultados para SDMimproved
         setwd(file.path(projectFolder,'SDMimproved'))
+        
+        ##preditoras
+        load( paste(projectFolder, '/SDMimproved/sp', i, '.sample', sampleSizes[j], '.biaslevel',current_vies_level,'.SDMnormal/predictors.RData', sep='') )
         
         ##abrindo dados dos modelos
         statResultsSDMimproved = read.csv(paste(projectFolder,'/SDMimproved/StatisticalResults_SDMimproved.csv',sep=''), header = TRUE)
