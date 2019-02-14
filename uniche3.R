@@ -1,8 +1,8 @@
+##pacotes necessarios
+require(biomod2)
+
 uniche3 = function(x, cols, envFolder, dataMaxAge=120, maxentFolder){
 
-    ##pacotes necessarios
-    require(biomod2)
-    
     ##parametros e variaveis locais
     pts = x #dados de entrada
     colsIdx = grep(paste(cols,collapse="|"), names(pts))
@@ -34,18 +34,20 @@ uniche3 = function(x, cols, envFolder, dataMaxAge=120, maxentFolder){
     pts = ptsAge
 
     ##calculando os tamanhos amostrais
-    tempRange = sapply(seq(nrow(pts)), function(x) pts[x,'ageMax'] - pts[x,'ageMin']) #vetor com a magnitude dos erros nos pontos
-    sampleSize = ifelse(tempRange > 50, round(tempRange/2), tempRange) #tamanho da amostra dentro dos intervalos de erro das idades
-    sampleSize = ifelse(sampleSize == 0, 1, sampleSize) #garantindo que nao haja zeros (se nao da erro)
-    pccSampleSize = 2*max(sampleSize, na.rm=TRUE) #replicas para construcao de hipercubos e, consequentemente, a tabela de entrada do PCC
+    # tempRange = sapply(seq(nrow(pts)), function(x) pts[x,'ageMax'] - pts[x,'ageMin']) #vetor com a magnitude dos erros nos pontos
+    # sampleSize = ifelse(tempRange > 50, round(tempRange/2), tempRange) #tamanho da amostra dentro dos intervalos de erro das idades
+    # sampleSize = ifelse(sampleSize == 0, 1, sampleSize) #garantindo que nao haja zeros (se nao da erro)
+    # pccSampleSize = 2*max(sampleSize, na.rm=TRUE) #replicas para construcao de hipercubos e, consequentemente, a tabela de entrada do PCC
 
 
     ##extraindo as variaveis ambientais para as instancias de dados
     dataInstances = lapply( seq(nrow(pts)), function(x) paleoextract(data.frame(lon = pts[x,'lon'],
                                                                                 lat = pts[x,'lat'],
-                                                                                age = sample(seq(pts[x,'ageMin'], pts[x,'ageMax']), sampleSize[x]),
+                                                                                age = seq(pts[x,'ageMin'], pts[x,'ageMax']),#sample(seq(pts[x,'ageMin'], pts[x,'ageMax']), sampleSize[x]),
                                                                                 id = pts[x,'ID']),
                                                                      path = envFolder) )
+    
+    ??? dataInstances = lapply(seq(length(dataInstances)), function(x) dataInstances[[x]][, cols(-1:5)])  ???  #apenas variaveis preditoras selecionadas pelo usuario
     
     dataInstances = lapply(seq(length(dataInstances)), function(x) dataInstances[[x]][complete.cases(dataInstances[[x]]),]) #excluindo dados faltantes (NAs)
 

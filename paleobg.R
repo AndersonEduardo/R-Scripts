@@ -1,5 +1,8 @@
 ##function for cross-temporal background points
 
+require(dismo)
+require(raster)
+
 paleobg = function(x, colNames=names(x), envFolder, n=10000){
   
   ### parameters ###
@@ -25,7 +28,7 @@ paleobg = function(x, colNames=names(x), envFolder, n=10000){
     if(age_i %in% as.numeric(list.files(envFolder))){
       envData = list.files(paste(envFolder,'/',age_i,sep=''), full.names=TRUE)
     }else{
-      warning("Atenção: algumas idades não possuem dados ambientais no directório. NAs produzidos.")
+      warning("Aten??o: algumas idades n?o possuem dados ambientais no direct?rio. NAs produzidos.")
       vecNA = append( vecNA, age_i )
       next
     }
