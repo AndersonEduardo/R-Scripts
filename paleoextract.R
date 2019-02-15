@@ -29,14 +29,13 @@ paleoextract = function(x, cols=names(x), path) {
     ageNA = sapply( seq(length(age)), function(x) age[x]  %in% as.numeric(list.files(path)) )
 
     ##loop para coletar os dados ambientais dos pontos    
-    infoData = do.call("rbind", lapply( X=age[ageNA], FUN=function(age_i)
-        currentDataSet[grep(paste(age_i, collapse ='|'), currentDataSet$age), ] ) )
-    
-    predictorsData = do.call("rbind", lapply( X=age[ageNA], FUN=function(age_i)
+    predictorsData = do.call("rbind", lapply( X=age[ageNA], FUN=function(age_i){
+        cbind( currentDataSet[which(age_i==currentDataSet$age), c('lon','lat','id','age','ID')],
         extract(x = stack(list.files(file.path(path, age_i), pattern='.asc', full.names=TRUE)),
-                y = currentDataSet[grep(age_i, currentDataSet$age), c('lon','lat')]) ) )
+                y = currentDataSet[which(age_i==currentDataSet$age), c('lon','lat')])
+        )}))
     
-    predictorsData = cbind(infoData, predictorsData)
+    #predictorsData = cbind(infoData, predictorsData)
   
     ## for ( i in seq(length(age)) ){
         

@@ -1,17 +1,18 @@
 ##pacotes necessarios
 require(biomod2)
 
-uniche3 = function(x, cols, envFolder, dataMaxAge=120, maxentFolder){
+uniche3 = function(x, cols, envFolder, dataMaxAge=120, maxentFolder, n=100, resol=1000){
 
     ##parametros e variaveis locais
     pts = x #dados de entrada
     colsIdx = grep(paste(cols,collapse="|"), names(pts))
     pts = pts[,colsIdx]
     names(pts) = c('lon','lat','ageMean','ageMin','ageMax')
-    pts$ID = seq(nrow(pts)) #identidade dos pontos    
+    pts$id = seq(nrow(pts)) #identidade dos pontos    
     envFolder = envFolder #caminho ate as pastas com as variaveis ambientais
     dataMaxAge = dataMaxAge #idade mais antiga entre os dados ambientais
     maxentFolder = maxentFolder #pasta em que est? o MaxEnt
+    nRep = n #numero de replicas para os datasets
     dataInstances = data.frame() #tabela de dados atual
     output = data.frame()
 
@@ -22,9 +23,9 @@ uniche3 = function(x, cols, envFolder, dataMaxAge=120, maxentFolder){
     ptsAgeMinNA = apply( ptsAge, 1, function(x) ifelse(is.na(x[4]), x[3], x[4]) ) #se min=NA, entao min=mean (i.e. data altamente precisa)
     ptsAgeMaxNA = apply( ptsAge, 1, function(x) ifelse(is.na(x[5]), x[3], x[5]) ) #se max=NA, entao max=mean (i.e. data altamente precisa)
     ptsAge = data.frame(cbind(ptsAgeMeanNA,ptsAgeMinNA,ptsAgeMaxNA)) #consolidando os dados de idade
-    ptsAge = round(ptsAge/1000)
-    ptsAge = data.frame(pts[,c('lon','lat','ID')], ptsAge)
-    names(ptsAge) = c('lon','lat','ID','ageMean','ageMin','ageMax')
+    ptsAge = round(ptsAge/resol)
+    ptsAge = data.frame(pts[,c('lon','lat','id')], ptsAge)
+    names(ptsAge) = c('lon','lat','id','ageMean','ageMin','ageMax')
     ptsAge$ageMax = ifelse(ptsAge$ageMin > dataMaxAge & ptsAge$ageMax > dataMaxAge, NA , ptsAge$ageMax) #se o intervalo pra idade estiver fora dos dados, excluir
     ptsAge$ageMax = ifelse(ptsAge$ageMax > dataMaxAge, dataMaxAge , ptsAge$ageMax) #se a idade maxima estiver fora dos dados, considerar ate onde temos
     ptsAge[,c('lon','lat')] = round(ptsAge[,c('lon','lat')], 2)
@@ -41,13 +42,35 @@ uniche3 = function(x, cols, envFolder, dataMaxAge=120, maxentFolder){
 
 
     ##extraindo as variaveis ambientais para as instancias de dados
-    dataInstances = lapply( seq(nrow(pts)), function(x) paleoextract(data.frame(lon = pts[x,'lon'],
-                                                                                lat = pts[x,'lat'],
-                                                                                age = seq(pts[x,'ageMin'], pts[x,'ageMax']),#sample(seq(pts[x,'ageMin'], pts[x,'ageMax']), sampleSize[x]),
-                                                                                id = pts[x,'ID']),
-                                                                     path = envFolder) )
+    # dataInstances = lapply( seq(nrow(pts)), function(x) paleoextract(data.frame(lon = pts[x,'lon'],
+    #                                                                             lat = pts[x,'lat'],
+    #                                                                             age = seq(pts[x,'ageMin'], pts[x,'ageMax']),#sample(seq(pts[x,'ageMin'], pts[x,'ageMax']), sampleSize[x]),
+    #                                                                             id = pts[x,'ID']),
+    #                                                                  path = envFolder) )
     
-    ??? dataInstances = lapply(seq(length(dataInstances)), function(x) dataInstances[[x]][, cols(-1:5)])  ???  #apenas variaveis preditoras selecionadas pelo usuario
+    
+    
+    
+    #####################################################
+    ################## CONTINUAR DAQUI ################## 
+    ##rodei um teste do dataInstances abaixo e deu erro##
+    #####################################################
+    
+    
+    
+    ##criando as instancias de dados
+    dataInstances = lapply( seq(nRep), function(i)  {
+      dataInstance_i = cbind( pts[,c('lon','lat','id')], age = sapply(X = seq(nrow(pts)), FUN = function(i)  sample( seq(pts[i,'ageMin'],pts[i,'ageMax']), 1))  )
+    })
+    
+    ##extraindo as variaveis ambientais para as instancias de dados
+    dataInstances = lapply( seq(nRep), function(i) paleoextract(x = dataInstances[[i]], path = envFolder) )
+    
+    
+    
+    
+    finalCols = c( names(dataInstances[[1]][,1:4]), cols[-c(1:5)] )
+    dataInstances = lapply(seq(length(dataInstances)), function(x) dataInstances[[x]][, finalCols]) #apenas variaveis preditoras selecionadas pelo usuario
     
     dataInstances = lapply(seq(length(dataInstances)), function(x) dataInstances[[x]][complete.cases(dataInstances[[x]]),]) #excluindo dados faltantes (NAs)
 
