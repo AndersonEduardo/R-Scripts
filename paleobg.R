@@ -22,13 +22,14 @@ paleobg = function(x, colNames=names(x), envFolder, n=10000){
   vecNA = vector()
   
   for ( age_i in unique(ages) ){
+    
     sampleSize = length(grep(age_i, ages))
     current_occPts = occTable[ match(age_i, occTable$age), c('lon','lat')]
     
     if(age_i %in% as.numeric(list.files(envFolder))){
       envData = list.files(paste(envFolder,'/',age_i,sep=''), full.names=TRUE)
     }else{
-      warning("Aten??o: algumas idades n?o possuem dados ambientais no direct?rio. NAs produzidos.")
+      warning("Atenção: algumas idades não possuem dados ambientais no directório. NAs produzidos.")
       vecNA = append( vecNA, age_i )
       next
     }
@@ -43,6 +44,8 @@ paleobg = function(x, colNames=names(x), envFolder, n=10000){
     bgData_i = data.frame(bgData_i)
     bgData_i$age = age_i
     names(bgData_i) = c('lon','lat','age')
+    bgData_i = round(bgData_i, 2)
+    bgData_i = unique(bgData_i)
     bgData_i = data.frame(bgData_i, extract(envData, bgData_i[,c('lon','lat')]))
     bgData = rbind(bgData, bgData_i)
   }

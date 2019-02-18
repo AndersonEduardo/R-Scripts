@@ -54,7 +54,8 @@ preditorsStpv = c('bioclim_04', 'bioclim_10', 'bioclim_15', 'bioclim_16','biocli
 ##arquivo do banco de dados
 dataSetRaw = read.csv(file='/home/anderson/Projetos/SDM megafauna Sul-Americana/dataset_clean.csv', header=TRUE, dec='.', sep=',')
 #dataSetRaw = read.csv(file='D:/Anderson_Eduardo/SDM megafauna Sul-Americana/dataset_clean.csv', header=TRUE, dec='.', sep=',') #abrindo e tratando o banco de dados
-maxentFolder = 'D:/Anderson_Eduardo/maxent'
+#maxentFolder = 'D:/Anderson_Eduardo/maxent'
+maxentFolder = '/home/anderson/R/x86_64-pc-linux-gnu-library/3.4/dismo/java'
 
 ##subset do banco de dados
 dataSetRaw = dataSetRaw[,c('Species','Longitude','Latitude','Cal..Mean','Min.','Max.')]
