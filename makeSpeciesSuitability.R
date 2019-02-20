@@ -8,21 +8,22 @@
 makeSpeciesSuitability = function(predictorsData){
   
   ##definindo parametros e variaveis locais
-  ##matriz##
   if (is.list(predictorsData)){
+    #matriz
     datMat = lapply( seq(length(predictorsData)), function(i) cbind(as.data.frame(predictorsData[[i]], xy=TRUE, na.rm=TRUE), fSp=0) ) #transformando raster em data.frame cada item da lista
     datMat = lapply(datMat, setNames, c('lon','lat','bio1','bio12','fSp'))
+    #df para funcao de resposta
+    datMatRespFunc = datMat[[length(datMat)]]
+    #area de fundo de referencia
+    bgArea = predictorsData[[1]]*0
   }else{
+    #matriz
     datMat = list(cbind(as.data.frame(predictorsData, xy=TRUE, na.rm=TRUE), fSp=0)) #transformando raster em data.frame  
     datMat = lapply(datMat, setNames, c('lon','lat','bio1','bio12','fSp'))
-  }
-  
-  
-  #criando funcao de resposta
-  if (is.list(predictorsData)){
-    datMatRespFunc = datMat[[length(datMat)]]
-  }else{
+    #df para funcao de resposta
     datMatRespFunc = datMat[[1]]
+    #area de fundo de referencia
+    bgArea = predictorsData[[1]]*0
   }
   
   betaBio1 = runif(n=1, min=0.001, max=1)*sample(x=c(-1,1), size=1) #parametro para cada equacao de cada especie
@@ -34,7 +35,7 @@ makeSpeciesSuitability = function(predictorsData){
   
   #criando distribuicao
   spsDist = lapply(seq(length(datMat)), function(i){
-    datMatCurrent = datMat[[i]]
+    datMatCurrent = datMat[[i]] #dados
     varBio1 = datMatCurrent$bio1 #variavel ambiental bioclim01
     varBio12 = datMatCurrent$bio12 #variavel ambiental bioclim12
     fBio1Sp_i = 1/(1+exp(betaBio1*(varBio1-alphaBio1))) #solucao da equacao com output binario ("suitability")
@@ -43,13 +44,16 @@ makeSpeciesSuitability = function(predictorsData){
     SpDistribution = datMatCurrent[,c('lon','lat','fSp')] #extraindo lon/lat e suitability (ou pres-aus) de cada especie
     coordinates(SpDistribution) = ~lon+lat #definindo colunas das coordenadas
     gridded(SpDistribution) = TRUE #definindo gridded
-    proj4string(SpDistribution) = '+proj=lcc +lat_1=48 +lat_2=33 +lon_0=-100 +ellps=WGS84' #definindo proj
-    SpDistribution = raster(SpDistribution)
+    proj4string(SpDistribution) = '+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0' #definindo CRS
+    SpDistribution = raster(SpDistribution) #rasterizing
+    SpDistribution = merge(SpDistribution, bgArea) #quality control of resolution and other stuff
+    
     return(SpDistribution)
   })
   
   ## output da funcao
   if(length(spsDist)==1){spsDist=spsDist[[1]]}
+  
   return(spsDist)
   
 }

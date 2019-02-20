@@ -101,7 +101,17 @@ predictors = predictors[[c('bioclim_01','bioclim_12')]]
 predictors = stack(mask(x=predictors, mask=AmSulShape))
 crs(predictors) = CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0') #ajustando CRS
 
+#library(elevatr)
+#movResist = get_elev_raster(locations = predictors, z=7)
+elev = raster('/home/anderson/gridfiles/DEM/DEM.tif') #DEM
+elev = mask(x = elev, mask = AmSulShape) #mask for South America
+roug = terrain(x = elev, opt = 'roughness', unit = 'degrees') #rater layer for 'roughness'
+resfun = function(ro=roug){ 1/(1 + exp(+0.01*(ro - 200))) }
+resdata = calc(x = roug, fun = resfun)
+
 for(i in 1:Nsp){
+  
+  cat('\n Inicializando simulação para a espécie', i)
   
   ##diretorio para o biomod2 salvar resultados para SDMnormal
   setwd(file.path(projectFolder))
@@ -114,16 +124,43 @@ for(i in 1:Nsp){
     setwd(paste(projectFolder,'/virtual species',sep=''))
   }
   
-  SpDistAC = makeSpeciesSuitability(predictors) #criando nicho e projetando sua distribuicao
-  SpDistAC = rangeByAC(SpDistAC) #criando a area de distribuicao da sps (usando automato celular)
+  cat('\n Criando suitability da espécie', i)
+  iterNich = 0
+  nichePrevalence = 0
+  while( (nichePrevalence < 0.1) | (nichePrevalence > 0.6) ){
+    SpSuitDist = makeSpeciesSuitability(predictors) #criando nicho e projetando sua distribuicao
+    
+    rasterOnes = freq(SpSuitDist > 0.1, na.rm = TRUE)[2,2]
+    rasterZeros = freq(SpSuitDist < 0.1, na.rm = TRUE)[1,2]
+    nichePrevalence = rasterOnes/(rasterOnes + rasterZeros)
+    
+    iterNich = iterNich+1
+  }
   
-  ##criando imagem da distribuicao de cada especie
+  cat('\n Criando distribuição geográfica da espécie', i)
+  iterDist = 0
+  nichePrevalence = 0
+  while( (nichePrevalence < 0.1) | (nichePrevalence > 0.6) ){
+    iter = round(runif(n = 1, min = 100, max = 300)) #varying dispertion rate (here, 1 step = 5km/year)
+    SpDistAC = rangeByAC(envAreas = SpSuitDist, movRes = resdata, iter = iter) #criando a area de distribuicao da sps (usando automato celular)
+    
+    rasterOnes = freq(SpDistAC > 0.1, na.rm = TRUE)[2,2]
+    rasterZeros = freq(SpDistAC < 0.1, na.rm = TRUE)[1,2]
+    nichePrevalence = rasterOnes/(rasterOnes + rasterZeros)
+    
+    iterDist = iterDist+1
+  }
+  
+  ##salvando figura e dados da distribuicao de cada especie
+  cat('\n Salvando dados da espécie', i)
   jpeg(filename=paste(projectFolder,'/virtual species/sp',i,'.jpeg',sep=''))
   plot(SpDistAC)
   dev.off()
   ##
   writeRaster(x=SpDistAC, filename=paste(projectFolder,'/virtual species/sp',i,'.asc',sep=''), overwrite=TRUE)
   rm(SpDistAC) ##teste do bug persistente
+  
+  cat('\n Simulação para a espécie', i, 'concluída com sucesso. \n')
   
 }
 

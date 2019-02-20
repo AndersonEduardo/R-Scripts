@@ -56,25 +56,39 @@ library(dismo)
 # }
 
 
-rangeByAC = function(envAreas, iter=100){
+rangeByAC = function(envAreas, movRes, iter=100){
   
   ## atualizando distribuicoes atraves do tempo ##
   # envAreas: suitability gridfile for sps range
+  # movRes: raster layer with data for resistence to species moviment throughout the landscape (migration)
   # iter: number of iterations to be performed
+  
+  ## validation of input data
+  if(!compareRaster(envAreas, movRes, stopiffalse=FALSE)){
+    stop('Os rasters de entrada precisam ter mesma resolucao e origem.')
+  }
   
   #defining working gridfiles
   spRange = spSuit = envAreas
+  movRes = movRes
   
   ##tranformando 0 em NA
   values(spSuit)[values(spSuit) == 0] = NA
+  
+  ##transformando tudo o que nao for NA em zero
   values(spRange)[ !is.na(values(spRange)) ] = 0
   
   ##semente (i.e. ponto de origem para o crescimento do range da Sp)
-  seedCoords = randomPoints(mask=spSuit, n=1, prob=TRUE)
+  seedCoords = randomPoints(mask=spSuit, n=1, ext = NULL, prob=TRUE)
+  # extSeed = c(seedCoords[,1]-2, 
+  #             seedCoords[,1]+2, 
+  #             seedCoords[,2]-2, 
+  #             seedCoords[,2]+2)
+  # seedCoords = randomPoints(mask=spSuit, n=10, ext = extSeed, prob=TRUE)
   
   ##growing up sps range
   spRange_i = SpatialPoints(seedCoords)
-  crs(spRange_i) = CRS('+proj=lcc +lat_1=48 +lat_2=33 +lon_0=-100 +ellps=WGS84 ')
+  crs(spRange_i) = CRS('+proj=lcc +lat_1=48 +lat_2=33 +lon_0=-100 +ellps=WGS84')
   spRange_i = rasterize(x = spRange_i, y = spRange)
   values(spRange_i)[ is.na(values(spRange_i)) ] = 0
   
@@ -83,15 +97,23 @@ rangeByAC = function(envAreas, iter=100){
     
     occupiedCells = Which(spRange_i == 1, cells = TRUE) #identifying occupied cells
     
-    rangeBorder = boundaries(spRange_i, asNA=FALSE, classes=TRUE, type='outer', directions=sample(c(4,8),1)) #ger the borders os sps range
+    rangeBorder = boundaries(spRange_i, asNA=FALSE, classes=TRUE, type='outer', directions=sample(c(4,8),1)) #get the borders os sps range
     
     cellsBorder =  Which(rangeBorder == 1, cells = TRUE) #identifying boundary cells
   
     probOcc = runif(n = length(cellsBorder)) #prob of occupancy
     
-    borderOcc = sapply(seq(length(cellsBorder)), function(i) ifelse(spSuit[cellsBorder[i]] > probOcc[i], 1, 0) ) #probabilistic occupancy of borders
+    borderOcc = as.integer(spSuit[cellsBorder] > probOcc) #probabilistic occupancy of borders
+    #borderOcc = sapply(seq(length(cellsBorder)), function(i) ifelse(spSuit[cellsBorder[i]] > probOcc[i], 1, 0) ) #probabilistic occupancy of borders
     
-    spRange_i[c(occupiedCells, cellsBorder)] = c(rep(1,length(occupiedCells)), borderOcc) #updating sps range - filling cels
+    probMigr = runif(n = length(cellsBorder)) #prob of migration to cell i
+    
+    borderMig = as.integer(movRes[cellsBorder] > probMigr) #probabilistic migration to the borders
+    
+    borderOcc = borderOcc*borderMig #occupancy of borders accounting for environmental niche AND environmental resistance for species moviment
+    
+    #updating sps range - filling cels
+    spRange_i[c(occupiedCells, cellsBorder)] = c(rep(1,length(occupiedCells)), borderOcc) 
     
   }
   
