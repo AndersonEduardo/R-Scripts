@@ -4,6 +4,7 @@
 
 paleoextract = function(x, cols=names(x), path) {
   
+  ##validacao dos dados de entrada
   if( ncol(x) < 3 | class(x) != "data.frame" | sum(cols %in% c('lon','lat','age')) < 3 ){
     stop("O conjunto de dados de entrada deve ser um data.frame contendo (no mínimo) as respectivas \n \t colunas: lon (longitude), lat (latitude), age (idade)")
   }
@@ -16,7 +17,7 @@ paleoextract = function(x, cols=names(x), path) {
     stop("Desculpe, mas infelizmente o nome de coluna 'ID' não é permitido para esta funcao. Por favor, renomeie ou exclua do dataset de entrada desta funcao.")
   }
   
-  ##variaveis locais
+  ##variaveis locais da funcao
   currentDataSet = x
   path = path
   predictorsData = data.frame()
@@ -28,38 +29,25 @@ paleoextract = function(x, cols=names(x), path) {
   idNA = sapply( seq(nrow(currentDataSet)), function(x) currentDataSet[x,]$age  %in% as.numeric(list.files(path)) )
   ageNA = sapply( seq(length(age)), function(x) age[x]  %in% as.numeric(list.files(path)) )
   
-  ##loop para coletar os dados ambientais dos pontos    
-  predictorsData = do.call("rbind", 
-                           lapply( X=age[ageNA], FUN=function(age_i){
-                             cbind( currentDataSet[which(age_i==currentDataSet$age), c('lon','lat','id','age','ID')],
-                                    extract(x = stack(list.files(file.path(path, age_i), pattern='.asc', full.names=TRUE)),
-                                            y = currentDataSet[which(age_i==currentDataSet$age), c('lon','lat')])
-                             )}))
+  ##loop para coletar os dados ambientais dos pontos
+  predictorsData = data.frame()
   
-  #predictorsData = cbind(infoData, predictorsData)
+  for (age_i in age[ageNA]){
+    
+    currentLines = currentDataSet[which(age_i==currentDataSet$age), c('lon','lat','id','age','ID')]
+    currentPredictors = stack(list.files(file.path(path, age_i), pattern='.asc', full.names=TRUE))
+    ##problema com meus dados
+    if("landmask" %in% names(currentPredictors)){
+      currentPredictors = dropLayer(currentPredictors, grep(pattern='landmask',x=names(currentPredictors)))
+    }
+    ##
+    currentCoords =  currentLines[,c("lon","lat")] #currentDataSet[which(age_i==currentDataSet$age), c('lon','lat')]
+    varValues = extract(x = currentPredictors, y = currentCoords)
+    predictorsData = rbind(predictorsData, cbind(currentLines, varValues))
+  }
   
-  ## for ( i in seq(length(age)) ){
-  
-  ##     if ( ageNA[i] == FALSE ){ ##se nao houver pasta com dados ambientais da idade i, entao pular iteracao
-  
-  ##         next
-  
-  ##     }else{
-  
-  ##         currentPredictors = stack( list.files(file.path(path,  age[i]), pattern='.asc', full.names=TRUE) ) #abrindo dados
-  ##         ##problema com meus dados
-  ##         if("landmask" %in% names(currentPredictors)){
-  ##             currentPredictors = dropLayer(currentPredictors, grep(pattern='landmask',x=names(currentPredictors)))
-  ##         }
-  ##         ##
-  ##         crs(currentPredictors) = crs(raster()) #ajuste de projecao
-  ##         currentVals = extract(x=currentPredictors, y=currentDataSet[which(currentDataSet$age == age[i]), c('lon','lat')]) #extraindo dados ambientais
-  ##         predictorsData = rbind(predictorsData,
-  ##                                data.frame(currentDataSet[which(currentDataSet$age == age[i]),], currentVals)) #dataset com dados ambientais
-  ##     }
-  ## }
-  
-  if ( sum(idNA==FALSE)>0 ){ #caso tenha ocorrido dados de ocorrencia sem dados ambientais para a idade deles
+  ##caso tenha ocorrido dados de ocorrencia sem dados ambientais para a idade deles
+  if ( sum(idNA==FALSE) > 0 ){ 
     
     envirDataCols = grep(paste(c(cols,"ID"), collapse="|"), names(predictorsData), value=TRUE, invert=TRUE) #colunas com variaveis ambientais
     matrixNA = matrix(NA, nrow=nrow(currentDataSet[!idNA,]), ncol=length(envirDataCols)) #matriz deNAs
@@ -67,12 +55,14 @@ paleoextract = function(x, cols=names(x), path) {
     names(naData) = names(predictorsData) #ajuste de nomes das colunas
     predictorsData = rbind(predictorsData, naData) #juntando NAs e dados obtidos ("nao-NAs")
   }
-  
+
+  ##recuperando a organizacao original
   if( nrow(predictorsData) > 1 ){
-    predictorsData = predictorsData[order(predictorsData$ID),] #recuperando a organizacao original
+    predictorsData = predictorsData[order(predictorsData$ID),]
   }
   
-  predictorsData$ID = NULL #apagando ID helper
+  ##apagando ID helper
+  predictorsData$ID = NULL 
   
   ##output da funcao
   return(predictorsData)

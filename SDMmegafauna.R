@@ -35,11 +35,13 @@ source('/home/anderson/R-Scripts/stpv.R')
 projectFolder = "/home/anderson/Projetos/SDM megafauna Sul-Americana" #pasta de trabalho do projeto
 envFolder = "/home/anderson/gridfiles/dados_projeto" #pasta das variaveis ambientais
 AmSulBorders = rgdal::readOGR('/home/anderson/shapefiles/Am_Sul/borders.shp') #shapefile da Am. do Sul
+maxentFolder = '/home/anderson/R/x86_64-pc-linux-gnu-library/3.5/dismo/java'
 # ##Yavanna
 # projectFolder = "D:/Anderson_Eduardo/SDM megafauna Sul-Americana" #pasta de trabalho do projeto
 # setwd(projectFolder)
 # envFolder = "D:/Anderson_Eduardo/gridfiles/variaveis ambientais AmSul 120kyr" #pasta das variaveis ambientais
 # AmSulBorders = rgdal::readOGR('D:/Anderson_Eduardo/shapefiles/Am_Sul/borders.shp') #shapefile da Am. do Sul
+# maxentFolder = 'D:/Anderson_Eduardo/maxent'
 
 
 
@@ -54,8 +56,6 @@ preditorsStpv = c('bioclim_04', 'bioclim_10', 'bioclim_15', 'bioclim_16','biocli
 ##arquivo do banco de dados
 dataSetRaw = read.csv(file='/home/anderson/Projetos/SDM megafauna Sul-Americana/dataset_clean.csv', header=TRUE, dec='.', sep=',')
 #dataSetRaw = read.csv(file='D:/Anderson_Eduardo/SDM megafauna Sul-Americana/dataset_clean.csv', header=TRUE, dec='.', sep=',') #abrindo e tratando o banco de dados
-#maxentFolder = 'D:/Anderson_Eduardo/maxent'
-maxentFolder = '/home/anderson/R/x86_64-pc-linux-gnu-library/3.4/dismo/java'
 
 ##subset do banco de dados
 dataSetRaw = dataSetRaw[,c('Species','Longitude','Latitude','Cal..Mean','Min.','Max.')]

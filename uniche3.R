@@ -8,7 +8,7 @@ uniche3 = function(x, cols, envFolder, dataMaxAge=120, maxentFolder, n=100, reso
     colsIdx = grep(paste(cols,collapse="|"), names(pts))
     pts = pts[,colsIdx]
     names(pts) = c('lon','lat','ageMean','ageMin','ageMax')
-    pts$id = seq(nrow(pts)) #identidade dos pontos    
+    pts$id = seq(nrow(pts)) #identidade dos pontos
     envFolder = envFolder #caminho ate as pastas com as variaveis ambientais
     dataMaxAge = dataMaxAge #idade mais antiga entre os dados ambientais
     maxentFolder = maxentFolder #pasta em que est? o MaxEnt
@@ -33,43 +33,27 @@ uniche3 = function(x, cols, envFolder, dataMaxAge=120, maxentFolder, n=100, reso
     ptsAge = ptsAge[ !duplicated(ptsAge[,c('lon','lat','ageMean','ageMin','ageMax')]), ]
     ptsAge$ageMean = apply(ptsAge[,c('ageMin','ageMax')], 1, mean)
     pts = ptsAge
-
-    ##calculando os tamanhos amostrais
-    # tempRange = sapply(seq(nrow(pts)), function(x) pts[x,'ageMax'] - pts[x,'ageMin']) #vetor com a magnitude dos erros nos pontos
-    # sampleSize = ifelse(tempRange > 50, round(tempRange/2), tempRange) #tamanho da amostra dentro dos intervalos de erro das idades
-    # sampleSize = ifelse(sampleSize == 0, 1, sampleSize) #garantindo que nao haja zeros (se nao da erro)
-    # pccSampleSize = 2*max(sampleSize, na.rm=TRUE) #replicas para construcao de hipercubos e, consequentemente, a tabela de entrada do PCC
-
-
-    ##extraindo as variaveis ambientais para as instancias de dados
-    # dataInstances = lapply( seq(nrow(pts)), function(x) paleoextract(data.frame(lon = pts[x,'lon'],
-    #                                                                             lat = pts[x,'lat'],
-    #                                                                             age = seq(pts[x,'ageMin'], pts[x,'ageMax']),#sample(seq(pts[x,'ageMin'], pts[x,'ageMax']), sampleSize[x]),
-    #                                                                             id = pts[x,'ID']),
-    #                                                                  path = envFolder) )
-    
-    
-    
-    
-    #####################################################
-    ################## CONTINUAR DAQUI ################## 
-    ##rodei um teste do dataInstances abaixo e deu erro##
-    #####################################################
-    
-    
     
     ##criando as instancias de dados
-      dataInstances = lapply( seq(nRep), function(i)  {
+    dataInstances = lapply( seq(nRep), function(i)  {
       dataInstance_i = cbind( pts[,c('lon','lat','id')], age = sapply(X = seq(nrow(pts)), FUN = function(i)  sample( seq(pts[i,'ageMin'],pts[i,'ageMax']), 1))  )
     })
     
     ##extraindo as variaveis ambientais para as instancias de dados
-    dataInstances = lapply( seq(nRep), function(i) paleoextract(x = dataInstances[[i]], path = envFolder) )
+    for (i in seq(nRep)){
+      print(paste('Rodando para instancia de dados i = ',  i, sep=''))
+      dataInstances_i = paleoextract( x = dataInstances[[i]], path = envFolder )
+      dataInstances[[i]] = dataInstances_i
+    }
     
+    
+    
+    ##deixando apenas variaveis preditoras selecionadas pelo usuario
     finalCols = c( names(dataInstances[[1]][,1:4]), cols[-c(1:5)] )
-    dataInstances = lapply(seq(length(dataInstances)), function(x) dataInstances[[x]][, finalCols]) #apenas variaveis preditoras selecionadas pelo usuario
+    dataInstances = lapply(seq(length(dataInstances)), function(x) dataInstances[[x]][, finalCols]) 
     
-    dataInstances = lapply(seq(length(dataInstances)), function(x) dataInstances[[x]][complete.cases(dataInstances[[x]]),]) #excluindo dados faltantes (NAs)
+    ##excluindo dados faltantes (NAs)
+    dataInstances = lapply(seq(length(dataInstances)), function(x) dataInstances[[x]][complete.cases(dataInstances[[x]]),]) 
 
     ##excluindo possiveis falhas do paleoextract
     ncolsData = as.numeric(names(which.max(table(sapply(seq(length(dataInstances)), function(x) ncol(dataInstances[[x]]))))))
@@ -100,7 +84,6 @@ uniche3 = function(x, cols, envFolder, dataMaxAge=120, maxentFolder, n=100, reso
             #occPts_i = unique(occPts_i)
 
             ##background points
-            
             bgPts = paleobg(x = occPts_i, colNames = c('lon','lat','age'), envFolder = envFolder, n=10000)
             bgPts = bgPts[, grep(pattern = paste(names(occPts_i), collapse='|'), x = names(bgPts))]
             
@@ -207,7 +190,7 @@ uniche3 = function(x, cols, envFolder, dataMaxAge=120, maxentFolder, n=100, reso
     outputDataset = pts[ match(sdmData[[1]][,'id'], pts$id) , ] ##pts[sdmData[[1]][,'id'], c('lon','lat','ageMean','ageMin','ageMax','ID')] ##sdmData[[1]][,c('lon','lat','id')]  ##pts[c('lon','lat','ID')]
     output = list(dataset=outputDataset, uniche.TSS=pccOutputTSS, uniche.ROC=pccOutputROC)
     class(output) = 'uniche'
-    cat(' uniche-status | Uai?! Rapaz!! Análise finalizada com sucesso! Pelo menos assim espero...  : ) \n')
+    cat(' uniche-status | Uai?! Rapaaazzz!! Análise finalizada com sucesso! Pelo menos assim espero...  : ) \n')
     
     return(output)
     
