@@ -41,7 +41,7 @@ uniche3 = function(x, cols, envFolder, dataMaxAge=120, maxentFolder, n=100, reso
     
     ##extraindo as variaveis ambientais para as instancias de dados
     for (i in seq(nRep)){
-      print(paste('Rodando para instancia de dados i = ',  i, sep=''))
+      cat(' uniche-status | Extraindo dados ambientais para instancia de dados ',  i, '\n')
       dataInstances_i = paleoextract( x = dataInstances[[i]], path = envFolder )
       dataInstances[[i]] = dataInstances_i
     }
