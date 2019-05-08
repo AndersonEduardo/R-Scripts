@@ -10,9 +10,9 @@ library(usdm)
 source('/home/anderson/R-Scripts/paleoextract.R')
 source('/home/anderson/R-Scripts/strings2na.R')
 source('/home/anderson/R-Scripts/dataInstance.R')
-source('/home/anderson/R-Scripts/uplot.R')
+source('/home/anderson/R-Scripts/uplot2.R')
 ##source('/home/anderson/R-Scripts/uniche.R')
-source('/home/anderson/R-Scripts/uniche2.R') #uniche2
+source('/home/anderson/R-Scripts/uniche3.R') #uniche2
 source('/home/anderson/R-Scripts/cleanData.R')
 source('/home/anderson/R-Scripts/paleobg.R')
 source('/home/anderson/R-Scripts/stpv.R')
@@ -35,7 +35,7 @@ source('/home/anderson/R-Scripts/stpv.R')
 projectFolder = "/home/anderson/Projetos/SDM megafauna Sul-Americana" #pasta de trabalho do projeto
 envFolder = "/home/anderson/gridfiles/dados_projeto" #pasta das variaveis ambientais
 AmSulBorders = rgdal::readOGR('/home/anderson/shapefiles/Am_Sul/borders.shp') #shapefile da Am. do Sul
-maxentFolder = '/home/anderson/R/x86_64-pc-linux-gnu-library/3.5/dismo/java'
+maxentFolder = "/home/anderson/R/x86_64-pc-linux-gnu-library/3.4/dismo/java" #'/home/anderson/R/x86_64-pc-linux-gnu-library/3.5/dismo/java'
 # ##Yavanna
 # projectFolder = "D:/Anderson_Eduardo/SDM megafauna Sul-Americana" #pasta de trabalho do projeto
 # setwd(projectFolder)
@@ -91,9 +91,10 @@ for (i in seq(length(sps))){
   
   ##salvando output grafico
   jpeg(paste(projectFolder,'/Analise de sensibilidade e incerteza/',sps[i],'.jpeg',sep=''), 600, 600)
-  uplot2(analise.incerteza, AmSulBorders, legend=FALSE)
+  uplot2(x =  analise.incerteza, shape =  AmSulBorders, legend=FALSE)
   dev.off()
   
+  ##na esperanca de dar uma limpada na memoria...
   gc()
   
 }
@@ -149,10 +150,10 @@ for (i in seq(length(sps))){
       dir.create(paste(projectFolder,'/SDMs/',sps[i],sep=''), recursive=TRUE)
     }
     setwd(paste(projectFolder,'/SDMs/',sps[i],sep=''))
-  
+    
     ##abrindo dados
     load(paste(projectFolder,'/Analise de sensibilidade e incerteza/',sps[i],'.R',sep=''))
-  
+    
     ##excluding pts
     ptsToExcludeID = ptsToExclude[[agrep(sps[i], names(ptsToExclude))]]
     if ( !is.na(ptsToExcludeID) ){
@@ -166,11 +167,11 @@ for (i in seq(length(sps))){
     occData = occData[!duplicated(occData[,c('lon','lat')]), ]
     
     occDataList = dataInstance(x=occData, col_names=c('ageMean', 'ageMin', 'ageMax'), tempRes=1) #Obs.: put tempres=1 if age already is in the desired temporal resolution.
-  
+    
     save(occDataList, file=paste(projectFolder, '/SDMs/', gsub(' ','_',sps[i]), '_dataInstances.R', sep=''))
     
   }, error=function(e){cat("ERROR :",conditionMessage(e), "\n")})
-}  
+}
 
 
 
@@ -253,10 +254,10 @@ for (i in seq(length(sps))){
         rescal.all.models = FALSE,
         do.full.models = FALSE,
         modeling.id = myRespName)
- 
+      
       ##My output data
       evaluationScores = get_evaluations(myBiomodModelOut)
-    
+      
       ##salvando modelo no HD
       save(myBiomodModelOut, file=paste(projectFolder,'/SDMs/',gsub(pattern=' ',x=sps[i], replacement='_'),'_instance_',j,'_SDM','.R',sep=''))
       
@@ -272,9 +273,9 @@ for (i in seq(length(sps))){
 }
 
 
-      
+
 ## SDMs - projecao dos SDMs
-      
+
 
 
 ##loop over species
@@ -285,7 +286,7 @@ for (i in seq(length(sps))){
     setwd(paste(projectFolder, '/SDMs/', sps[i], sep=''))
     
     gc() #hoping to clean some computer memory...
-
+    
     ##predicao
     envVarPaths = list.files(envFolder, full.names=TRUE)
     

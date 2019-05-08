@@ -15,7 +15,6 @@ uniche3 = function(x, cols, envFolder, dataMaxAge=120, maxentFolder, n=100, reso
     nRep = n #numero de replicas para os datasets
     dataInstances = data.frame() #tabela de dados atual
     output = data.frame()
-
     
     ##completando dados faltantes pras idades
     ptsAge = t(apply(pts, 1, as.numeric)) #transforma informacao de texto em NA (ex.: pleistocene -> NA)
@@ -46,8 +45,6 @@ uniche3 = function(x, cols, envFolder, dataMaxAge=120, maxentFolder, n=100, reso
       dataInstances[[i]] = dataInstances_i
     }
     
-    
-    
     ##deixando apenas variaveis preditoras selecionadas pelo usuario
     finalCols = c( names(dataInstances[[1]][,1:4]), cols[-c(1:5)] )
     dataInstances = lapply(seq(length(dataInstances)), function(x) dataInstances[[x]][, finalCols]) 
@@ -63,7 +60,6 @@ uniche3 = function(x, cols, envFolder, dataMaxAge=120, maxentFolder, n=100, reso
         cat(" *OBSERVAÇÃO:", length(which(idx==FALSE)), " instância(s) dos dados foram excluidas por uma possível falha da função 'paleoextract.' \n")
     }
 
-    
     # ##replicas de conjuntos de dados para a construcao dos SDMs
     # sdmData = lapply(seq(pccSampleSize), function(x)
     #     do.call('rbind', lapply( seq(length(dataInstances)), function(x) dataInstances[[x]][sample(seq(nrow(dataInstances[[x]])), 1), ] )))
@@ -170,12 +166,12 @@ uniche3 = function(x, cols, envFolder, dataMaxAge=120, maxentFolder, n=100, reso
                                ROC = mean(evaluationScores['ROC','Testing.data',,,]),
                                t(occPts_i$age))
                            )
-            
-            ##apagando as porras das pastas criadas pelo o biomod2
-            unlink(paste('DataInstance.', i, sep=''), recursive=TRUE)
 
         }, error=function(e){cat("ERRO PONTUAL COM UM DOS SDMs :",conditionMessage(e), "\n")})
     }
+    
+    ##apagando as porras das pastas criadas pelo o biomod2
+    unlink(list.files(pattern ='DataInstance.'), recursive=TRUE)
 
     ##pcc - partial correlation coefficients
     cat(' uniche-status | Rodando PCC... \n')
