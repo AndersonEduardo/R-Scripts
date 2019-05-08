@@ -120,7 +120,9 @@ dataSetRaw = dataSetRaw[,c('Species','Longitude','Latitude','Cal..Mean','Min.','
 sps = as.character( unique(dataSetRaw$Species) )
 
 ##pts choosed to be excluded
-ptsToExclude = list(
+```
+ptsToExclude = 29
+``` = list(
   Catonyx_chilensis = NA,
   Catonyx_cuvieri = NA,
   Cuvieronius_hyodon = NA,
@@ -166,8 +168,13 @@ for (i in seq(length(sps))){
     occData[,c('lon','lat')] = round(occData[,c('lon','lat')], 2)
     occData = occData[!duplicated(occData[,c('lon','lat')]), ]
     
+<<<<<<< HEAD
     occDataList = dataInstance(x=occData, col_names=c('ageMean', 'ageMin', 'ageMax'), tempRes=1) #Obs.: put tempres=1 if age already is in the desired temporal resolution.
     
+=======
+    occDataList = dataInstance(x=occData, col_names=c('ageMean', 'ageMin', 'ageMax'))
+  
+>>>>>>> adfc8bb7ff6e5a665f292f29750183ce813c84ca
     save(occDataList, file=paste(projectFolder, '/SDMs/', gsub(' ','_',sps[i]), '_dataInstances.R', sep=''))
     
   }, error=function(e){cat("ERROR :",conditionMessage(e), "\n")})

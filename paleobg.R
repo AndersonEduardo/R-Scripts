@@ -28,6 +28,8 @@ paleobg = function(x, colNames=names(x), envFolder, n=10000){
     
     if(age_i %in% as.numeric(list.files(envFolder))){
       envData = list.files(paste(envFolder,'/',age_i,sep=''), full.names=TRUE)
+      varNames = basename(list.files(paste(envFolder,'/',age_i,sep=''), full.names=TRUE))
+      varNames = gsub("\\..*", "", varNames)
     }else{
       warning("Atenção: algumas idades não possuem dados ambientais no directório. NAs produzidos.")
       vecNA = append( vecNA, age_i )
@@ -46,7 +48,10 @@ paleobg = function(x, colNames=names(x), envFolder, n=10000){
     names(bgData_i) = c('lon','lat','age')
     bgData_i = round(bgData_i, 2)
     bgData_i = unique(bgData_i)
-    bgData_i = data.frame(bgData_i, extract(envData, bgData_i[,c('lon','lat')]))
+    bgData_i_vars = extract(envData, bgData_i[,c('lon','lat')])
+    bgData_i_vars = data.frame(bgData_i_vars)
+    names(bgData_i_vars) = varNames
+    bgData_i = data.frame(bgData_i,  bgData_i_vars)
     bgData = rbind(bgData, bgData_i)
   }
   

@@ -37,7 +37,7 @@ paleoextract = function(x, cols=names(x), path) {
     currentLines = currentDataSet[which(age_i==currentDataSet$age), c('lon','lat','id','age','ID')]
     currentPredictors = stack(list.files(file.path(path, age_i), pattern='.asc', full.names=TRUE))
     varNames = basename(list.files(file.path(path, age_i), pattern='.asc', full.names=TRUE))
-    varNames = gsub('.asc', '', varNames)
+    varNames = gsub('\\..*', '', varNames)
     ##problema com meus dados
     if("landmask" %in% names(currentPredictors)){
       currentPredictors = dropLayer(currentPredictors, grep(pattern='landmask',x=names(currentPredictors)))
