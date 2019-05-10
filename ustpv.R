@@ -8,7 +8,7 @@
 require(raster)
 require(usdm)
 
-stpv = function(path, ageMin, ageMax){
+ustpv = function(path, ageMin, ageMax){
   
   ##parametros
   #path = caminho para a pasta do conjunto de variaveis ambientais
