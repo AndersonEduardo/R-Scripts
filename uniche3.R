@@ -1,7 +1,7 @@
 ##pacotes necessarios
 require(biomod2)
 
-uniche3 = function(x, cols, envFolder, dataMaxAge=120, maxentFolder, n=100, resol=1000){
+uniche = function(x, cols, envFolder, dataMaxAge=120, maxentFolder, n=100, resol=1000){
 
     ##parametros e variaveis locais
     pts = x #dados de entrada
