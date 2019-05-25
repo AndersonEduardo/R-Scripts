@@ -1,4 +1,4 @@
-## funcao para minimum set of Spatio-Temporal Predictor Variables - STPV. 
+## funcao para Uncorrelated Spatio-Temporal Predictor Variables - USTPV. 
 ## O output eh um data.frame cujo conteudo indica quais variaveis estao pouco/não correlacionadas (numeros '1')
 ## e foram mantidas no dataset (usando a selecao de variaveis pela funcao 'vifcor' do  pacote usdm) quais 
 ## variaveis estão muito correlacionadas (numeros '0') e foram retiradas do dataset.
@@ -8,7 +8,7 @@
 require(raster)
 require(usdm)
 
-stpv = function(path, ageMin, ageMax){
+ustpv = function(path, ageMin, ageMax){
   
   ##parametros
   #path = caminho para a pasta do conjunto de variaveis ambientais
