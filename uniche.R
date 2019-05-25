@@ -1,119 +1,197 @@
-##funcao para analise avaliar a influencia incerteza na idade dos registros de ocorrencia sobre nicho modelado. O dataset de entrada deve ser um objeto da classe 'data.frame' ou uma lista (objeto da classe 'list') de data.frame's. Esses data.frame's devem ter as respectivas colunas (nesta ordem): (i) longitude, (ii) latitude, (iii) idade do registro. Essa funcao depende dos pacotes 'sensitivity' e 'hypervolume', além da funcao 'paleoextract'.
+##pacotes necessarios
+require(biomod2)
 
-uniche = function(x, envFolder){
+uniche3 = function(x, cols, envFolder, dataMaxAge=120, maxentFolder, n=100, resol=1){
 
-    cat('\n uniche-status | Inicializando função... \n')
+    ##parametros e variaveis locais
+    pts = x #dados de entrada
+    colsIdx = grep(paste(cols,collapse="|"), names(pts))
+    pts = pts[,colsIdx]
+    names(pts) = c('lon','lat','ageMean','ageMin','ageMax')
+    pts$id = seq(nrow(pts)) #identidade dos pontos
+    envFolder = envFolder #caminho ate as pastas com as variaveis ambientais
+    dataMaxAge = dataMaxAge #idade mais antiga entre os dados ambientais
+    maxentFolder = maxentFolder #pasta em que est? o MaxEnt
+    nRep = n #numero de replicas para os datasets
+    dataInstances = data.frame() #tabela de dados atual
+    output = data.frame()
 
-    ##pacotes necessarios
-    require(sensitivity)
-    require(hypervolume)
+    
+    ##completando dados faltantes pras idades
+    ptsAge = t(apply(pts, 1, as.numeric)) #transforma informacao de texto em NA (ex.: pleistocene -> NA)
+    ptsAgeMeanNA = apply( ptsAge, 1, function(x) ifelse(is.na(x[3]), mean(x[4:5]), x[3]) ) #se media=NA, obtem a partir do intervalo (max e min)
+    ptsAgeMinNA = apply( ptsAge, 1, function(x) ifelse(is.na(x[4]), x[3], x[4]) ) #se min=NA, entao min=mean (i.e. data altamente precisa)
+    ptsAgeMaxNA = apply( ptsAge, 1, function(x) ifelse(is.na(x[5]), x[3], x[5]) ) #se max=NA, entao max=mean (i.e. data altamente precisa)
+    ptsAge = data.frame(cbind(ptsAgeMeanNA,ptsAgeMinNA,ptsAgeMaxNA)) #consolidando os dados de idade
+    ptsAge = round(ptsAge/resol)
+    ptsAge = data.frame(pts[,c('lon','lat','id')], ptsAge)
+    names(ptsAge) = c('lon','lat','id','ageMean','ageMin','ageMax')
+    ptsAge$ageMax = ifelse(ptsAge$ageMin > dataMaxAge & ptsAge$ageMax > dataMaxAge, NA , ptsAge$ageMax) #se o intervalo pra idade estiver fora dos dados, excluir
+    ptsAge$ageMax = ifelse(ptsAge$ageMax > dataMaxAge, dataMaxAge , ptsAge$ageMax) #se a idade maxima estiver fora dos dados, considerar ate onde temos
+    ptsAge[,c('lon','lat')] = round(ptsAge[,c('lon','lat')], 2)
+    ptsAge = ptsAge[complete.cases(ptsAge),]
+    ptsAge = ptsAge[ !duplicated(ptsAge[,c('lon','lat','ageMean','ageMin','ageMax')]), ]
+    ptsAge$ageMean = apply(ptsAge[,c('ageMin','ageMax')], 1, mean)
+    pts = ptsAge
+    
+    ##criando as instancias de dados
+    dataInstances = lapply( seq(nRep), function(i)  {
+      dataInstance_i = cbind( pts[,c('lon','lat','id')], age = sapply(X = seq(nrow(pts)), FUN = function(i)  sample( seq(pts[i,'ageMin'],pts[i,'ageMax']), 1))  )
+    })
+    
+    ##extraindo as variaveis ambientais para as instancias de dados
+    for (i in seq(nRep)){
+      cat(' uniche-status | Extraindo dados ambientais para instancia de dados ',  i, '\n')
+      dataInstances_i = paleoextract( x = dataInstances[[i]], path = envFolder )
+      dataInstances[[i]] = dataInstances_i
+    }
+    
+    
+    
+    ##deixando apenas variaveis preditoras selecionadas pelo usuario
+    finalCols = c( names(dataInstances[[1]][,1:4]), cols[-c(1:5)] )
+    dataInstances = lapply(seq(length(dataInstances)), function(x) dataInstances[[x]][, finalCols]) 
+    
+    ##excluindo dados faltantes (NAs)
+    dataInstances = lapply(seq(length(dataInstances)), function(x) dataInstances[[x]][complete.cases(dataInstances[[x]]),]) 
 
-    if (!class(x) %in% c('list','data.frame')){
-        stop("O dataset de entrada deve ser um objeto da classe 'data.frame' ou uma lista (objeto da classe 'list') de data.frame's.")
+    ##excluindo possiveis falhas do paleoextract
+    ncolsData = as.numeric(names(which.max(table(sapply(seq(length(dataInstances)), function(x) ncol(dataInstances[[x]]))))))
+    idx = sapply( seq(length(dataInstances)), function(x) ncol(dataInstances[[x]]) == ncolsData )
+    if(length(which(idx==FALSE)) > 0){
+        dataInstances = lapply(which(idx==TRUE), function(x) dataInstances[[x]])
+        cat(" *OBSERVAÇÃO:", length(which(idx==FALSE)), " instância(s) dos dados foram excluidas por uma possível falha da função 'paleoextract.' \n")
     }
 
-    if (class(envFolder) != "character"){
-        stop("O argumento 'envFolder' deve ser um objeto da classe 'character' e deve ser o endereço da pasta com as variáveis ambientais.")
-    }
-
-
-    if (class(x) == "list"){
-        if ( !any(sapply(seq(length(x)), function(i) class(x[[i]])=="data.frame")) ){
-            stop("Quando o dataset de entrada é da classe 'list', todos os objetos dentro dela devem pertencer à classe 'data.frame'.")
-        }
-        if(ncol(x[[1]]) != 3){
-            stop("Os dados de entrada devem estar organizados em um data.frame com as respectivas colunas (nesta ordem): (i) longitude, (ii) latitude, (iii) idade do registro.")
-        }
-    }else{
-        if(ncol(x) != 3){
-            stop("Os dados de entrada devem estar organizados em um data.frame com as respectivas colunas (nesta ordem): (i) longitude, (ii) latitude, (iii) idade do registro.")
-        }
-    }
     
-    ##variaveis locais
-    currentDataSet = x
-    if( class(currentDataSet) != "list" ){
-        currentDataSet = list(x)
-    }
-    envFolder = envFolder
-    currentDataSet = lapply( seq(length(currentDataSet)), function(x) data.frame(lon=currentDataSet[[x]][,1], lat=currentDataSet[[x]][,2], age=currentDataSet[[x]][,3]) ) #ajustando nomes dos data.frames
-    currentDataSet = lapply( seq(length(currentDataSet)), function(x) data.frame( currentDataSet[[x]], id=seq(nrow(currentDataSet[[x]]))) ) #criando um ID para os pontos de ocorrencia
-    outputData = data.frame()
-
-    ##extraindo dados ambientais nos pontos de ocorrencia
-    cat(' uniche-status | Rodando paleoextract... \n')
-    currentDataSet = lapply( seq(length(currentDataSet)), function(x) paleoextract(x=currentDataSet[[x]], path=envFolder) )
-    cols = names(currentDataSet[[1]])[!names(currentDataSet[[1]]) %in% c('lon','lat','age','id')] #pegando os nomes das variaveis ambintais
-
+    # ##replicas de conjuntos de dados para a construcao dos SDMs
+    # sdmData = lapply(seq(pccSampleSize), function(x)
+    #     do.call('rbind', lapply( seq(length(dataInstances)), function(x) dataInstances[[x]][sample(seq(nrow(dataInstances[[x]])), 1), ] )))
+    # 
+    # sdmData = lapply(seq(length(sdmData)), function(x) sdmData[[x]][complete.cases(sdmData[[x]]),]) #excluindo dados faltantes (NAs)
     
-    ## currentDataSet = lapply( seq(length(currentDataSet)), function(x) currentDataSet[[x]][complete.cases(currentDataSet[[x]]),]  )
+    sdmData = dataInstances
     
-    ## dataSet_i =  paleoextract( x=currentDataSet[[i]], cols=c('lon','lat','age'), path=envFolder ) #obtendo variaveis ambientais para as ocorrencias
-    ## dataSet_i = dataSet_i[complete.cases(dataSet_i), ] #retirando NAs
-    
-    ## ##global hypervolume
-    ## referenceDataSet = do.call("rbind", currentDataSet)[,cols] #juntando todas as instancias em um unico dataset
-    ## ranges  = apply(referenceDataSet, 2, range) #pegando os valores extremos
-    ## buffers = apply(ranges, 2, diff) #criando um buffer em torno dos valores extremos
-    ## infBound = ranges[1,] - buffers #'borda' inferior
-    ## supBound = ranges[2,] + buffers #'borda' superior
-    ## globaldataSet = sapply( seq(length(cols)), function(x) runif(n=1000, min=infBound[x], max=supBound[x]) ) #dataset para volume global
-    ## globaldataSet = as.data.frame(globaldataSet)
-    ## names(globaldataSet) = names(referenceDataSet)
-    
-    ## globaldataSet = unique(globaldataSet) #retirando dados repetidos
-    ## globalPC = prcomp(globaldataSet[,-1], center=TRUE, scale.=TRUE) #PCA (obtancao de dimensoes ortogonais)
-    ## ## idx = which(summary(globalPC)$importance['Cumulative Proportion',] >= 0.95)[1] #helper para definicao dos PCs a serem usados
-    ## ## globalHypvol = hypervolume_gaussian(globalPC$x[,1:idx]) #criando o hipervolume global para os dados
-    ## globalHypvol = hypervolume_gaussian(globalPC$x[,1:3]) #criando o hipervolume global para os dados
-
-    cat(' uniche-status | Criando hipervolumes a partir dos dados... \n')
-    for (i in seq(length(currentDataSet))){
+    ##SDMs
+    cat(' uniche-status | Criando SDMs a partir dos dados... \n')
+    for (i in seq(length(sdmData))){
         tryCatch({
-            cat(' uniche-status | -Hipervolume', i,'\n')
-            ##hipervolume do i-esimo dataset
-            dataSet_i = currentDataSet[[i]]
-            dataSet_i =  dataSet_i[complete.cases(dataSet_i),]
-            dataSet_i = unique(dataSet_i)
-            PC = prcomp(dataSet_i[,cols], center=TRUE, scale.=TRUE) #dados ambientais de cada ponto
-            ## idx = which(summary(PC)$importance['Cumulative Proportion',] >= 0.95)[1] #helper para definicao dos PCs a serem usados
-            ## hypvol = hypervolume_gaussian(PC$x[,1:idx]) #hipervolume da i-esima instancia de dados
-            hypvol = hypervolume(data=PC$x[,1:3], method='gaussian', verbose=FALSE) #hipervolume da i-esima instancia de dados
+            cat(' uniche-status | -SDM', i,'\n')
 
-            marginality = sum(sqrt((get_centroid(hypvol))^2)) #marginalidade no 'nicho' (distancia do centro do hiperespaco (i.e, [0,0,0...]))
-            volume =  get_volume(hypvol)  #volume do 'nicho'
+            ##SDM do i-esimo dataset
+            occPts_i = sdmData[[i]]
+            #occPts_i =  occPts_i[complete.cases(occPts_i),]
+            #occPts_i = unique(occPts_i)
 
-            ##anotando dados
-            ## rawLine = matrix( rep(NA,length(currentDataSet[[i]]$id)), 1,length(currentDataSet[[i]]$id) )
-            ## colnames(rawLine) = paste('point_',currentDataSet[[i]]$id, sep='')
-            ## rawLine[,dataSet_i$id] = dataSet_i$age
-            rawline = data.frame(t(currentDataSet[[i]]$age))
-            names(rawline) = paste('point_',currentDataSet[[i]]$id, sep='')
+            ##background points
+            bgPts = paleobg(x = occPts_i, colNames = c('lon','lat','age'), envFolder = envFolder, n=10000)
+            bgPts = bgPts[, grep(pattern = paste(names(occPts_i), collapse='|'), x = names(bgPts))]
+            
+            # sampledAges = sample(sdmData[[i]]$age, size=10000, replace=TRUE)
+            # bgPts = data.frame()
+            # 
+            # for (sAge in unique(sampledAges)){ #amostrando em cada camada de tempo que consta na amostra
+            #     if (!sAge %in% list.files(envFolder)){     
+            #         next
+            #     }
+            #     envVarPath = list.files(path=paste(envFolder,'/', sAge,sep=''), full.names=TRUE) #lista com os enderecos das variaveis ambientais no tempo corresposndente a interacao
+            #     bgPts = rbind(bgPts,
+            #                   data.frame(dismo::randomPoints(mask = raster(envVarPath[1], crs = CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0')), n=sum(sAge==sampledAges)), age=sAge) #amostra dos pontos
+            #                   )
+            # }
+            # 
+            # ##extraindo dados ambientais
+            # #occEnvData = paleoextract(x=occPts_i[,c('lon','lat','age')], path=envFolder)
+            # occEnvData = occPts_i[,c('lon','lat','age')]
+            # names(bgPts) = names(occPts_i[,c('lon','lat','age')])
+            # bgEnvData = paleoextract(x=bgPts, path=envFolder)
+            # ##
+            # occEnvData$occ = 1
+            # bgEnvData$occ = 0
+            # ##
+            # sampleDataBG = rbind(occEnvData, bgEnvData) #juntando com os dados das outras camadas de tempo amostradas
+            
+            ##consolidando dataset
+            occPts_i$occ = 1
+            bgPts$occ = 0
+            dataSetNames = grep(pattern = "age|id|ID", x = names(occPts_i), invert = TRUE, value = TRUE)
+            dataSet = rbind(occPts_i[,dataSetNames], bgPts[,dataSetNames])
+            
+            ##variaveis e parametros locais especificos para o biomod2
+            myRespName <- paste('DataInstance_', i, sep='') # nome do cenario atual (para biomod2)
+            myResp <- dataSet[,c('occ')] # variavel resposta (para biomod2)
+            myRespXY <- dataSet[,c('lon','lat')] # coordenadas associadas a variavel resposta (para biomod2)
+            myExpl <- dataSet[, grep('lon|lat|occ', names(dataSet), invert=TRUE)]  #variavel preditora (para biomod2)
+    
+            ##ajuste de dados de entrada para biomod2
+            myBiomodData <- BIOMOD_FormatingData(resp.var = myResp,
+                                                 expl.var = myExpl,
+                                                 resp.xy = myRespXY,
+                                                 resp.name = myRespName)
+            
+            ## ##inspecionando o objeto gerado pela funcao do biomod2
+            ## myBiomodData
+            ## plot(myBiomodData)
+            
+            ##parametrizando os modelos
+            myBiomodOption <- BIOMOD_ModelingOptions(
+                MAXENT.Phillips=list(
+                    path_to_maxent.jar=maxentFolder,
+                    linear=TRUE,
+                    quadratic=TRUE,
+                    product=FALSE,
+                    threshold=FALSE,
+                    hinge=FALSE,
+                    maximumiterations=500,
+                    convergencethreshold=1.0E-5,
+                    threads=2))
 
-            outputData = rbind( outputData,
-                               data.frame(marginality=marginality, volume=volume, rawline, row.names=NULL) )
+            ##rodando o(s) algoritmo(s) (i.e. SDMs)
+            myBiomodModelOut <- BIOMOD_Modeling(
+                myBiomodData,
+                models = c('MAXENT.Phillips'),
+                models.options = myBiomodOption,
+                NbRunEval = 50,
+                DataSplit = 75,
+                VarImport = 0,
+                models.eval.meth = c('TSS','ROC'),
+                SaveObj = FALSE,
+                rescal.all.models = FALSE,
+                do.full.models = FALSE,
+                modeling.id = paste(myRespName, '_SDM', sep=''))
 
-        }, error=function(e){cat("ERROR PONTUAL COM UM DOS HIPERVOLUMES :",conditionMessage(e), "\n")})
+            ##My output data
+            evaluationScores = get_evaluations(myBiomodModelOut)
+
+            ##dados de output dos SDMs
+            output = rbind(output,
+                           data.frame(
+                               TSS = mean(evaluationScores['TSS','Testing.data',,,]),
+                               ROC = mean(evaluationScores['ROC','Testing.data',,,]),
+                               t(occPts_i$age))
+                           )
+            
+            ##apagando as porras das pastas criadas pelo o biomod2
+            unlink(paste('DataInstance.', i, sep=''), recursive=TRUE)
+
+        }, error=function(e){cat("ERRO PONTUAL COM UM DOS SDMs :",conditionMessage(e), "\n")})
     }
 
     ##pcc - partial correlation coefficients
     cat(' uniche-status | Rodando PCC... \n')
-    inputFactors = outputData[,grep('point',names(outputData))] #dados de entrada para o pcc (variaveis preditoras)
-    inputResponse = outputData[,c('marginality','volume')] #dados de entrada para o pcc (variavel resposta)
-    while( any(apply(inputFactors, 2, sd) < 1) ){
-        colIdx = which(apply( inputFactors, 2, sd ) < 1) #indice das colunas sem variancia
-        rowIdx = sample(nrow(inputFactors),round(0.5*nrow(inputFactors))) #sorteio de linhas para adicionar uma variancia minima (se nao da erro)
-        inputFactors[rowIdx,colIdx] = inputFactors[rowIdx,colIdx]+1 #garantindo que nao haja variancia zero
-    }
-    pccOutputMarginality = pcc(inputFactors, inputResponse[,'marginality'], nboot=1000) #PCC
-    pccOutputVolume = pcc(inputFactors, inputResponse[,'volume'], nboot=1000) #PCC
+    inputFactors = output[, grep('X',names(output))] #dados de entrada para o pcc (variaveis preditoras)
+    inputResponse = output[, c('TSS','ROC')] #dados de entrada para o pcc (variavel resposta)
+    ##
+    pccOutputTSS = pcc(inputFactors, inputResponse[,'TSS'], rank=TRUE, nboot=1000) #PCC
+    pccOutputROC = pcc(inputFactors, inputResponse[,'ROC'], rank=TRUE, nboot=1000) #PCC
     
     ##output da funcao
     cat(' uniche-status | Ajustando outputs... \n')
-    outputDataset = currentDataSet[[1]][c('lon','lat','id')]
-    output = list(dataset=outputDataset, uniche.marginality=pccOutputMarginality, uniche.volume=pccOutputVolume)
+    outputDataset = pts[ match(sdmData[[1]][,'id'], pts$id) , ] ##pts[sdmData[[1]][,'id'], c('lon','lat','ageMean','ageMin','ageMax','ID')] ##sdmData[[1]][,c('lon','lat','id')]  ##pts[c('lon','lat','ID')]
+    output = list(dataset=outputDataset, uniche.TSS=pccOutputTSS, uniche.ROC=pccOutputROC)
     class(output) = 'uniche'
-    cat(' uniche-status | Ô rapaz!! Análise finalizada com sucesso! Pelo menos assim espero...  : ) \n')
+    cat(' uniche-status | Uai?! Rapaaazzz!! Análise finalizada com sucesso! Pelo menos assim espero...  : ) \n')
+    
     return(output)
-
+    
 }

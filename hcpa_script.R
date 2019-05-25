@@ -16,7 +16,7 @@ projectFolder = "/home/anderson/Projetos/HCPA" #pasta do projeto
 envVarFolder = "/home/anderson/gridfiles/dados_projeto" #pasta com as variaveis ambientais
 envVarPaths = list.files(path=envVarFolder, full.names=TRUE) #lista com os caminhos das camadas no sistema (comp.)
 AmSulShape = rgdal::readOGR("/home/anderson/shapefiles/Am_Sul/borders.shp") #shape da America do Sul
-maxentFolder = '/home/anderson/R/x86_64-pc-linux-gnu-library/3.4/dismo/java/maxent.jar' #pasta para resultados do maxent
+maxentFolder = '/home/anderson/R/x86_64-pc-linux-gnu-library/3.5/dismo/java/maxent.jar' #pasta para resultados do maxent
 ## spsTypes = c('spHW', 'spHD', 'spCD') #nomes das especies
 ## sdmTypes = c('normal','optimized')
 sampleSizes = c(10,20,40,80,160)

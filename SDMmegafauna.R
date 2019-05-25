@@ -12,7 +12,7 @@ source('/home/anderson/R-Scripts/strings2na.R')
 source('/home/anderson/R-Scripts/dataInstance.R')
 source('/home/anderson/R-Scripts/uplot.R')
 ##source('/home/anderson/R-Scripts/uniche.R')
-source('/home/anderson/R-Scripts/uniche2.R') #uniche2
+source('/home/anderson/R-Scripts/uniche3.R') #uniche2
 source('/home/anderson/R-Scripts/cleanData.R')
 source('/home/anderson/R-Scripts/paleobg.R')
 source('/home/anderson/R-Scripts/stpv.R')
