@@ -16,12 +16,12 @@ projectFolder = "/home/anderson/Projetos/HCPA" #pasta do projeto
 envVarFolder = "/home/anderson/gridfiles/dados_projeto" #pasta com as variaveis ambientais
 envVarPaths = list.files(path=envVarFolder, full.names=TRUE) #lista com os caminhos das camadas no sistema (comp.)
 AmSulShape = rgdal::readOGR("/home/anderson/shapefiles/Am_Sul/borders.shp") #shape da America do Sul
-maxentFolder = '/home/anderson/R/x86_64-pc-linux-gnu-library/3.5/dismo/java/maxent.jar' #pasta para resultados do maxent
+maxentFolder = '/home/anderson/R/x86_64-pc-linux-gnu-library/3.6/dismo/java/maxent.jar' #pasta para resultados do maxent
 ## spsTypes = c('spHW', 'spHD', 'spCD') #nomes das especies
 ## sdmTypes = c('normal','optimized')
 sampleSizes = c(10,20,40,80,160)
 NumRep = 10 #numero de replicas (de cada cenario amostral)
-vies_levels = 5
+vies_levels = 5 #niveis de vies espacial/geografico na amostragem dos pontos (1 = maior vies / 5 = sem vies algum)
 Nsp = NumRep #numero de especies a serem criadas e trabalhadas igual ao numero de replicas
 SDMreplicates = 10 #numero de replicas para calibracao/validacao dos SDMs
 statResultsSDMnormal = data.frame() #tabela de estatisticas basicas do modelo
@@ -103,7 +103,7 @@ crs(predictors) = CRS('+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0') 
 
 #library(elevatr)
 #movResist = get_elev_raster(locations = predictors, z=7)
-elev = raster('/home/anderson/gridfiles/DEM/DEM.tif') #DEM
+elev = raster('/home/anderson/gridfiles/DEM.tif') #DEM
 elev = mask(x = elev, mask = AmSulShape) #mask for South America
 roug = terrain(x = elev, opt = 'roughness', unit = 'degrees') #rater layer for 'roughness'
 resfun = function(ro=roug){ 1/(1 + exp(+0.01*(ro - 200))) }
@@ -135,13 +135,17 @@ for(i in 1:Nsp){
     nichePrevalence = rasterOnes/(rasterOnes + rasterZeros)
     
     iterNich = iterNich+1
+    if (iterNich >= 10){
+      cat('\n Falha na criação do suitability da espécie', i,': algoritmo não convegiu.')
+      next
+    }
   }
   
   cat('\n Criando distribuição geográfica da espécie', i)
   iterDist = 0
   nichePrevalence = 0
   while( (nichePrevalence < 0.1) | (nichePrevalence > 0.6) ){
-    iter = round(runif(n = 1, min = 100, max = 300)) #varying dispertion rate (here, 1 step = 5km/year)
+    iter = round(runif(n = 1, min = 500, max = 1000)) #equivalent to varying dispertion rate (here, 1 step = 5km/year)
     SpDistAC = rangeByAC(envAreas = SpSuitDist, movRes = resdata, iter = iter) #criando a area de distribuicao da sps (usando automato celular)
     
     rasterOnes = freq(SpDistAC > 0.1, na.rm = TRUE)[2,2]
@@ -149,6 +153,10 @@ for(i in 1:Nsp){
     nichePrevalence = rasterOnes/(rasterOnes + rasterZeros)
     
     iterDist = iterDist+1
+    if (iterDist >= 10){
+      cat('\n Falha na criação da distribuição geográfica da espécie', i,': algoritmo não convegiu.')
+      next
+    }
   }
   
   ##salvando figura e dados da distribuicao de cada especie

@@ -112,7 +112,7 @@ rangeByAC = function(envAreas, movRes, iter=100){
     
     borderOcc = borderOcc*borderMig #occupancy of borders accounting for environmental niche AND environmental resistance for species moviment
     
-    #updating sps range - filling cels
+    #updating sps range - filling up cells
     spRange_i[c(occupiedCells, cellsBorder)] = c(rep(1,length(occupiedCells)), borderOcc) 
     
   }

@@ -1,11 +1,7 @@
 ##pacotes necessarios
 require(biomod2)
 
-<<<<<<< HEAD
-uniche3 = function(x, cols, envFolder, dataMaxAge=120, maxentFolder, n=100, resol=1){
-=======
-uniche = function(x, cols, envFolder, dataMaxAge=120, maxentFolder, n=100, resol=1){
->>>>>>> 446e3280e59c07ecbd2511267d5fda1f1ef01e38
+uniche = function(x, cols, envFolder, dataMaxAge=120, maxentFolder, resol=1){
 
     ##parametros e variaveis locais
     pts = x #dados de entrada
@@ -16,14 +12,10 @@ uniche = function(x, cols, envFolder, dataMaxAge=120, maxentFolder, n=100, resol
     envFolder = envFolder #caminho ate as pastas com as variaveis ambientais
     dataMaxAge = dataMaxAge #idade mais antiga entre os dados ambientais
     maxentFolder = maxentFolder #pasta em que est? o MaxEnt
-    nRep = n #numero de replicas para os datasets
+    nRep = NULL #numero de replicas para os datasets
     dataInstances = data.frame() #tabela de dados atual
-    output = data.frame()
-<<<<<<< HEAD
+    outputSDM = data.frame()
 
-=======
->>>>>>> 446e3280e59c07ecbd2511267d5fda1f1ef01e38
-    
     ##completando dados faltantes pras idades
     ptsAge = t(apply(pts, 1, as.numeric)) #transforma informacao de texto em NA (ex.: pleistocene -> NA)
     ptsAgeMeanNA = apply( ptsAge, 1, function(x) ifelse(is.na(x[3]), mean(x[4:5]), x[3]) ) #se media=NA, obtem a partir do intervalo (max e min)
@@ -40,9 +32,10 @@ uniche = function(x, cols, envFolder, dataMaxAge=120, maxentFolder, n=100, resol
     ptsAge = ptsAge[ !duplicated(ptsAge[,c('lon','lat','ageMean','ageMin','ageMax')]), ]
     ptsAge$ageMean = apply(ptsAge[,c('ageMin','ageMax')], 1, mean)
     pts = ptsAge
-<<<<<<< HEAD
     
     ##criando as instancias de dados
+    nRep = round(1.5 * nrow(pts), 0) #deve haver mais linhas que colunas (nRep == numero de linhas nos conjuntos de dados para o PCC)
+    
     dataInstances = lapply( seq(nRep), function(i)  {
       dataInstance_i = cbind( pts[,c('lon','lat','id')], age = sapply(X = seq(nrow(pts)), FUN = function(i)  sample( seq(pts[i,'ageMin'],pts[i,'ageMax']), 1))  )
     })
@@ -53,22 +46,6 @@ uniche = function(x, cols, envFolder, dataMaxAge=120, maxentFolder, n=100, resol
       dataInstances_i = paleoextract( x = dataInstances[[i]], path = envFolder )
       dataInstances[[i]] = dataInstances_i
     }
-    
-    
-=======
-    
-    ##criando as instancias de dados
-    dataInstances = lapply( seq(nRep), function(i)  {
-      dataInstance_i = cbind( pts[,c('lon','lat','id')], age = sapply(X = seq(nrow(pts)), FUN = function(i)  sample( seq(pts[i,'ageMin'],pts[i,'ageMax']), 1))  )
-    })
-    
-    ##extraindo as variaveis ambientais para as instancias de dados
-    for (i in seq(nRep)){
-      cat(' uniche-status | Extraindo dados ambientais para instancia de dados ',  i, '\n')
-      dataInstances_i = paleoextract( x = dataInstances[[i]], path = envFolder )
-      dataInstances[[i]] = dataInstances_i
-    }
->>>>>>> 446e3280e59c07ecbd2511267d5fda1f1ef01e38
     
     ##deixando apenas variaveis preditoras selecionadas pelo usuario
     finalCols = c( names(dataInstances[[1]][,1:4]), cols[-c(1:5)] )
@@ -85,10 +62,6 @@ uniche = function(x, cols, envFolder, dataMaxAge=120, maxentFolder, n=100, resol
         cat(" *OBSERVAÇÃO:", length(which(idx==FALSE)), " instância(s) dos dados foram excluidas por uma possível falha da função 'paleoextract.' \n")
     }
 
-<<<<<<< HEAD
-    
-=======
->>>>>>> 446e3280e59c07ecbd2511267d5fda1f1ef01e38
     # ##replicas de conjuntos de dados para a construcao dos SDMs
     # sdmData = lapply(seq(pccSampleSize), function(x)
     #     do.call('rbind', lapply( seq(length(dataInstances)), function(x) dataInstances[[x]][sample(seq(nrow(dataInstances[[x]])), 1), ] )))
@@ -176,7 +149,7 @@ uniche = function(x, cols, envFolder, dataMaxAge=120, maxentFolder, n=100, resol
                 myBiomodData,
                 models = c('MAXENT.Phillips'),
                 models.options = myBiomodOption,
-                NbRunEval = 50,
+                NbRunEval = 3,
                 DataSplit = 75,
                 VarImport = 0,
                 models.eval.meth = c('TSS','ROC'),
@@ -189,18 +162,12 @@ uniche = function(x, cols, envFolder, dataMaxAge=120, maxentFolder, n=100, resol
             evaluationScores = get_evaluations(myBiomodModelOut)
 
             ##dados de output dos SDMs
-            output = rbind(output,
+            outputSDM = rbind(outputSDM,
                            data.frame(
                                TSS = mean(evaluationScores['TSS','Testing.data',,,]),
                                ROC = mean(evaluationScores['ROC','Testing.data',,,]),
                                t(occPts_i$age))
                            )
-<<<<<<< HEAD
-            
-            ##apagando as porras das pastas criadas pelo o biomod2
-            unlink(paste('DataInstance.', i, sep=''), recursive=TRUE)
-=======
->>>>>>> 446e3280e59c07ecbd2511267d5fda1f1ef01e38
 
         }, error=function(e){cat("ERRO PONTUAL COM UM DOS SDMs :",conditionMessage(e), "\n")})
     }
@@ -210,9 +177,9 @@ uniche = function(x, cols, envFolder, dataMaxAge=120, maxentFolder, n=100, resol
 
     ##pcc - partial correlation coefficients
     cat(' uniche-status | Rodando PCC... \n')
-    inputFactors = output[, grep('X',names(output))] #dados de entrada para o pcc (variaveis preditoras)
-    inputResponse = output[, c('TSS','ROC')] #dados de entrada para o pcc (variavel resposta)
-    ##
+    inputFactors = outputSDM[, grep('X',names(outputSDM))] #dados de entrada para o pcc (variaveis preditoras)
+    inputResponse = outputSDM[, c('TSS','ROC')] #dados de entrada para o pcc (variavel resposta)
+
     pccOutputTSS = pcc(inputFactors, inputResponse[,'TSS'], rank=TRUE, nboot=1000) #PCC
     pccOutputROC = pcc(inputFactors, inputResponse[,'ROC'], rank=TRUE, nboot=1000) #PCC
     
