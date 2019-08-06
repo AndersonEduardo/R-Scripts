@@ -318,7 +318,16 @@ for(i in 1:Nsp){
         
         ##preditoras com as variaveis selecionadas
         predictors = predictorsForVif[[ grep(pattern=paste(as.character(predictorsVif1@results$Variables), collapse='|'), x=names(predictorsForVif)) ]]
-        save(predictors, file=paste(projectFolder, '/SDMnormal/sp', i, '.sample', sampleSizes[j], '.biaslevel',current_vies_level,'.SDMnormal/predictors.RData', sep=''))
+        
+        ##verifica e cria diretorio para salvar datasets 
+        folder_path = paste(projectFolder, '/SDMnormal/sp', i, '.sample', sampleSizes[j], '.biaslevel',current_vies_level,'.SDMnormal', sep='')
+        
+        if (file.exists(folder_path)){
+          save(predictors, file=paste(projectFolder, '/SDMnormal/sp', i, '.sample', sampleSizes[j], '.biaslevel',current_vies_level,'.SDMnormal/predictors.RData', sep=''))
+        } else {
+          dir.create(folder_path, recursive=TRUE)
+          save(predictors, file=paste(projectFolder, '/SDMnormal/sp', i, '.sample', sampleSizes[j], '.biaslevel',current_vies_level,'.SDMnormal/predictors.RData', sep=''))
+        }
         
         ##arquivo de log da selecao de variaveis
         cat("Output of variable selection for the current sps (using the R funtion 'vifcor' from usdm package): \n \n", file=paste(projectFolder,'/logfileSDMnormalBiomod2.txt',sep=''), append=TRUE) #gravando no arquivo
