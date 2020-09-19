@@ -3,12 +3,16 @@
 ## 07/fev;2019
 
 
+##diretório do projeto
+projectFolder = "/home/anderson/Projetos/HCPA" #pasta do projeto
+
+
 ##ambiente para salvar os graficos
 setwd(projectFolder)
 
 ##planilhas de dados
-statResultsSDMimproved = read.csv(paste(projectFolder,'/StatisticalResults_SDMimproved','.csv',sep=''), header=TRUE)
-statResultsSDMnormal = read.csv(paste(projectFolder,'/StatisticalResults_SDMnormal','.csv',sep=''), header=TRUE)
+statResultsSDMimproved = read.csv(paste(projectFolder,'/SDMimproved/StatisticalResults_SDMimproved','.csv',sep=''), header=TRUE)
+statResultsSDMnormal = read.csv(paste(projectFolder,'/SDMnormal/StatisticalResults_SDMnormal','.csv',sep=''), header=TRUE)
 
 # statResultsSDMimproved = read.csv(paste(projectFolder,'/improved','.csv',sep=''), header=TRUE)
 # statResultsSDMnormal = read.csv(paste(projectFolder,'/normal','.csv',sep=''), header=TRUE)
@@ -17,18 +21,21 @@ statResultsSDMnormal = read.csv(paste(projectFolder,'/StatisticalResults_SDMnorm
 dim(statResultsSDMnormal)
 dim(statResultsSDMimproved)
 
+names(statResultsSDMnormal)
+names(statResultsSDMimproved)
+
 ## Verificando atraves do grafico de barras simples ##
 ##igualando os nomes na coluna modelos (estam diferentes)
-statResultsSDMimproved$Model.name = gsub(pattern='_AllData|_PA1' , replacement='' , x=as.character(statResultsSDMimproved$Model.name))
-statResultsSDMnormal$Model.name = gsub(pattern='_PA1' , replacement='' , x=as.character(statResultsSDMnormal$Model.name))
+# statResultsSDMimproved$Model.name = gsub(pattern='_AllData|_PA1' , replacement='' , x=as.character(statResultsSDMimproved$Model.name))
+# statResultsSDMnormal$Model.name = gsub(pattern='_PA1' , replacement='' , x=as.character(statResultsSDMnormal$Model.name))
 
 ##contando (pela coluna que optar para ser discriminada)
-xxImp = table(statResultsSDMimproved$sampleSize)
-xxNor = table(statResultsSDMnormal$sampleSize)
+# xxImp = table(statResultsSDMimproved$sampleSize)
+# xxNor = table(statResultsSDMnormal$sampleSize)
 
-pooledData = cbind(xxImp,xxNor) ##juntando numa matrix (necessario para o barplot)
+# pooledData = cbind(xxImp,xxNor) ##juntando numa matrix (necessario para o barplot)
 
-barplot( t(pooledData), beside=T, las=2, mar=c(12,5,5,5), legend.text=c('HCPA','Normal')) #grafico
+# barplot( t(pooledData), beside=T, las=2, mar=c(12,5,5,5), legend.text=c('HCPA','Normal')) #grafico
 ####
 
 
@@ -36,35 +43,37 @@ barplot( t(pooledData), beside=T, las=2, mar=c(12,5,5,5), legend.text=c('HCPA','
 ##exemplo:
 ##newTab=merge(tabB,tabA,by=c('infoA','infoB'))[,-3] ##a terceira coluna e da planilha menor
 
-statResultsSDMnormal = merge(statResultsSDMimproved,
-                             statResultsSDMnormal, 
-                             all.y=TRUE,
-                             by=c('sampleSize','biaslevel','Model.name','Eval.metric'))[,c('SDM.y',
-                                                                                           'sampleSize',
-                                                                                           'biaslevel',
-                                                                                           'Model.name', 
-                                                                                           'Eval.metric', 
-                                                                                           'Testing.data.y',
-                                                                                           "Evaluating.data.y",
-                                                                                           "Cutoff.y",
-                                                                                           "Sensitivity.y",
-                                                                                           "Specificity.y")]
+# statResultsSDMnormal = merge(statResultsSDMimproved,
+#                              statResultsSDMnormal, 
+#                              all.y=TRUE,
+#                              by=c('sampleSize','biaslevel','Model.name','Eval.metric'))[,c('SDM.y',
+#                                                                                            'sampleSize',
+#                                                                                            'biaslevel',
+#                                                                                            'Model.name', 
+#                                                                                            'Eval.metric', 
+#                                                                                            'Testing.data.y',
+#                                                                                            "Evaluating.data.y",
+#                                                                                            "Cutoff.y",
+#                                                                                            "Sensitivity.y",
+#                                                                                            "Specificity.y")]
 
 
 ##ajustando so nomes
-names(statResultsSDMnormal) = names(statResultsSDMimproved)
+# names(statResultsSDMnormal) = names(statResultsSDMimproved) #TODO: SDMnormal ESTÁ SEM A COLUNA ESPÉCIES
 
-modelNames = unique( gsub(pattern='_.*' , replacement='' , x=as.character(statResultsSDMnormal$Model.name)) )
+#statResultsSDMimproved['sp'] = NULL #retirando, para testar os resultados em maos
+
+# modelNames = unique( gsub(pattern='_.*' , replacement='' , x=as.character(statResultsSDMnormal$Model.name)) )
 
 
 ##chacagem rapida
-for(i in modelNames){
-  print(paste(i, 
-              ' ==>> SDMnormal = ', length(statResultsSDMnormal$Model.name[ grep(modelNames[1], statResultsSDMnormal$Model.name) ]),
-              ' // ',
-              'SDMimproved = ',length(statResultsSDMimproved$Model.name[ grep(modelNames[1], statResultsSDMimproved$Model.name) ]),
-              sep=''))
-}
+# for(i in modelNames){
+#   print(paste(i, 
+#               ' ==>> SDMnormal = ', length(statResultsSDMnormal$Model.name[ grep(modelNames[1], statResultsSDMnormal$Model.name) ]),
+#               ' // ',
+#               'SDMimproved = ',length(statResultsSDMimproved$Model.name[ grep(modelNames[1], statResultsSDMimproved$Model.name) ]),
+#               sep=''))
+# }
 
 
 ##boxplot AUC
@@ -125,16 +134,16 @@ wilcox.test(statResultsSDMimproved$TSSvalue_bestModel,statResultsSDMnormal$TSSva
 
 ## TSS e AUC por algoritmo
 
-jpeg(filename='TSS_por_algoritmo.jpeg', width=800)
-par(mfrow=c(1,2), las=2, mar=c(8,5,5,1))
-boxplot(statResultsSDMnormal[statResultsSDMnormal$Eval.metric=='TSS',]$Testing.data ~ statResultsSDMnormal[statResultsSDMnormal$Eval.metric=='TSS',]$Model.name, ylim=c(0,1), ylab='TSS', main='SDM normal')
-boxplot(statResultsSDMimproved[statResultsSDMimproved$Eval.metric=='TSS',]$Testing.data ~ statResultsSDMimproved[statResultsSDMimproved$Eval.metric=='TSS',]$Model.name, ylim=c(0,1), ylab='TSS', main='SDM improved')
+jpeg(filename='TSS_por_algoritmo.jpeg', width=900, height=700)
+par(mfrow=c(1,2), las=2, mar=c(14,6,7,1))
+boxplot(statResultsSDMnormal[statResultsSDMnormal$Eval.metric=='TSS',]$Testing.data ~ statResultsSDMnormal[statResultsSDMnormal$Eval.metric=='TSS',]$Model.name, ylim=c(0,1), ylab='TSS', xlab='', main='SDM normal')
+boxplot(statResultsSDMimproved[statResultsSDMimproved$Eval.metric=='TSS',]$Testing.data ~ statResultsSDMimproved[statResultsSDMimproved$Eval.metric=='TSS',]$Model.name, ylim=c(0,1), ylab='TSS', xlab='', main='SDM improved')
 dev.off()
 
-jpeg(filename='AUC_por_algoritmo.jpeg', width=800)
-par(mfrow=c(1,2), las=2, mar=c(12,5,5,1))
-boxplot(statResultsSDMnormal[statResultsSDMnormal$Eval.metric=='ROC',]$Testing.data ~ statResultsSDMnormal[statResultsSDMnormal$Eval.metric=='ROC',]$Model.name, ylim=c(0,1), ylab='AUC', main='SDM normal')
-boxplot(statResultsSDMimproved[statResultsSDMimproved$Eval.metric=='ROC',]$Testing.data ~ statResultsSDMimproved[statResultsSDMimproved$Eval.metric=='ROC',]$Model.name, ylim=c(0,1), ylab='AUC', main='SDM improved')
+jpeg(filename='AUC_por_algoritmo.jpeg', width=900, height=700)
+par(mfrow=c(1,2), las=2, mar=c(14,6,7,1))
+boxplot(statResultsSDMnormal[statResultsSDMnormal$Eval.metric=='ROC',]$Testing.data ~ statResultsSDMnormal[statResultsSDMnormal$Eval.metric=='ROC',]$Model.name, ylim=c(0,1), ylab='AUC', xlab='', main='SDM normal')
+boxplot(statResultsSDMimproved[statResultsSDMimproved$Eval.metric=='ROC',]$Testing.data ~ statResultsSDMimproved[statResultsSDMimproved$Eval.metric=='ROC',]$Model.name, ylim=c(0,1), ylab='AUC', xlab='', main='SDM improved')
 dev.off()
 
 
@@ -149,10 +158,10 @@ kruskal.test(AUCvalue_bestModel ~ model, data=statResultsSDMimproved) #resultado
 
 ## especificidade (escolha do melhor modelo)
 
-jpeg(filename='especificidade_por_algoritmo.jpeg', width=800)
-par(mfrow=c(1,2), las=2, mar=c(8,5,5,1))
-boxplot(statResultsSDMnormal[statResultsSDMnormal$Eval.metric=='ROC',]$Specificity ~ statResultsSDMnormal[statResultsSDMnormal$Eval.metric=='ROC',]$Model.name, ylab='Specificity', main='Maximization of AUC')
-boxplot(statResultsSDMnormal[statResultsSDMnormal$Eval.metric=='TSS',]$Specificity ~ statResultsSDMnormal[statResultsSDMnormal$Eval.metric=='TSS',]$Model.name, ylab='Specificity', main='Maximization of TSS')
+jpeg(filename='especificidade_por_algoritmo.jpeg', width=900, height=700)
+par(mfrow=c(1,2), las=2, mar=c(14,6,7,1))
+boxplot(statResultsSDMnormal[statResultsSDMnormal$Eval.metric=='ROC',]$Specificity ~ statResultsSDMnormal[statResultsSDMnormal$Eval.metric=='ROC',]$Model.name, ylab='Specificity', xlab='', main='Maximization of AUC')
+boxplot(statResultsSDMnormal[statResultsSDMnormal$Eval.metric=='TSS',]$Specificity ~ statResultsSDMnormal[statResultsSDMnormal$Eval.metric=='TSS',]$Model.name, ylab='Specificity', xlab='', main='Maximization of TSS')
 dev.off()
 
 #teste especificade
@@ -169,7 +178,7 @@ abline(tendenciaNorm)
 points(statResultsSDMimproved[statResultsSDMimproved$Eval.metric=='ROC',]$Testing.data ~ statResultsSDMimproved[statResultsSDMimproved$Eval.metric=='ROC',]$biaslevel, ylim=c(0,1), pch=19, col=rgb(1,0,0,0.5))
 tendenciaImprov = lm(statResultsSDMimproved[statResultsSDMimproved$Eval.metric=='ROC',]$Testing.data ~ statResultsSDMimproved[statResultsSDMimproved$Eval.metric=='ROC',]$biaslevel)
 abline(tendenciaImprov, col='red')
-dev.off()
+                                                                                                                                                                                                                                                  dev.off()
 
 jpeg(filename='tssXbiasleval.jpeg', width=800) #TSS
 plot(statResultsSDMnormal[statResultsSDMnormal$Eval.metric=='TSS',]$Testing.data ~ statResultsSDMnormal[statResultsSDMnormal$Eval.metric=='TSS',]$biaslevel, ylim=c(0,1), xlab='Bias level', ylab='TSS', pch=19, col=rgb(0,0,0,0.5))

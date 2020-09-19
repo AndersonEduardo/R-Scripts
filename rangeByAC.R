@@ -120,7 +120,8 @@ rangeByAC = function(envAreas, movRes, iter=100){
   #adjusting final gridfile
   spRange = spRange_i
   maskHelper = spSuit
-  maskHelper[values(maskHelper)>0] = 1
+  maskHelper[values(maskHelper)>=0.1] = 1
+  maskHelper[values(maskHelper)<0.1] = NA
   spRange = spRange*maskHelper
   
   #output - parabin - parabem - paraboom!
